@@ -21,7 +21,7 @@ polish_inspect :: proc(t: ^testing.T, s: ^session.Session, tab: ^Tab, name: stri
 	testing.expect(t, folder_cursor_to_name(&tab.folder, name), loc = loc)
 	folder_pick(&tab.folder, tab.folder.cursor)
 	session.key(s, .Space)
-	testing.expect(t, (^App)(s.user).inspector.open, loc = loc)
+	testing.expect(t, inspector_shown((^App)(s.user)), loc = loc)
 	session.wait_until(s, polish_ready, "the inspector", loc = loc)
 	session.frames(s, 2)
 }
@@ -112,11 +112,11 @@ test_inspector_nothing :: proc(t: ^testing.T) {
 		dir := make_fixture(t, {"empty/"})
 		s, app := start(t, {fs.join(dir, "empty", context.temp_allocator)})
 		session.key(s, .Space)
-		testing.expect(t, app.inspector.open)
+		testing.expect(t, inspector_shown(app))
 		session.frames(s, 2)
 		testing.expect(t, session.find(s, "insp_close") != nil, "the close button")
 		testing.expect(t, session.find_text(s, "This folder is empty.") != nil, "said")
 		session.click(s, "insp_close")
-		testing.expect(t, !app.inspector.open, "closed")
+		testing.expect(t, !inspector_shown(app), "closed")
 	})
 }

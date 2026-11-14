@@ -21,7 +21,6 @@ import "fs"
 GOTO_ROWS :: 12
 
 Goto :: struct {
-	open:      bool,
 	field:     ui.Line_Edit,
 	sel:       int,
 	scroll:    int,
@@ -47,13 +46,22 @@ goto_free :: proc(g: ^Goto) {
 
 act_goto_popup :: proc(app: ^App) {
 	g := &app.goto
-	g.open = true
 	ui.line_edit_clear(&g.field)
 	g.sel, g.scroll, g.moved = 0, 0, false
 	g.focus_due = true
 	// (read again at each opening: a folder made since, a listing that failed)
 	delete(g.asked)
 	g.asked = ""
+	ui.view_open(&app.views, GOTO_VIEW, app)
+}
+
+// Its width when it opens as a dialog (em), and its top in the window.
+GOTO_WIDTH_EM :: 46
+GOTO_TOP :: 0.12
+
+goto_register :: proc(app: ^App) {
+	// (no header: its field is its top, as the palette's)
+	ui.view_register(&app.views, GOTO_VIEW, goto_view, ui.View_Options{title = i18n.later("Go to"), icon = lucide.FOLDER_SEARCH, icon_font = app.icons, no_header = true, top = GOTO_TOP, width_em = GOTO_WIDTH_EM})
 }
 
 Goto_Row :: struct {
@@ -202,11 +210,13 @@ typed_is_whole :: proc(app: ^App, text: string) -> bool {
 	return false
 }
 
-goto_build :: proc(app: ^App) {
+// The view: the field, the rows that match, the keys' help. As a dialog it is as wide as the window allows; elsewhere
+// (floating, docked, in a window) as wide as its room.
+@(private = "file")
+goto_view :: proc(v: ^ui.View, app: ^App) {
 	g := &app.goto
-	if !g.open { return }
 	em := ui.font_size()
-	pw := min(em * 46, app.room * ui.scale() * 0.92)
+	pw := v.presentation == .Dialog ? min(em * GOTO_WIDTH_EM, app.room * ui.scale() * 0.92) : ui.view_room(v).x
 	text := ui.line_edit_string(&g.field)
 	rows := goto_rows(app, text)
 	n := len(rows)
@@ -215,8 +225,8 @@ goto_build :: proc(app: ^App) {
 	g.mouse = mouse
 	go_to := ""
 
-	if ui.modal("goto", &g.open, {width_em = pw / em, top = 0.12}) {
-		// (its keys read in its scope: an open dialog holds them, code built outside it gets none)
+	{
+		// (its keys read in its view: a dialog holds them; floating or docked, they are its own while it has the focus)
 		if n > 0 {
 			if ui.key_press(.Down) { g.sel = (g.sel + 1) % n; g.moved = true }
 			if ui.key_press(.Up) { g.sel = (g.sel + n - 1) % n; g.moved = true }
@@ -242,7 +252,7 @@ goto_build :: proc(app: ^App) {
 				res: ui.Edit_Result
 				if ui.tags("bare") { res = ui.line_edit("###goto_input", &g.field, {placeholder = "Go to: a path, or a few letters of a folder", clearable = true}) }
 				if res.changed { g.sel, g.scroll, g.moved = 0, 0, false }
-				if res.cancelled { g.open = false }
+				if res.cancelled { ui.view_end(v, ui.VIEW_CANCELLED) }
 				if res.committed {
 					// (the path as typed when it is whole, else the row chosen, else the path typed as it is)
 					switch {
@@ -251,6 +261,8 @@ goto_build :: proc(app: ^App) {
 					case fs.looks_like_path(text):                    go_to = expand_home(app, text)
 					}
 				}
+				// (in its first build, unseen: a dialog measured before it shows keeps the focus its builds gave, and the
+				// letters typed meanwhile come into the field)
 				if g.focus_due { ui.set_focus(input_key); g.focus_due = false }
 				ui.spacer(ui.px(em * 0.8))
 			}
@@ -303,6 +315,6 @@ goto_build :: proc(app: ^App) {
 	}
 	if go_to != "" {
 		path := strings.clone(go_to, context.temp_allocator)
-		if goto_path(app, path) { g.open = false }
+		if goto_path(app, path) { ui.view_end(v, 0) }
 	}
 }

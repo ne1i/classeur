@@ -17,7 +17,8 @@ is immediate-mode); the data changes only on the interface's thread.
 | `src/actions.odin` | What the commands do, and the rename in place. |
 | `src/palette.odin` | The command palette: fuzzy search over the titles, the keys shown. |
 | `src/menu.odin` | The menu of a row or of the folder (right click, Menu key). |
-| `src/view.odin` | The window: the top row (the sidebar's head, each panel's tabs as wide as the panel under them, from the last frame's boxes; the window's buttons), the body; the keys of the commands and of the selection. |
+| `src/view.odin` | The window: the top row (the sidebar's head, each panel's tabs as wide as the panel under them, from the last frame's boxes; the window's buttons), then the views' frame (`ui.views_frame`) around the panels; the keys of the commands and of the selection. |
+| `src/views.odin` | The views (gui_toolkit's `ui.Views`, `app.views`): the sidebar and the inspector (home: docked at the left and the right of the frame), GoTo, the settings, the name-taken question, batch rename, the keys' recorder; the memory of where each is shown (`<state>/classeur/views.txt`). |
 | `src/view_panel.odin` | A panel: toolbar (back, forward, up, history, lock, bookmark, the crumbs or the typed path, the panel's menu), the columns' header, the virtual list (a box per row, the measures of folders), the footer (the filter, the counts). |
 | `src/sidebar.odin` | The sidebar: its filter, its sections (Recents, Bookmarks, Storage, Network, Places). |
 | `src/icons.odin` | The entries' icons: drawn folders and pages, Lucide icons coloured by kind. |
@@ -63,7 +64,12 @@ is immediate-mode); the data changes only on the interface's thread.
    next build (`Tab.focus_due`).
 5. F6 and Ctrl+Shift+F6 move the keyboard round its stops (`app.keys_at`): the sidebar, each panel's list, the inspector.
    While the sidebar or the inspector has it, the list's keys do not run and only the `in_text` commands do; Escape gives
-   it back to the list.
+   it back to the list. These keys are read inside the views' frame, after the views docked or floating (a view with the
+   focus reads its keys first); the toolkit's F6 comes last and only when nothing took it, so F6 and Shift+F6 stay
+   classeur's.
+6. A view shown as a dialog holds the keys (`ui.views_hold_keys`: `app.no_dialog` false). A view that floats, is docked
+   or is in a window keeps the focus it is given: while the focus is in it (`focus_in_view`, from `ui.views_focus`),
+   only the `in_text` commands run.
 
 ## Tests
 

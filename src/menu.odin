@@ -147,7 +147,7 @@ entry_menu_items :: proc(app: ^App, m: ^Entry_Menu) {
 		menu_command(app, "rename", title = n > 1 ? fmt.tprintf(i18n.tr(n, "Rename %d item…", "Rename %d items…"), n) : "")
 		ui.menu_separator()
 		menu_command(app, "bookmark_folder", enabled = folder, title = folder && bookmarked(app, full) ? i18n.tr("Remove the bookmark") : i18n.tr("Bookmark this folder"))
-		menu_command(app, "inspector", checked = app.inspector.open)
+		menu_command(app, "inspector", checked = inspector_shown(app))
 		ui.menu_separator()
 	} else {
 		menu_command(app, "paste")

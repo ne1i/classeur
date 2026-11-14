@@ -112,8 +112,9 @@ App :: struct {
 
 	default_sort: fs.Sort,
 	show_hidden:  bool,
-	sidebar:      bool,             // shown
-	sidebar_px:   f32,              // its width, logical pixels
+	views:        ui.Views,         // the sidebar, the inspector and the dialogs, wherever the person puts them (views.odin)
+	content_rect: ui.Rect,          // the box of the panels of tabs, inside the views' frame, as the last build laid it
+	                                // out (the top row's parts are worked out from it)
 
 	palette:     Palette,           // the command palette (palette.odin)
 	goto:        Goto,              // GoTo (goto.odin)
@@ -136,6 +137,7 @@ App :: struct {
 	status:      string,            // owned: the last message said (say, announce), as the tests read it
 	room:        f32,               // the window's width at this build, logical pixels
 	window_px:   [2]f32,            // the window's size at this build, frame pixels (a tab dragged out of it)
+	window_px_last: [2]f32,         // and at the last one (what content_rect was laid out in)
 	text_keys:   [dynamic]ui.Key,   // the text fields built in this frame (view.odin: the keys of the list are not theirs)
 	text_keys_before: [dynamic]ui.Key,   // and in the last one
 	menu:        Entry_Menu,        // the entries' menu (menu.odin)
@@ -349,8 +351,6 @@ app_open :: proc(o: Open_Options) -> ^App {
 	app.standalone = o.standalone
 	app.exe = strings.clone(process.executable_path())
 	app.home = o.home != "" ? fs.clean(o.home) : fs.home()
-	app.sidebar = true
-	app.sidebar_px = 210
 	app.tz, _ = timezone.region_load("local")
 
 	platform.set_app_id(APP_NAME)
@@ -369,6 +369,7 @@ app_open :: proc(o: Open_Options) -> ^App {
 	app.mono, _ = font.load_embedded(&app.shared.fonts, font.FALLBACK_MONO_DATA)
 	h.state.icon_font = app.icons   // (the menus' icons are the commands' Lucide ones; the widgets keep the toolkit's marks)
 	h.after_input = FRAMES_AFTER_INPUT
+	views_start(app)
 	dnd_start(app)
 	ui.table_layout_init(&app.columns, detail_columns(app))   // (before the preferences: they say its columns)
 	prefs_open(app, o.pref_args)   // (and h.partial_redraw: rendering.partial_redraw)
@@ -505,6 +506,8 @@ app_close :: proc(app: ^App) {
 	if global_app == app { global_app = nil }
 	prefs_page.install_end(&app.install)   // (again for a window app_run did not end: it does nothing the second time)
 	crash_bar.destroy(&app.crash_bar)
+	// (after the last build, while the window's State is there: which views were open is written, their windows close)
+	ui.views_destroy(&app.views)
 	host.host_close(&app.main)
 	if !reads_ended || !edits_ended || !measures_ended || !thumbs_ended { return }
 	app_free(app)

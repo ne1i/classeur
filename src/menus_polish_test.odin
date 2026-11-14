@@ -11,6 +11,7 @@ import "gt:platform"
 import "gt:testkit"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
+import "gt:ui"
 import "fs"
 
 @(private = "file")
@@ -39,7 +40,7 @@ test_menu_rename_several :: proc(t: ^testing.T) {
 		testing.expect(t, session.find_text(s, "Rename 3 items…") != nil, "titled with the count")
 		session.click_text(s, "Rename 3 items")
 		session.frames(s, 2)
-		testing.expect(t, app.batch.open, "the batch rename opens")
+		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW), "the batch rename opens")
 		session.key(s, .Escape)
 	})
 }
@@ -106,7 +107,7 @@ test_trash_put_back_and_empty :: proc(t: ^testing.T) {
 
 			// Empty the trash: asked first, then every item and its record deleted
 			session.key(s, .Delete, {.Ctrl, .Shift})
-			testing.expect(t, app.confirm.open && app.confirm.trash, "asked")
+			testing.expect(t, ui.view_is_open(&app.views, CONFIRM_DELETE_VIEW) && app.confirm.trash, "asked")
 			session.wait_box(s, "confirm_act")
 			session.click(s, "confirm_act")
 			wait_jobs(s)

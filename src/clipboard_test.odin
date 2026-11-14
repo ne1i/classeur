@@ -10,6 +10,7 @@ import "core:testing"
 import "gt:platform"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
+import "gt:ui"
 import "fs"
 
 // Ctrl+V's action asks and returns: no job, nothing copied. The files come with the window's next events, the copy then.
@@ -88,7 +89,7 @@ test_batch_names_from_the_clipboard :: proc(t: ^testing.T) {
 		folder_pick(f, f.cursor, toggle = true)
 		batch_open(app, tab)
 		session.frames(s, 2)
-		testing.expect(t, app.batch.open, "the batch rename opens")
+		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW), "the batch rename opens")
 
 		platform.set_clipboard(app.main.win, "one\ntwo\n")
 		session.click_text(s, "Names from the clipboard")

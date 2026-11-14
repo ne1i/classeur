@@ -205,7 +205,7 @@ act_filter :: proc(app: ^App) {
 
 act_palette :: proc(app: ^App) { palette_open(app) }
 
-act_shortcuts :: proc(app: ^App) { app.palette.sheet.open = true }
+act_shortcuts :: proc(app: ^App) { shortcuts_open(app) }
 
 ////////////////////////////////
 // Tabs and panels
@@ -284,8 +284,9 @@ act_panel_previous :: proc(app: ^App) { keys_step(app, -1) }
 // The keyboard `by` stops on: the sidebar (shown), each panel's list in order, the inspector (open), round.
 @(private = "file")
 keys_step :: proc(app: ^App, by: int) {
-	first := app.sidebar ? 1 : 0
-	n := first + len(app.panels) + (app.inspector.open ? 1 : 0)
+	side, insp := sidebar_shown(app), inspector_shown(app)
+	first := side ? 1 : 0
+	n := first + len(app.panels) + (insp ? 1 : 0)
 	if n == 0 { return }
 	at := first + app.focus
 	switch app.keys_at {
@@ -295,8 +296,8 @@ keys_step :: proc(app: ^App, by: int) {
 	}
 	to := ((at + by) % n + n) % n
 	switch {
-	case app.sidebar && to == 0:            keys_to(app, .Sidebar)
-	case app.inspector.open && to == n - 1: keys_to(app, .Inspector)
+	case side && to == 0:      keys_to(app, .Sidebar)
+	case insp && to == n - 1:  keys_to(app, .Inspector)
 	case:
 		app.focus = to - first
 		keys_to(app, .List)
@@ -322,8 +323,8 @@ keys_to :: proc(app: ^App, at: Keys_At) {
 keys_follow :: proc(app: ^App) {
 	switch app.keys_at {
 	case .List:      return
-	case .Sidebar:   if app.sidebar && app.side_keys.box != 0 && ui.focus_key() == app.side_keys.box { return }
-	case .Inspector: if app.inspector.open && app.inspector.box != 0 && ui.focus_key() == app.inspector.box { return }
+	case .Sidebar:   if sidebar_shown(app) && app.side_keys.box != 0 && ui.focus_key() == app.side_keys.box { return }
+	case .Inspector: if inspector_shown(app) && app.inspector.box != 0 && ui.focus_key() == app.inspector.box { return }
 	}
 	app.keys_at = .List
 	if ui.focus_key() == 0 { if t := current_tab(app); t != nil { t.focus_due = .List } }
@@ -682,7 +683,7 @@ act_toggle_hidden :: proc(app: ^App) {
 	say(app, app.show_hidden ? i18n.tr("Hidden files are shown.") : i18n.tr("Hidden files are hidden."))
 }
 
-act_toggle_sidebar :: proc(app: ^App) { app.sidebar = !app.sidebar }
+act_toggle_sidebar :: proc(app: ^App) { view_toggle(app, SIDEBAR_VIEW) }
 
 @(private = "file")
 sort_by :: proc(app: ^App, key: fs.Sort_Key) {

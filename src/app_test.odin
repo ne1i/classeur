@@ -153,10 +153,10 @@ test_browse :: proc(t: ^testing.T) {
 
 		// the hidden files, from the palette
 		session.key(s, .P, {.Ctrl, .Shift})
-		testing.expect(t, app.palette.open)
+		testing.expect(t, ui.palette_is_open(&app.palette.pal))
 		session.type_text(s, "hidden files")
 		session.key(s, .Return)
-		testing.expect(t, !app.palette.open)
+		testing.expect(t, !ui.palette_is_open(&app.palette.pal))
 		testing.expect(t, app.show_hidden)
 		testing.expect(t, slice.contains(shown_names(tab), ".hidden"))
 	})
@@ -347,7 +347,7 @@ test_options :: proc(t: ^testing.T) {
 		s, app := start(t, {dir})
 		tab := current_tab(app)
 		session.key(s, .Comma, {.Ctrl})
-		testing.expect(t, app.options.open)
+		testing.expect(t, ui.view_is_open(&app.views, OPTIONS_VIEW))
 		// the settings' search finds it by its words; its switch flips it
 		session.frames(s, 2)
 		session.type_text(s, "hidden")
@@ -357,7 +357,7 @@ test_options :: proc(t: ^testing.T) {
 		testing.expect(t, app.show_hidden)
 		testing.expect(t, slice.contains(shown_names(tab), ".hidden"))
 		session.key(s, .Escape)
-		testing.expect(t, !app.options.open)
+		testing.expect(t, !ui.view_is_open(&app.views, OPTIONS_VIEW))
 		// the extensions left out of the names shown
 		session.key(s, .Comma, {.Ctrl})
 		session.frames(s, 2)
@@ -385,7 +385,7 @@ test_inspector :: proc(t: ^testing.T) {
 		// a text file: its beginning
 		point_at(t, tab, "notes.txt")
 		session.key(s, .Space)
-		testing.expect(t, app.inspector.open)
+		testing.expect(t, inspector_shown(app))
 		session.wait_until(s, inspected, "the inspector")
 		testing.expect_value(t, app.inspector.kind, Inspect_Kind.Text)
 		testing.expect_value(t, app.inspector.text, "the file notes.txt\n")
@@ -413,7 +413,7 @@ test_inspector :: proc(t: ^testing.T) {
 		session.frames(s, 2)
 		testing.expect(t, tab.folder.cursor != cursor || len(tab.folder.shown) < 2, "Down moves the list's cursor")
 		session.key(s, .Space)
-		testing.expect(t, !app.inspector.open)
+		testing.expect(t, !inspector_shown(app))
 	})
 }
 
@@ -525,6 +525,18 @@ wait_jobs :: proc(s: ^session.Session, loc := #caller_location) {
 	wait_read(s, loc)
 }
 
+// Frames until the view `id` (a dialog) has closed, then the build that takes its answer: an answer is read in the build
+// after the one where the view ended.
+wait_view_answered :: proc(t: ^testing.T, s: ^session.Session, id: string, loc := #caller_location) {
+	app := (^App)(s.user)
+	for _ in 0 ..< 60 {
+		if !ui.view_is_open(&app.views, id) { break }
+		session.frames(s, 1)
+	}
+	testing.expect(t, !ui.view_is_open(&app.views, id), "the view closed", loc = loc)
+	session.frames(s, 1)
+}
+
 @(test)
 test_jobs :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -605,9 +617,10 @@ test_jobs :: proc(t: ^testing.T) {
 		// for good, after the question
 		point_at(t, tab, "notes.txt")
 		session.key(s, .Delete, {.Shift})
-		testing.expect(t, app.confirm.open)
+		testing.expect(t, ui.view_is_open(&app.views, CONFIRM_DELETE_VIEW))
 		session.wait_box(s, "confirm_act")
 		session.click(s, "confirm_act")
+		wait_view_answered(t, s, CONFIRM_DELETE_VIEW)
 		wait_jobs(s)
 		testing.expect(t, !fs.exists(fs.join(dir, "notes.txt", context.temp_allocator)), "deleted")
 		testing.expect(t, !slice.contains(shown_names(tab), "notes.txt"))
@@ -749,7 +762,7 @@ test_goto :: proc(t: ^testing.T) {
 
 		// a path: the folders in it, found by the letters after the last separator; Tab completes, Enter goes
 		session.key(s, .G, {.Ctrl})
-		testing.expect(t, app.goto.open)
+		testing.expect(t, ui.view_is_open(&app.views, GOTO_VIEW))
 		session.type_text(s, fs.join(dir, "proj", context.temp_allocator))
 		session.wait_until(s, proc(s: ^session.Session) -> bool { return len((^App)(s.user).goto.names) > 0 }, "the folder read")
 		session.frames(s, 2)
@@ -761,7 +774,7 @@ test_goto :: proc(t: ^testing.T) {
 		session.frames(s, 2)
 		session.key(s, .Return)
 		wait_read(s)
-		testing.expect(t, !app.goto.open)
+		testing.expect(t, !ui.view_is_open(&app.views, GOTO_VIEW))
 		testing.expect_value(t, tab.path, fs.join(dir, "Projects/classeur", context.temp_allocator))
 
 		// a whole path ended by a separator: Enter goes to it, not to its first folder
@@ -846,12 +859,12 @@ test_batch_rename :: proc(t: ^testing.T) {
 		testing.expect_value(t, tab.folder.count, 3)
 		session.key(s, .F2)
 		session.frames(s, 2)
-		testing.expect(t, app.batch.open)
+		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW))
 		session.type_text(s, "doc {n:2}.{ext}")
 		session.frames(s, 2)
 		session.key(s, .Return)
 		wait_read(s)
-		testing.expect(t, !app.batch.open)
+		testing.expect(t, !ui.view_is_open(&app.views, BATCH_VIEW))
 		names := shown_names(tab)
 		testing.expectf(t, slice.contains(names, "doc 01.txt") || slice.contains(names, "doc 01.pdf"), "numbered (%s)", app.status)
 		testing.expect(t, !slice.contains(names, "notes.txt") && !slice.contains(names, "report 2.pdf"))
@@ -1186,8 +1199,9 @@ test_columns :: proc(t: ^testing.T) {
 		s, app := start(t, {dir}, size = {1400, 700})
 		session.frames(s, 2)
 		testing.expect_value(t, columns_text(app), "Modified Type Folders Files Size")
-		// the header's menu: Type off
-		session.click(s, "header", .Right)
+		// the header's menu: Type off (a right click on Modified's title: the header's middle can be the rule between
+		// two columns or a title's funnel, which take the press for themselves)
+		session.click_at(s, session.center(session.get(s, "t", within = session.get(s, "hd_1"))), .Right)
 		session.frames(s, 2)
 		testing.expect(t, ui.menu_any_open(), "the columns' menu")
 		// (its item Type: a row's label, not the column's title nor the menu's search field)
@@ -1294,13 +1308,14 @@ test_own_keys :: proc(t: ^testing.T) {
 		session.frames(s, 2)
 		testing.expect_value(t, COMMANDS[palette_first(app)].id, "tab_new")
 		session.key(s, .Return, {.Ctrl})
-		session.frames(s, 1)
-		testing.expect(t, app.palette.recording >= 0, "recording")
+		// (the palette's answer is read in the build after its Enter; the recorder shows once its layout settles)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording >= 0 }, "recording")
+		session.wait_box(s, "rec_keep")
 		session.key(s, .M, {.Ctrl})
 		session.key(s, .T)
 		session.key(s, .Return)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording < 0 }, "recorded")
 		session.frames(s, 1)
-		testing.expect_value(t, app.palette.recording, -1)
 		testing.expect_value(t, binding_text(app.keymap.custom["tab_new"]), "Ctrl+M, T")
 		testing.expect_value(t, ui.line_edit_string(&app.palette.field), "new tab")
 		// an alias: "ntab" for it (the letters of its words: "nt" alone is in "Font size", a whole match first)
@@ -1696,7 +1711,7 @@ test_settings_look :: proc(t: ^testing.T) {
 		session.move(s, {sl.rect.max.x - 1, from.y})
 		session.frames(s, 2)
 		testing.expect(t, ui.rounding(&app.main.state) > 1.5, "shown")
-		app.options.open = false
+		ui.view_close(&app.views, OPTIONS_VIEW)
 		session.frames(s, 2)
 		testing.expect_value(t, ui.rounding(&app.main.state), written)
 		session.release(s, {sl.rect.max.x - 1, from.y})
@@ -1720,7 +1735,7 @@ test_palette_keys :: proc(t: ^testing.T) {
 		s, app := start(t, {dir})
 		session.key(s, .K, {.Ctrl})
 		session.frames(s, 2)
-		testing.expect(t, app.palette.open, "Ctrl+K")
+		testing.expect(t, ui.palette_is_open(&app.palette.pal), "Ctrl+K")
 		session.key(s, .Escape)
 		session.frames(s, 2)
 		panel_menu_open(app, {300, 120})
@@ -2052,7 +2067,8 @@ test_archive_folders :: proc(t: ^testing.T) {
 	})
 }
 
-// The inspector's properties (where, dates, permissions, owner) and its edge: dragged left, it is wider, kept when let go.
+// The inspector's properties (where, dates, permissions, owner) and its edge: the views' handle dragged left, it is
+// wider.
 @(test)
 test_inspector_props :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -2071,13 +2087,14 @@ test_inspector_props :: proc(t: ^testing.T) {
 		testing.expect(t, session.find_text(s, PERMISSIONS_WORD) != nil, "its permissions")
 		when ODIN_OS != .Windows { testing.expect(t, strings.contains(app.inspector.props.permissions, "rw"), "rw") }
 		when SHOTS { session.save_png(s, "inspector_props.png") }
-		before := app.inspector.pane.size[.X]
-		h := session.get(s, "insp_split")
+		// (docked at the right of the window: the views' handle at its left edge widens it)
+		width :: proc(s: ^session.Session) -> f32 { b := session.get(s, "inspector"); return b.rect.max.x - b.rect.min.x }
+		before := width(s)
+		h := session.get(s, "view_handle_Right")
 		from := session.center(h)
 		session.drag(s, from, from - {120, 0})
 		session.frames(s, 2)
-		testing.expectf(t, app.inspector.pane.size[.X] > before + 50, "wider: %v from %v", app.inspector.pane.size[.X], before)
-		testing.expect_value(t, config.int_of(&app.prefs, "inspector.width"), i64(app.inspector.pane.size[.X]))
+		testing.expectf(t, width(s) > before + 50, "wider: %v from %v", width(s), before)
 	})
 }
 
@@ -2237,7 +2254,7 @@ test_type_to_filter :: proc(t: ^testing.T) {
 		testing.expect_value(t, ui.line_edit_string(&tab.filter), "")
 		session.key(s, .Space)
 		session.frames(s, 2)
-		testing.expect(t, app.inspector.open, "Space: the inspector")
+		testing.expect(t, inspector_shown(app), "Space: the inspector")
 		testing.expect_value(t, ui.line_edit_string(&tab.filter), "")
 	})
 }
@@ -2534,7 +2551,7 @@ test_session_writes_in_order :: proc(t: ^testing.T) {
 		data, err := os.read_entire_file(file, context.temp_allocator)
 		testing.expect(t, err == nil, "written")
 		testing.expect(t, strings.contains(string(data), "bookmark /mark/199\n"), "the last text")
-		testing.expect_value(t, strings.count(string(data), "\nsidebar "), 1)
+		testing.expect_value(t, strings.count(string(data), "\nfocus "), 1)
 	})
 }
 
@@ -2618,7 +2635,7 @@ test_palette_settings :: proc(t: ^testing.T) {
 		testing.expect(t, session.find_text(s, "Rounding") != nil, "the rounding, by its tag")
 		session.key(s, .Return)
 		session.frames(s, 3)
-		testing.expect(t, !app.palette.open && app.options.open, "the settings open")
+		testing.expect(t, !ui.palette_is_open(&app.palette.pal) && ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings open")
 		testing.expect(t, strings.contains(ui.line_edit_string(&app.options.page.query), "appearance.rounding"), "on the rounding")
 		testing.expect(t, session.find_text(s, fmt.tprintf("classeur %s", APP_VERSION)) != nil, "the version at their foot")
 		when SHOTS { session.save_png(s, "palette_settings.png") }
@@ -2848,7 +2865,7 @@ test_header_menu :: proc(t: ^testing.T) {
 	})
 }
 
-// The question before deleting for good (the toolkit's ui.confirm): what it deletes named; Enter cancels, nothing is
+// The question before deleting for good (the toolkit's ui.confirm_open): what it deletes named; Enter cancels, nothing is
 // deleted; its button deletes.
 @(test)
 test_delete_dialog :: proc(t: ^testing.T) {
@@ -2861,13 +2878,13 @@ test_delete_dialog :: proc(t: ^testing.T) {
 		session.key(s, .Down, {.Shift}, repeat = 2)
 		session.key(s, .Delete, {.Shift})
 		session.frames(s, 3)
-		testing.expect(t, app.confirm.open, "the question")
+		testing.expect(t, ui.view_is_open(&app.views, CONFIRM_DELETE_VIEW), "the question")
 		testing.expect(t, session.find_text(s, "Delete 3 items for good?") != nil, "its title")
 		testing.expect(t, session.find(s, "confirm_line_2") != nil, "the three named")
 		testing.expect(t, session.find_text(s, "Cancel (Enter)") != nil, "Enter cancels")
 		session.key(s, .Return)
 		session.frames(s, 2)
-		testing.expect(t, !app.confirm.open, "closed")
+		testing.expect(t, !ui.view_is_open(&app.views, CONFIRM_DELETE_VIEW), "closed")
 		testing.expect(t, len(app.jobs.list) == 0, "nothing deleted")
 	})
 }

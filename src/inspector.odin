@@ -1,12 +1,12 @@
 package classeur
 
-// The inspector, File Pilot's (Space): a pane at the right of the panel that shows what the cursor is on. A picture
+// The inspector, File Pilot's (Space): a view (views.odin), docked at the right of the window at home, that shows what
+// the cursor of the panel with the keyboard is on. A picture
 // large, a PDF's first page or a frame of a video (the system's large thumbnail), a text file's beginning in the
 // monospaced font, a folder's content, any other file what it is. What it shows is read on the workers when the cursor
 // stops on it; only the last one asked is kept.
 
 import "core:fmt"
-import config "gt:config"
 import "core:os"
 import "core:strings"
 import "core:unicode/utf8"
@@ -23,15 +23,11 @@ import "fs"
 
 INSPECTOR_TEXT_BYTES :: 64 * 1024
 INSPECTOR_PICTURE_PX :: 1600
-INSPECTOR_MIN_PX     :: 220
-INSPECTOR_DEFAULT_PX :: 380
 INSPECTOR_THUMB_PX   :: 1024   // the system's thumbnail of a PDF or a video: its largest (the xx-large of freedesktop.org)
 
 Inspect_Kind :: enum u8 { None, Picture, Text, Folder, Other }
 
 Inspector :: struct {
-	open:     bool,
-	pane:     ui.Pane,         // its width, dragged by its edge (ui.pane_split), folded to a strip; kept in inspector.width
 	path:     string,          // owned: what is shown (or asked)
 	serial:   u64,             // the ask the pane waits for
 	ready:    bool,
@@ -124,25 +120,23 @@ props_free :: proc(p: ^fs.Properties) {
 	p^ = {}
 }
 
-// Its edge: dragged from INSPECTOR_MIN_PX to most of the panel, folded to a strip, saved when let go.
-inspector_pane_options :: proc(app: ^App) -> ui.Pane_Options {
-	return ui.Pane_Options{side = .After, default_size = INSPECTOR_DEFAULT_PX, min_size = INSPECTOR_MIN_PX, collapsible = true, title = i18n.later("Inspector"),
-		user = app, on_save = proc(user: rawptr, p: ^ui.Pane) {
-			app := (^App)(user)
-			config.set_int(&app.prefs, "inspector.width", i64(p.size[.X]))
-		}}
+act_inspector :: proc(app: ^App) { view_toggle(app, INSPECTOR_VIEW) }
+
+// Each frame: the inspector closed (its command, its close button, the view's own close) lets go of what it showed.
+inspector_follow :: proc(app: ^App) {
+	insp := &app.inspector
+	if insp.path == "" || inspector_shown(app) { return }
+	inspector_clear(app)
+	delete(insp.path)
+	insp.path = ""
 }
 
-act_inspector :: proc(app: ^App) {
-	insp := &app.inspector
-	insp.open = !insp.open
-	if insp.pane.size[.X] <= 0 { insp.pane.size[.X] = f32(config.int_of(&app.prefs, "inspector.width")) }
-	insp.pane.collapsed = false
-	if !insp.open {
-		inspector_clear(app)
-		delete(insp.path)
-		insp.path = ""
-	}
+// The view: what the cursor of the panel with the keyboard is on, as the last frame left it (a view is built before the
+// panels).
+inspector_view :: proc(v: ^ui.View, app: ^App) {
+	t := current_tab(app)
+	if t == nil { return }
+	inspector_build(app, t, ui.font_size())
 }
 
 // Asks for what `path` shows, unless it is what the pane has.
@@ -272,7 +266,7 @@ inspect_done :: proc(data: rawptr, word: u64) {
 	defer inspect_free(job)
 	app := job.app
 	insp := &app.inspector
-	if job.serial != insp.serial || !insp.open { return }
+	if job.serial != insp.serial || !inspector_shown(app) { return }
 	insp.kind, insp.ready = job.kind, true
 	insp.props, insp.has_props = job.props, job.has_props
 	job.props = {}
@@ -293,19 +287,16 @@ inspect_done :: proc(data: rawptr, word: u64) {
 	app_frames(app)
 }
 
-// The pane, beside the list of the panel that has the keyboard.
+// What the inspector shows of the cursor of `t`, filling its view.
+@(private = "file")
 inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 	insp := &app.inspector
 	e := folder_cursor_entry(&t.folder)
 	several := t.folder.count > 1
 	// (several selected: a summary of them, nothing to read)
 	if e != nil && !several { inspector_ask(app, fs.join(t.path, e.name, context.temp_allocator), e^) }
-	// (its edge, the toolkit's: dragged, folded to a strip, Enter and the arrows)
-	r := ui.pane_split("###insp_split", .X, &insp.pane, inspector_pane_options(app))
-	if r.size <= 0 { return }
-	width := r.size * ui.scale()
-	ui.next({width = ui.px(width), height = ui.fill(), axis = .Y})
-	// (no line of its own: the edge that drags it is the line between it and the list)
+	ui.next({width = ui.fill(), height = ui.fill(), axis = .Y})
+	// (no line of its own: the views' handle is the line between it and the panels)
 	box := ui.build_box({.Clip}, "###inspector")
 	insp.box = box.key
 	if app.keys_at == .Inspector { inspector_keys_mark(box) }

@@ -96,6 +96,9 @@ fr+ %d noms copiés.
 en The name is copied.
 fr Nom copié.
 
+en Rename
+fr Renommer
+
 en empty
 fr vide
 
@@ -308,9 +311,6 @@ fr Tâches
 
 en Cancel jobs
 fr Annuler les tâches
-
-en Rename
-fr Renommer
 
 en New file
 fr Nouveau fichier
@@ -567,6 +567,9 @@ en Its %d item is deleted for good: this cannot be undone.
 en+ Its %d items are deleted for good: this cannot be undone.
 fr Son %d élément est supprimé définitivement : impossible d'annuler.
 fr+ Ses %d éléments sont supprimés définitivement : impossible d'annuler.
+
+en A name is taken
+fr Un nom est déjà pris
 
 en %s is already in %s
 fr %s est déjà dans %s
@@ -856,6 +859,9 @@ fr Lecteur réseau
 en Local disk
 fr Disque local
 
+en Go to
+fr Aller à
+
 en Recent
 fr Récents
 
@@ -1133,12 +1139,6 @@ fr Disposition %s supprimée.
 en Layout %d
 fr Disposition %d
 
-en No layout is saved: Ctrl+Alt+S saves the panels shown.
-fr Aucune disposition enregistrée : Ctrl+Alt+S enregistre les panneaux affichés.
-
-en Delete a layout
-fr Supprimer une disposition
-
 en Save the panels shown as a layout
 fr Enregistrer les panneaux affichés comme disposition
 
@@ -1150,6 +1150,12 @@ fr Nom de la disposition
 
 en Save
 fr Enregistrer
+
+en No layout is saved: Ctrl+Alt+S saves the panels shown.
+fr Aucune disposition enregistrée : Ctrl+Alt+S enregistre les panneaux affichés.
+
+en Delete a layout
+fr Supprimer une disposition
 
 en %s: this system reaches no such place by a path.
 fr %s : ce système n'atteint pas ce genre d'emplacement par un chemin.
@@ -1262,11 +1268,14 @@ fr Entrée : exécuter   Ctrl+Entrée : choisir ses touches   Alt+Entrée : en f
 en %s: an alias of %s.
 fr %s : un alias de %s.
 
-en %s: its own keys again.
-fr %s : ses raccourcis d'origine.
+en Keys of a command
+fr Touches d'une commande
 
 en Keys for %s
 fr Raccourcis de %s
+
+en %s: its own keys again.
+fr %s : ses raccourcis d'origine.
 
 en Press them: two for a sequence. Backspace first gives it its own keys again.
 fr Appuyez sur les touches : deux pour une séquence. Retour arrière d'abord lui rend ses raccourcis d'origine.

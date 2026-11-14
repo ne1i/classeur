@@ -86,7 +86,7 @@ test_system_thumbnails :: proc(t: ^testing.T) {
 		// the inspector: the PDF's first page, as a picture, said so under it
 		point_at(t, tab, "report 2.pdf")
 		session.key(s, .Space)
-		testing.expect(t, app.inspector.open, "the inspector is open")
+		testing.expect(t, inspector_shown(app), "the inspector is open")
 		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).inspector.ready }, "the inspector")
 		session.frames(s, 2)
 		testing.expect_value(t, app.inspector.kind, Inspect_Kind.Picture)
@@ -96,7 +96,7 @@ test_system_thumbnails :: proc(t: ^testing.T) {
 		testing.expect(t, session.find_text(s, "No preview") == nil, "not the text of no preview")
 		testing.expect_value(t, cached_count(fs.join(cache, "thumbnails/xx-large", context.temp_allocator)), 1)
 		session.key(s, .Space)
-		testing.expect(t, !app.inspector.open, "the inspector is closed")
+		testing.expect(t, !inspector_shown(app), "the inspector is closed")
 
 		// the grid: each PDF's card has its page (made at 256 pixels: the large folder), a text file has none
 		session.key(s, .N2, {.Ctrl})

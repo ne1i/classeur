@@ -28,7 +28,7 @@ test_batch_case_segmented :: proc(t: ^testing.T) {
 		}
 		session.key(s, .F2)
 		session.frames(s, 2)
-		testing.expect(t, app.batch.open)
+		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW))
 		session.wait_box(s, "seg2")
 		// (pills: the segments sit in the control's inner track, not words in a line)
 		testing.expect(t, session.find(s, "seg_inner") != nil, "a segmented control of pills")

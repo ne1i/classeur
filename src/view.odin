@@ -20,10 +20,6 @@ import "fs"
 
 // Heights in ems.
 TOP_EM :: 2.6
-// The sidebar's least and most width, logical pixels; what the panels keep at least.
-SIDEBAR_MIN_PX :: 160
-SIDEBAR_MAX_PX :: 420
-PANELS_MIN_PX  :: 320
 // A tab's width, at most and at least, in ems.
 TAB_EM     :: 14
 TAB_MIN_EM :: 5
@@ -36,7 +32,7 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	app := (^App)(h.user)
 	em := ui.font_size()
 	app.room = size.x / max(ui.scale(), 0.01)
-	app.window_px = size
+	app.window_px_last, app.window_px = app.window_px, size
 	app.frame += 1
 	updates_follow(app)
 	// (the person's themes file read again when it changed: theme_show, in the next frame's params, shows the new one)
@@ -57,26 +53,32 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	append(&app.text_keys_before, ..app.text_keys[:])
 	clear(&app.text_keys)
 	typing := slice.contains(app.text_keys_before[:], ui.focus_key())
-	app.no_dialog = !app.palette.open && app.palette.recording < 0 && !app.goto.open && !app.batch.open && !app.layouts.naming && !prefs_page.install_open_now(&app.install) && !app.confirm.open && !app.conflict.open && !app.options.open && !app.palette.sheet.open
+	// (a view shown as a dialog holds the keys; one that floats or is docked keeps those it is given)
+	app.no_dialog = !ui.views_hold_keys(&app.views)
 	keys_follow(app)
-	if app.no_dialog {
-		gesture_escape(app)
-		// (the sidebar or the inspector has the keyboard: its moves are its own, the commands that act on the list's
-		// rows (Enter, Delete, Space...) wait; those that work while typing still run)
-		elsewhere := app.keys_at != .List
-		commands_keys(app, typing || elsewhere)
-		if !typing && !elsewhere { list_keys(app) }
-	}
 
 	ui.next({width = ui.fill(), height = ui.fill(), axis = .Y, bg = draw.hex(surfaces(app).list)})
 	page := ui.build_box({.Draw_Background}, "###page")
 	if ui.parent(page) {
-		// (the sidebar's width held in the window's room first: the title bar's parts are worked out from it)
-		app.sidebar_px = clamp(app.sidebar_px, SIDEBAR_MIN_PX, max(min(SIDEBAR_MAX_PX, app.room - PANELS_MIN_PX), SIDEBAR_MIN_PX))
+		// (the top row the whole width, over the sidebar too: the views' frame is the room under it)
 		build_top(app, em)
 		crash_bar.bar(&app.crash_bar, {name = "classeur", version = APP_VERSION, repository = "sachahjkl/classeur"})
 		ui.next({width = ui.fill(), height = ui.fill()})
-		if ui.row() { build_body(app, em) }
+		if ui.views_frame(&app.views) {
+			app.content_rect = ui.parent_box().rect
+			// the program's keys, after the views' (built first in the frame: a view with the focus reads its keys
+			// first; the toolkit's F6 comes last, only when nothing took it)
+			if app.no_dialog {
+				gesture_escape(app)
+				// (the sidebar, the inspector or another view has the keyboard: its moves are its own, the commands
+				// that act on the list's rows (Enter, Delete, Space...) wait; those that work while typing still run)
+				elsewhere := app.keys_at != .List || focus_in_view(app)
+				commands_keys(app, typing || elsewhere)
+				if !typing && !elsewhere { list_keys(app) }
+			}
+			ui.next({width = ui.fill(), height = ui.fill()})
+			if ui.row() { build_body(app, em) }
+		}
 	}
 	tab_drag_overlay(app, em)
 	file_drag_frame(app, em)
@@ -84,19 +86,18 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	side_menu_build(app, em)
 	panel_menus_build(app, em)
 	palette_build(app)
-	goto_build(app)
-	batch_build(app, em)
 	layouts_build(app, em)
 	setup_follow(app)
-	#partial switch prefs_page.install_frame(&app.install, em) {
+	#partial switch prefs_page.install_frame(&app.install) {
 	case .Installed, .Uninstalled: desktop_follow(app)   // (the switches of the menu and the session, for the copy now integrated)
 	case .Launched:                platform.request_close(app.main.win)   // (the installed copy starts once this one has ended: app_run)
 	}
 	zoom_slider_build(app, em)
 	columns_menu_build(app, em)
 	jobs_view_build(app, em)
-	options_build(app)
-	dialogs_build(app, em)
+	options_follow(app)
+	inspector_follow(app)
+	dialogs_build(app)
 	jobs_tidy(app)
 	watcher_update(app)
 	measure_update(app)
@@ -181,22 +182,28 @@ build_top :: proc(app: ^App, em: f32) {
 			w := max(1, ui.scale())
 			draw.rect(dc, {{b.rect.min.x, b.rect.max.y - w}, b.rect.max}, (^ui.Color)(user)^)
 		}, edge
-		// each part as wide as what is under it, worked out as the body lays it out in this very frame (the sidebar, its
-		// line, the columns sharing the rest, a line between two): a window resized moves the tabs with their panels,
-		// not a frame after them. (each region starts on the column of the line at the left of its panel: the shown
-		// tab's left line is that line going up, not a second one beside it)
+		// each part as wide as what is under it: over the views docked at the left (the sidebar, its handle) the head,
+		// then the columns sharing the panels' room, a line between two. The panels' room is the views' frame's content
+		// as the last build laid it out; what is docked at each side keeps its width when the window is resized, so the
+		// tabs move with their panels in the same frame (only a handle dragged is a frame behind). (each region starts on
+		// the column of the line at the left of its panel: the shown tab's left line is that line going up, not a second
+		// one beside it)
 		line := max(1, ui.scale())
 		cols := 0
 		for p in app.panels { if !p.below { cols += 1 } }
-		side := app.sidebar ? app.sidebar_px * ui.scale() + line : 0
-		col_w := (app.window_px.x - side - f32(max(cols - 1, 0)) * line) / f32(max(cols, 1))
-		head := app.sidebar ? app.sidebar_px * ui.scale() : 0
+		c := app.content_rect
+		left, right: f32
+		if c.max.x > c.min.x {
+			left, right = max(c.min.x, 0), max(app.window_px_last.x - c.max.x, 0)
+		}
+		head := max(left - line, 0)
+		col_w := (app.window_px.x - left - right - f32(max(cols - 1, 0)) * line) / f32(max(cols, 1))
 		ui.next({width = ui.px(head), height = ui.pct(1)})
 		if ui.row(.Center, {}, "###head") {
 			ui.spacer(ui.px(em * 0.6))
 			logo_icon(em * 1.8)
 			ui.spacer(ui.fill())
-			if icon_action(app, "sidebar", app.sidebar ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em) { act_toggle_sidebar(app) }
+			if icon_action(app, "sidebar", sidebar_shown(app) ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em) { act_toggle_sidebar(app) }
 			ui.spacer(ui.px(em * 0.3))
 		}
 		// (a column's top panel has its tabs here; a panel below another has them at its own top: panel_build)
@@ -366,11 +373,6 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 @(private = "file")
 build_body :: proc(app: ^App, em: f32) {
 	scale := ui.scale()
-	if app.sidebar {
-		ui.next({width = ui.px(app.sidebar_px * scale), height = ui.fill()})
-		sidebar_build(app, em)
-		ui.splitter("###side_split", .X, &app.sidebar_px, SIDEBAR_MIN_PX, SIDEBAR_MAX_PX, {default_size = 240, total = app.room, min_other = PANELS_MIN_PX, flush = true})
-	}
 	// the panels in columns: a column a panel and the ones below it; a line between two columns, and between two panels
 	// of a column
 	resize(&app.panel_rects, len(app.panels))

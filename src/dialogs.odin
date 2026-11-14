@@ -15,7 +15,6 @@ import "fs"
 CONFLICT_WIDTH_EM :: 38   // its four choices on one line
 
 Confirm :: struct {
-	open:  bool,
 	paths: [dynamic]string,   // owned: what Delete for good deletes
 	names: [dynamic]string,   // owned: each one as the question names it
 	trash: bool,              // they are every item of the trash: emptied
@@ -42,31 +41,34 @@ confirm_delete :: proc(app: ^App, paths: []string, trash := false, names: []stri
 		append(&c.paths, strings.clone(p))
 		append(&c.names, strings.clone(names != nil && i < len(names) ? names[i] : fs.base(p)))
 	}
-	c.open, c.trash, c.records = true, trash, trash || records
-}
-
-confirm_empty_trash :: proc(app: ^App, paths: []string, names: []string = nil) { confirm_delete(app, paths, trash = true, names = names) }
-
-dialogs_build :: proc(app: ^App, em: f32) {
-	confirm_build(app, em)
-	conflict_build(app, em)
-}
-
-// The toolkit's question (ui.confirm): what is deleted named, Enter cancels.
-@(private = "file")
-confirm_build :: proc(app: ^App, em: f32) {
-	c := &app.confirm
-	if !c.open || len(c.paths) == 0 { c.open = false; return }
+	c.trash, c.records = trash, trash || records
 	n := len(c.paths)
-	names := c.names[:]
-	title := n == 1 ? fmt.tprintf(i18n.tr("Delete %s for good?"), names[0]) : fmt.tprintf(i18n.tr(n, "Delete %d item for good?", "Delete %d items for good?"), n)
+	if n == 0 { return }
+	// the toolkit's question: what is deleted named, Enter cancels
+	shown := c.names[:]
+	title := n == 1 ? fmt.tprintf(i18n.tr("Delete %s for good?"), shown[0]) : fmt.tprintf(i18n.tr(n, "Delete %d item for good?", "Delete %d items for good?"), n)
 	note := n == 1 ? i18n.tr("It does not go to the trash: this cannot be undone.") : i18n.tr("They do not go to the trash: this cannot be undone.")
 	act := i18n.tr("Delete")
 	if c.trash {
 		title, act = i18n.tr("Empty the trash?"), i18n.tr("Empty the trash")
 		note = n == 1 ? i18n.tr("Its item is deleted for good: this cannot be undone.") : fmt.tprintf(i18n.tr(n, "Its %d item is deleted for good: this cannot be undone.", "Its %d items are deleted for good: this cannot be undone."), n)
 	}
-	if ui.confirm("confirm_delete", &c.open, {title = title, note = note, lines = names, act = act}) == .Confirmed {
+	ui.confirm_open(CONFIRM_DELETE_VIEW, {title = title, note = note, lines = shown, act = act})
+}
+
+confirm_empty_trash :: proc(app: ^App, paths: []string, names: []string = nil) { confirm_delete(app, paths, trash = true, names = names) }
+
+// Each frame: the questions' answers, and the question of a name taken opened or closed as a job asks it.
+dialogs_build :: proc(app: ^App) {
+	confirm_follow(app)
+	conflict_follow(app)
+}
+
+// The answer of the question before deleting for good.
+@(private = "file")
+confirm_follow :: proc(app: ^App) {
+	c := &app.confirm
+	if ui.confirm_answer(CONFIRM_DELETE_VIEW) == .Confirmed && len(c.paths) > 0 {
 		job_add(app, .Delete, c.paths[:])
 		// (then their records, by a job after it: the jobs run one after the other; a record's path is made from the
 		// item's, with no disk read)
@@ -78,63 +80,80 @@ confirm_build :: proc(app: ^App, em: f32) {
 	}
 }
 
-// The question of a name taken, as shown.
+// The question of a name taken, as shown: the job it is of.
 Conflict_View :: struct {
-	open: bool,
 	all:  bool,
 	job:  u64,
 }
 
-// The toolkit's three parts of a dialog: the question in the header, the two files and a weak note in the body, then
-// its choices (Enter: Keep both, which loses nothing).
+conflict_register :: proc(app: ^App) {
+	ui.view_register(&app.views, CONFLICT_VIEW, conflict_view, ui.View_Options{title = i18n.later("A name is taken"), icon = lucide.FILES, icon_font = app.icons, width_em = CONFLICT_WIDTH_EM})
+}
+
+// The view is open while a job asks (the program opens and closes it, whatever the person does). Closed by the person
+// (Escape, its close cross): the file is skipped.
 @(private = "file")
-conflict_build :: proc(app: ^App, em: f32) {
-	job := job_asking(app)
+conflict_follow :: proc(app: ^App) {
+	vs := &app.views
 	v := &app.conflict
+	job := job_asking(app)
+	if code, ok := ui.view_ended(vs, CONFLICT_VIEW); ok {
+		if code == ui.VIEW_CANCELLED && job != nil && job.id == v.job && !job.cancel { job_answer(job, .Skip, v.all) }
+		return   // (asked again from the next frame, once the job has taken the answer)
+	}
 	if job == nil {
-		v.open = false
+		ui.view_close(vs, CONFLICT_VIEW)
 		return
 	}
-	if v.job != job.id || !v.open {
-		v.job, v.open, v.all = job.id, true, false
-	}
+	if v.job != job.id { v.job, v.all = job.id, false }
+	if !ui.view_is_open(vs, CONFLICT_VIEW) { ui.view_open(vs, CONFLICT_VIEW, app) }
+}
+
+// The question in the header, the two files and a weak note in the body, then its choices (Enter: Keep both, which
+// loses nothing). The answer goes to the job at once.
+@(private = "file")
+conflict_view :: proc(view: ^ui.View, app: ^App) {
+	v := &app.conflict
+	job := job_asking(app)
+	if job == nil || job.id != v.job { return }
+	em := ui.font_size()
 	answer := Conflict.Ask
-	if ui.modal("conflict", &v.open, {width_em = CONFLICT_WIDTH_EM}) {
-		title := fmt.tprintf(i18n.tr("%s is already in %s"), ui.text_shown(fs.base(job.ask_name)), ui.text_shown(fs.base(fs.parent(job.ask_name))))
-		if ui.dialog_header("title", title, {icon = lucide.FILES, icon_font = app.icons, close = true}) {}
-		if ui.dialog_body("body") {
-			// (the two files side by side, as the job read them: which to keep is seen before it is chosen)
-			sync.mutex_lock(&job.mutex)
-			there, coming := job.ask_there, job.ask_coming
-			sync.mutex_unlock(&job.mutex)
-			conflict_file_line(app, i18n.tr("There"), there, coming, em, "###there")
-			conflict_file_line(app, job.kind == .Move ? i18n.tr("Moved") : job.kind == .Restore ? i18n.tr("the file coming, put back from the trash", "Put back") : i18n.tr("Copied"), coming, there, em, "###coming")
-			ui.spacer(ui.px(em * 0.4))
-			if ui.tags("weak") {
-				ui.next({width = ui.fill()})
-				ui.paragraph(fmt.tprintf("%s###text", i18n.tr("Replace it, keep both (the new one numbered), or skip it.")))
-			}
-			ui.spacer(ui.px(em * 0.6))
-			ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0))})
-			if ui.row(.Center) { ui.checkbox("###all", i18n.tr("Do the same for the next ones"), &v.all) }
+	ui.view_title(view, fmt.tprintf(i18n.tr("%s is already in %s"), ui.text_shown(fs.base(job.ask_name)), ui.text_shown(fs.base(fs.parent(job.ask_name)))))
+	if ui.dialog_body("body") {
+		// (the two files side by side, as the job read them: which to keep is seen before it is chosen)
+		sync.mutex_lock(&job.mutex)
+		there, coming := job.ask_there, job.ask_coming
+		sync.mutex_unlock(&job.mutex)
+		conflict_file_line(app, i18n.tr("There"), there, coming, em, "###there")
+		conflict_file_line(app, job.kind == .Move ? i18n.tr("Moved") : job.kind == .Restore ? i18n.tr("the file coming, put back from the trash", "Put back") : i18n.tr("Copied"), coming, there, em, "###coming")
+		ui.spacer(ui.px(em * 0.4))
+		if ui.tags("weak") {
+			ui.next({width = ui.fill()})
+			ui.paragraph(fmt.tprintf("%s###text", i18n.tr("Replace it, keep both (the new one numbered), or skip it.")))
 		}
-		if ui.dialog_buttons("buttons") {
-			bw :: proc(em: f32) { ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 2.2))}) }
-			bw(em)
-			if ui.button("cancel", i18n.tr("Cancel the job")).clicked { job_cancel(job); v.open = false }
-			bw(em)
-			if ui.button("skip", i18n.tr("Skip")).clicked { answer = .Skip }
-			bw(em)
-			if ui.button("both", i18n.tr("Keep both (Enter)"), o = {intent = .Primary}).clicked || ui.key_press(.Return) { answer = .Keep_Both }
-			bw(em)
-			if ui.button("replace", i18n.tr("Replace"), o = {intent = .Danger}).clicked { answer = .Replace }
-		}
+		ui.spacer(ui.px(em * 0.6))
+		ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0))})
+		if ui.row(.Center) { ui.checkbox("###all", i18n.tr("Do the same for the next ones"), &v.all) }
 	}
-	// (Escape closes it: the file is skipped)
-	if !v.open && answer == .Ask && !job.cancel { answer = .Skip }
-	if answer != .Ask {
+	cancel := false
+	if ui.dialog_buttons("buttons") {
+		bw :: proc(em: f32) { ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 2.2))}) }
+		bw(em)
+		if ui.button("cancel", i18n.tr("Cancel the job")).clicked { cancel = true }
+		bw(em)
+		if ui.button("skip", i18n.tr("Skip")).clicked { answer = .Skip }
+		bw(em)
+		if ui.button("both", i18n.tr("Keep both (Enter)"), o = {intent = .Primary}).clicked || ui.key_press(.Return) { answer = .Keep_Both }
+		bw(em)
+		if ui.button("replace", i18n.tr("Replace"), o = {intent = .Danger}).clicked { answer = .Replace }
+	}
+	// (the job cancelled: its question ends with it; Conflict.Ask is the answer's code)
+	if cancel {
+		job_cancel(job)
+		ui.view_end(view, int(Conflict.Ask))
+	} else if answer != .Ask {
 		job_answer(job, answer, v.all)
-		v.open = false
+		ui.view_end(view, int(answer))
 	}
 }
 

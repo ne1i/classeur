@@ -112,7 +112,7 @@ test_shortcuts_sheet :: proc(t: ^testing.T) {
 		testing.expect(t, session.find_text(s, "Keyboard shortcuts") == nil, "no sheet at first")
 		session.key(s, .F1)
 		session.frames(s, 3)
-		testing.expect(t, app.palette.sheet.open, "open")
+		testing.expect(t, ui.shortcuts_sheet_is_open(&app.palette.sheet), "open")
 		testing.expect(t, session.find_text(s, "Keyboard shortcuts") != nil, "the sheet")
 		testing.expect(t, session.find_text(s, "Backspace, Alt+Up") != nil, "a command's keys (its two; the sheet builds the lines in view)")
 		n := len(current_panel(app).tabs)
@@ -121,7 +121,7 @@ test_shortcuts_sheet :: proc(t: ^testing.T) {
 		testing.expect_value(t, len(current_panel(app).tabs), n)
 		session.key(s, .Escape)
 		session.frames(s, 3)
-		testing.expect(t, !app.palette.sheet.open, "closed")
+		testing.expect(t, !ui.shortcuts_sheet_is_open(&app.palette.sheet), "closed")
 		testing.expect(t, session.find_text(s, "Keyboard shortcuts") == nil, "the sheet gone")
 	})
 }

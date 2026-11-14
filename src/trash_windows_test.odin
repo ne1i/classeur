@@ -9,6 +9,7 @@ package classeur
 @(require) import "core:slice"
 @(require) import "core:strings"
 import "core:testing"
+@(require) import "gt:ui"
 @(require) import "gt:testkit"
 @(require) import "gt:testkit/session"
 @(require) import "gt:testkit/unwatched"
@@ -89,7 +90,7 @@ test_recycle_bin_tab :: proc(t: ^testing.T) {
 
 			// Empty the trash: asked (the items by their names), then each item and its record deleted
 			session.key(s, .Delete, {.Ctrl, .Shift})
-			testing.expect(t, app.confirm.open && app.confirm.trash, "asked")
+			testing.expect(t, ui.view_is_open(&app.views, CONFIRM_DELETE_VIEW) && app.confirm.trash, "asked")
 			testing.expect(t, len(app.confirm.names) == 1 && !strings.has_prefix(app.confirm.names[0], "$R"), "named by its original name")
 			session.wait_box(s, "confirm_act")
 			session.click(s, "confirm_act")

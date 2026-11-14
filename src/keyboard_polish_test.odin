@@ -25,7 +25,7 @@ test_keys_stops :: proc(t: ^testing.T) {
 		testing.expect_value(t, app.keys_at, Keys_At.List)
 		// with the inspector open: the list, the inspector, the sidebar
 		session.key(s, .Space)
-		testing.expect(t, app.inspector.open)
+		testing.expect(t, inspector_shown(app))
 		session.frames(s, 2)
 		session.key(s, .F6)
 		testing.expect_value(t, app.keys_at, Keys_At.Inspector)

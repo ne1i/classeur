@@ -168,9 +168,8 @@ panel_build :: proc(app: ^App, p: ^Panel, index: int, em: f32) -> ui.Rect {
 			ui.next({width = ui.fill(), height = ui.px(ui.dense(em * TOP_EM)), bg = draw.hex(surfaces(app).top)})
 			if ui.row(.Start, {.Draw_Background}, "###below_tabs") { tab_region(app, p, index, ui.fill(), room, em) }
 		}
-		if app.inspector.open && focused { room -= ui.pane_extent(&app.inspector.pane, .X, inspector_pane_options(app)) * ui.scale() }
 		toolbar(app, p, t, index, em)
-		// the list, and beside it the inspector in the panel that has the keyboard
+		// the list
 		ui.next({width = ui.fill(), height = ui.fill()})
 		if ui.row(.Start, {}, "###body") {
 			// (the contents of a panel without the keyboard, its column titles with its rows, dimmed: the one that has it
@@ -194,7 +193,6 @@ panel_build :: proc(app: ^App, p: ^Panel, index: int, em: f32) -> ui.Rect {
 					grid_list(app, t, focused, em)
 				}
 			}
-			if app.inspector.open && focused { inspector_build(app, t, em) }
 		}
 		footer(app, t, focused, em)
 	}
@@ -1278,9 +1276,9 @@ filter_field :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 		ui.spacer(ui.px(em * 0.5))
 		if ui.tags("weak") { glyph(app, lucide.SEARCH, em * 1.5) }
 		key := ui.key_from_string(ui.parent_box().key, "###filter")
-		// text typed in the panel that has the keyboard, no field and no dialog taking it: into its filter (File
-		// Pilot's); Space is the inspector's, not a letter
-		if focused && app.no_dialog && !ui.key_pressed_peek(.Space) && !ui.menu_any_open() && ui.type_to_field(key) {
+		// text typed in the panel that has the keyboard, no field, no dialog and no other view taking it: into its filter
+		// (File Pilot's); Space is the inspector's, not a letter
+		if focused && app.no_dialog && !focus_in_view(app) && !ui.key_pressed_peek(.Space) && !ui.menu_any_open() && ui.type_to_field(key) {
 			t.filter_open = true
 		}
 		// Space in the empty filter: the inspector's key, as in the list; taken before the field is built, so it never

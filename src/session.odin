@@ -1,12 +1,12 @@
 package classeur
 
-// The session: what the window shows comes back at the next start (File Pilot's): its place and size, the sidebar, the
-// panels and their tabs (the folder, the view's zoom, the lock), the panel with the keyboard; and the bookmarks and the
-// recent folders. A text file, a line per thing, written when the window closes and, on a worker, as soon as any of it
-// but the window's place changes (session_autosave: a program killed, a session of the system ended, loses nothing):
+// The session: what the window shows comes back at the next start (File Pilot's): its place and size, the panels and
+// their tabs (the folder, the view's zoom, the lock), the panel with the keyboard; and the bookmarks and the recent
+// folders. (The sidebar and the inspector are views: the toolkit's memory of the views keeps them, views.odin.) A text
+// file, a line per thing, written when the window closes and, on a worker, as soon as any of it but the window's place
+// changes (session_autosave: a program killed, a session of the system ended, loses nothing):
 //
 //   window <left> <top> <width> <height> [maximized]      (platform.placement_text)
-//   sidebar <shown 0|1> <width>
 //   focus <panel>
 //   panel <active tab>
 //   tab <zoom> <locked 0|1> <sort key> <descending 0|1> <path>
@@ -48,7 +48,6 @@ session_save :: proc(app: ^App, later := false) {
 // What the session holds but the window's place.
 @(private = "file")
 session_rest :: proc(app: ^App, b: ^strings.Builder) {
-	fmt.sbprintf(b, "sidebar %d %d\n", app.sidebar ? 1 : 0, int(app.sidebar_px))
 	panels_text(app, b)
 	for p in app.bookmarks { fmt.sbprintf(b, "bookmark %s\n", p) }
 	for p in app.recents { fmt.sbprintf(b, "recent %s\n", p) }
@@ -56,7 +55,7 @@ session_rest :: proc(app: ^App, b: ^strings.Builder) {
 
 // After a frame: the session written again when what it holds changed and stayed so SESSION_SETTLE_MS (the window's
 // place alone waits for the next write: a window moved or resized changes it every frame). Not while a press is held:
-// a splitter dragged changes the sidebar's width every frame; once let go and settled it is written once.
+// a press that moves something changes it every frame; once let go and settled it is written once.
 SESSION_SETTLE_MS :: 400
 
 session_autosave :: proc(app: ^App) {
@@ -141,7 +140,7 @@ panels_open :: proc(app: ^App, text: string) -> bool {
 	return len(app.panels) > first
 }
 
-// Reads the session: the window's place, the sidebar, the panels and tabs, the bookmarks and recents. True: a panel was
+// Reads the session: the window's place, the panels and tabs, the bookmarks and recents. True: a panel was
 // opened. (Read on this thread: at the start, before the window is shown and the first frame.)
 session_load :: proc(app: ^App) -> (opened: bool) {
 	path := session_file(app)
@@ -157,11 +156,6 @@ session_load :: proc(app: ^App) -> (opened: bool) {
 		switch word {
 		case "window":
 			if p, ok := platform.placement_parse(rest); ok && p.rect[2] > 200 && p.rect[3] > 150 { place, has_place = p, true }
-		case "sidebar":
-			f := strings.fields(rest, context.temp_allocator)
-			if len(f) < 2 { continue }
-			app.sidebar = f[0] == "1"
-			if px, ok := strconv.parse_int(f[1]); ok { app.sidebar_px = clamp(f32(px), 140, 600) }
 		case "focus", "panel", "tab":
 			fmt.sbprintf(&panel_lines, "%s\n", line)
 		case "bookmark":

@@ -1,7 +1,7 @@
 package classeur
 
-// The settings (Ctrl+,): the toolkit's settings page (gt:prefs_page) over the window, in a dialog the person resizes by
-// its edges and corner. Every preference of the registry that is not the program's own has its line there: its title,
+// The settings (Ctrl+,): the toolkit's settings page (gt:prefs_page) in a view (views.odin), a dialog over the window at
+// home that the person resizes by its edges and corner. Every preference of the registry that is not the program's own has its line there: its title,
 // what it does, its control; the search on the left finds them by their words. The themes are cards.
 
 import config "gt:config"
@@ -15,9 +15,7 @@ OPTIONS_PREFERRED_EM :: [2]f32{56, 40}
 OPTIONS_MIN_EM :: [2]f32{34, 20}
 
 Options :: struct {
-	open: bool,
 	page: prefs_page.Page,
-	size: ui.Vec2,   // as the person resized it (ems; {}: preferred)
 	shown: bool,     // it was open at the last build (closed since: a slider's preview undone)
 }
 
@@ -26,10 +24,26 @@ options_free :: proc(o: ^Options) {
 	o^ = {}
 }
 
+options_register :: proc(app: ^App) {
+	ui.view_register(&app.views, OPTIONS_VIEW, options_view, ui.View_Options{
+		title = i18n.later("Settings"), icon = lucide.SETTINGS, icon_font = app.icons, resizable = true,
+		width_em = OPTIONS_PREFERRED_EM.x, height_em = OPTIONS_PREFERRED_EM.y, min_width_em = OPTIONS_MIN_EM.x, min_height_em = OPTIONS_MIN_EM.y,
+	})
+}
+
 act_options :: proc(app: ^App) {
-	o := &app.options
-	o.open = !o.open
-	if o.open { prefs_page.focus_search(&o.page) }
+	if ui.view_is_open(&app.views, OPTIONS_VIEW) {
+		ui.view_close(&app.views, OPTIONS_VIEW)
+		return
+	}
+	prefs_page.focus_search(&app.options.page)
+	ui.view_open(&app.views, OPTIONS_VIEW, app)
+}
+
+// The settings open on the setting `name` alone (the palette's).
+options_show :: proc(app: ^App, name: string) {
+	ui.view_open(&app.views, OPTIONS_VIEW, app)
+	prefs_page.show(&app.options.page, &app.prefs, options_page(app), name)
 }
 
 // The pages in their order: the toolkit's standard groups (docs/settings.md) and classeur's own (files, open); General
@@ -49,21 +63,22 @@ OPTIONS_PAGES := [?]prefs_page.Page_Info{
 	{category = "rendering", title = i18n.later("Rendering"), icon = lucide.MONITOR},
 }
 
-options_build :: proc(app: ^App) {
+// Each frame: the settings closed, however (their command, Escape, the close cross, the view's menu), while a slider was
+// held: what it showed and did not write goes back to the preferences.
+options_follow :: proc(app: ^App) {
 	o := &app.options
-	if !o.open {
-		// (closed while a slider was held: what it showed and did not write goes back to the preferences)
-		if o.shown { o.shown = false; options_unpreview(app) }
-		return
-	}
-	o.shown = true
-	if ui.modal("options", &o.open, {width_em = OPTIONS_PREFERRED_EM.x, height_em = OPTIONS_PREFERRED_EM.y, min_width_em = OPTIONS_MIN_EM.x, min_height_em = OPTIONS_MIN_EM.y, size = &o.size}) {
-		// (Escape closes it, unless a field of the page has the keyboard: that Escape is the field's; read in its scope,
-		// where an open dialog's keys are)
-		if !prefs_page.editing(&o.page) && ui.key_press(.Escape) { o.open = false }
-		ui.next({width = ui.fill(), height = ui.fill()})
-		prefs_page.build(&o.page, &app.prefs, options_page(app))
-	}
+	open := ui.view_is_open(&app.views, OPTIONS_VIEW)
+	if !open && o.shown { options_unpreview(app) }
+	o.shown = open
+}
+
+@(private = "file")
+options_view :: proc(v: ^ui.View, app: ^App) {
+	o := &app.options
+	// (Escape closes it, unless a field of the page has the keyboard: that Escape is the field's)
+	if !prefs_page.editing(&o.page) && ui.key_press(.Escape) { ui.view_end(v, ui.VIEW_CANCELLED) }
+	ui.next({width = ui.fill(), height = ui.fill()})
+	prefs_page.build(&o.page, &app.prefs, options_page(app))
 }
 
 // What a held slider showed and did not write, back to the preferences' values.

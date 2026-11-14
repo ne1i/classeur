@@ -50,6 +50,10 @@ Its site: [classeur.froment.software](https://classeur.froment.software/).
 - **The trash** opens as a folder: put back what it holds, or empty it.
 - **The inspector** (Space): the picture with its own size, the text in its language's colours, the folder's rows to
   open, a summary of several items.
+- **Panes and dialogs where you want them**: the sidebar, the inspector and each dialog (GoTo, batch rename, the
+  settings, the palette, a question) can float inside the window, open in a window of their own, or dock to the left,
+  the right or the bottom (a right click on the header, the icons on the hover of a pane's top, or the palette).
+  classeur remembers where each one was, its size, and whether the sidebar and the inspector were open.
 - **The system's icons**: the desktop's icon theme on Linux, the shell's on Windows.
 - **Watched folders**: a change made by any program shows at once.
 

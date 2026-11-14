@@ -30,9 +30,6 @@ PREF_DEFS := [?]config.Def{
 	{name = "view.column_widths", description = "The widths of the details' columns the person changed (ems).", kind = .String, default = {s = ""}, hidden = true},
 	{name = "keys.custom", description = "The person's keys of the commands (palette: Ctrl+Enter).", kind = .String, default = {s = ""}, hidden = true},
 	{name = "keys.aliases", description = "The aliases of the commands (palette: Alt+Enter).", kind = .String, default = {s = ""}, hidden = true},
-	{name = "palette.width", description = "The palette's width as last resized (ems; 0: its own).", kind = .Float, default = {f = 0}, hidden = true},
-	{name = "palette.height", description = "The palette's height as last resized (ems; 0: its own).", kind = .Float, default = {f = 0}, hidden = true},
-	{name = "inspector.width", description = "The inspector's width as last dragged (logical pixels).", kind = .Int, default = {i = INSPECTOR_DEFAULT_PX}, hidden = true},
 	{name = "side.order", description = "The sidebar's sections in their order.", kind = .String, default = {s = "recents,bookmarks,storage,network,places"}, hidden = true},
 	{name = "open.single_click", title = i18n.later("Single click"), tags = {"click", "double click"}, description = i18n.later("Opens an item with one click instead of two."), kind = .Bool, default = {b = false}},
 }

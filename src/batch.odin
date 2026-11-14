@@ -29,7 +29,6 @@ BATCH_ROWS :: 12
 Batch_Case :: enum u8 { Keep, Lower, Upper }
 
 Batch :: struct {
-	open:      bool,
 	tab:       u64,
 	dir:       string,             // owned: the folder the items are in
 	names:     [dynamic]string,    // owned: the items, in the list's order
@@ -81,7 +80,7 @@ batch_names_answer :: proc(app: ^App, r: platform.Clipboard_Reply) {
 	b := &app.batch
 	if r.id == 0 || r.id != b.list_asked { return }
 	b.list_asked = 0
-	if !b.open { return }
+	if !ui.view_is_open(&app.views, BATCH_VIEW) { return }
 	for s in b.list { delete(s) }
 	clear(&b.list)
 	for line in strings.split_lines(strings.trim_right_space(r.text), context.temp_allocator) { append(&b.list, strings.clone(strings.trim_space(line))) }
@@ -91,7 +90,7 @@ batch_open :: proc(app: ^App, t: ^Tab) {
 	if read_only_here(app, t) { return }
 	b := &app.batch
 	batch_clear(b)
-	b.open, b.tab, b.focus_due, b.scroll, b.casing = true, t.id, true, 0, .Keep
+	b.tab, b.focus_due, b.scroll, b.casing = t.id, true, 0, .Keep
 	b.dir = strings.clone(t.path)
 	b.tz = app.tz
 	alphabet := "abcdefghijkmnpqrstuvwxyz23456789"
@@ -109,6 +108,15 @@ batch_open :: proc(app: ^App, t: ^Tab) {
 	ui.line_edit_select_all(&b.pattern)
 	ui.line_edit_clear(&b.find)
 	ui.line_edit_clear(&b.replace)
+	ui.view_open(&app.views, BATCH_VIEW, app)
+}
+
+// Its width when it opens as a dialog (em), and its top in the window.
+BATCH_WIDTH_EM :: 52
+BATCH_TOP :: 0.1
+
+batch_register :: proc(app: ^App) {
+	ui.view_register(&app.views, BATCH_VIEW, batch_view, ui.View_Options{title = i18n.later("Rename"), icon = lucide.PENCIL, icon_font = app.icons, top = BATCH_TOP, width_em = BATCH_WIDTH_EM})
 }
 
 // The new name of item `i`.
@@ -249,11 +257,15 @@ batch_done :: proc(data: rawptr, word: u64) {
 	announce(app, .Good, i18n.tr(len(a.pairs), "%d item renamed.", "%d items renamed."), len(a.pairs))
 }
 
-batch_build :: proc(app: ^App, em: f32) {
+// The view: the three fields, the options, the old names and the new ones. As a dialog it is as wide as the window
+// allows; elsewhere (floating, docked, in a window) as wide as its room.
+@(private = "file")
+batch_view :: proc(v: ^ui.View, app: ^App) {
 	b := &app.batch
-	if !b.open { return }
+	em := ui.font_size()
 	n := len(b.names)
-	pw := min(em * 52, app.room * ui.scale() * 0.94)
+	pw := v.presentation == .Dialog ? min(em * BATCH_WIDTH_EM, app.room * ui.scale() * 0.94) : ui.view_room(v).x
+	ui.view_title(v, fmt.tprintf(i18n.tr(n, "Rename %d item", "Rename %d items"), n))
 	news := make([]string, n, context.temp_allocator)
 	for i in 0 ..< n { news[i] = batch_name(b, i) }
 	problems := batch_problems(b, news)
@@ -261,10 +273,10 @@ batch_build :: proc(app: ^App, em: f32) {
 	for p in problems { if p != "" { bad += 1 } }
 	apply := false
 
-	if ui.modal("batch_rename", &b.open, {width_em = pw / em, top = 0.1}) {
+	{
 		if ui.style({width = ui.px(pw)}) {
-			if ui.dialog_header("batch_head", fmt.tprintf(i18n.tr(n, "Rename %d item", "Rename %d items"), n), {icon = lucide.PENCIL, icon_font = app.icons, close = true}) {}
-			// (Enter in a field renames)
+			// (Enter in a field renames; the pattern's field takes the focus in the view's first build, unseen: a dialog
+			// measured before it shows keeps it, and the letters typed meanwhile come into the field)
 			if batch_field_row(app, i18n.tr("Pattern"), "###bpat", &b.pattern, "{name}", em, pw, focus = b.focus_due) { apply = true }
 			b.focus_due = false
 			if batch_field_row(app, i18n.tr("Find"), "###bfind", &b.find, i18n.tr("Text to replace"), em, pw) { apply = true }
@@ -344,7 +356,7 @@ batch_build :: proc(app: ^App, em: f32) {
 					ui.label(fmt.tprintf("%s###bstate", bad > 0 ? fmt.tprintf(i18n.tr(bad, "%d name cannot be had.", "%d names cannot be had."), bad) : i18n.tr("Esc: close")))
 				}
 				ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 2.2))})
-				if ui.button("bcancel", i18n.tr("Cancel")).clicked { b.open = false }
+				if ui.button("bcancel", i18n.tr("Cancel")).clicked { ui.view_end(v, ui.VIEW_CANCELLED) }
 				ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 2.2))})
 				if ui.button("bapply", i18n.tr("Rename (Enter)"), o = {intent = .Primary, disabled = bad > 0}).clicked { apply = true }
 			}
@@ -352,7 +364,7 @@ batch_build :: proc(app: ^App, em: f32) {
 	}
 	if apply && bad == 0 {
 		batch_apply(app, news)
-		b.open = false
+		ui.view_end(v, 0)
 		if t := find_tab(app, b.tab); t != nil { t.focus_due = .List }
 	}
 }

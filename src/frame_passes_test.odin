@@ -32,7 +32,7 @@ test_frame_passes_summary :: proc(t: ^testing.T) {
 		testing.expect_value(t, len(f.shown), PASSES_ENTRIES)
 		point_at(t, tab, "file 0000.md")
 		session.key(s, .Space)
-		testing.expect(t, app.inspector.open, "the inspector")
+		testing.expect(t, inspector_shown(app), "the inspector")
 		folder_select_all(f)
 		session.wait_idle(s)
 		testing.expect(t, session.find_text(s, fmt.tprintf("%d items", PASSES_ENTRIES)) != nil, "the summary")

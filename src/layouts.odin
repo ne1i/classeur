@@ -21,8 +21,7 @@ Layout :: struct {
 
 Layouts :: struct {
 	list:      [dynamic]Layout,
-	naming:    bool,           // the field that names the layout shown is open
-	field:     ui.Line_Edit,
+	field:     ui.Line_Edit,   // the name of the layout shown, in the question that saves it (LAYOUT_NAME_VIEW)
 }
 
 layouts_free :: proc(l: ^Layouts) {
@@ -123,9 +122,18 @@ layout_delete :: proc(app: ^App, name: string) {
 
 act_layout_save :: proc(app: ^App) {
 	l := &app.layouts
-	l.naming = true
 	ui.line_edit_set(&l.field, fmt.tprintf(i18n.tr("Layout %d"), len(l.list) + 1))
 	ui.line_edit_select_all(&l.field)
+	layout_name_ask(app)
+}
+
+@(private = "file")
+layout_name_ask :: proc(app: ^App) {
+	ui.prompt_open(LAYOUT_NAME_VIEW, &app.layouts.field, {
+		title = i18n.tr("Save the panels shown as a layout"),
+		note = i18n.tr("Its name: Ctrl+Alt+L lists the layouts to open one again in place of the panels."),
+		placeholder = i18n.tr("The layout's name"), act = i18n.tr("Save"),
+	})
 }
 
 act_layout_open :: proc(app: ^App) {
@@ -154,15 +162,9 @@ layouts_build :: proc(app: ^App, em: f32) {
 		}
 		if open != "" { layout_open(app, strings.clone(open, context.temp_allocator)) }
 	}
-	if !l.naming { return }
-	// (Enter in the field saves; an empty name saves nothing and keeps the question open)
-	answer := ui.prompt("layout_name", &l.naming, &l.field, {
-		title = i18n.tr("Save the panels shown as a layout"),
-		note = i18n.tr("Its name: Ctrl+Alt+L lists the layouts to open one again in place of the panels."),
-		placeholder = i18n.tr("The layout's name"), act = i18n.tr("Save"),
-	})
-	if answer == .Confirmed {
+	// (Enter in the field saves; an empty name saves nothing and asks again)
+	if ui.prompt_answer(LAYOUT_NAME_VIEW) == .Confirmed {
 		name := strings.trim_space(ui.line_edit_string(&l.field))
-		if name == "" { l.naming = true } else { layout_save(app, strings.clone(name, context.temp_allocator)) }
+		if name == "" { layout_name_ask(app) } else { layout_save(app, strings.clone(name, context.temp_allocator)) }
 	}
 }
