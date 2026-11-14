@@ -3,6 +3,18 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.21.0] - 2026-11-14
+
+### Added
+- **Select several items with Ctrl and Shift, as in every file manager**: a second Shift+click nearer the first item makes the range smaller; Ctrl+Shift+click adds a range to what is selected; Ctrl and the arrows move the cursor alone, and Ctrl+Space then adds or removes the item under it; Escape on several items keeps the one under the cursor. The rectangle and the keys share these rules. A Shift range no longer keeps the items that Ctrl selected before it (Ctrl+Shift keeps them).
+- **Panes and dialogs go where you want them**: the sidebar, the inspector and every dialog (GoTo, batch rename, the settings, the command palette, the sheet of the keys, a question) can float inside the window, open in a window of their own, or dock to the left, the right or the bottom of the window: a right click on a dialog's header, the icons that show over the top of a pane, a drag of a dialog's header, or the palette, which lists these moves for each one open. classeur remembers where each one was, its size and whether the sidebar and the inspector were open, and shows them there at the next start. The inspector now sits at the right of the window, beside every panel.
+
+### Fixed
+- **The inspector's text can be selected and copied.** A drag selects across lines in a file's preview (text or code), its name, what it is, its properties' values and a picture's size; Ctrl+C copies the text selected, not the files, until a press elsewhere. The footer's line about the cursor's item, the jobs' paths and errors, the names before and after a batch rename and the files of the name-taken question select the same way.
+- **The palette, the keys and quit work over the settings.** While the settings, the sheet of the keys or another dialog was open, Ctrl+K, Ctrl+Shift+P, F1, Ctrl+, and Ctrl+Q did nothing. They now work there too, and the palette lists the settings from inside them. The recorder of a command's keys still records any combination.
+- **The update is shown once**: the button of the title bar alone says that a new version is on offer, downloading or ready to restart; the status line no longer repeats it. A failed update is said there.
+- **The font settings apply at once.** The interface and monospace fonts took effect only at the next start, and the reading font never; a family chosen in the settings now shows at once, in every window, and Default brings classeur's own back.
+
 ## [0.20.2] - 2026-11-14
 
 ### Fixed
@@ -473,6 +485,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.21.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.21.0
 [0.20.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.2
 [0.20.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.1
 [0.20.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.0
