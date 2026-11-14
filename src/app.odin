@@ -506,6 +506,8 @@ app_close :: proc(app: ^App) {
 	if global_app == app { global_app = nil }
 	prefs_page.install_end(&app.install)   // (again for a window app_run did not end: it does nothing the second time)
 	crash_bar.destroy(&app.crash_bar)
+	// (before its window: a question still out finds no palette, the usage memory is written)
+	ui.palette_destroy(&app.palette.pal)
 	// (after the last build, while the window's State is there: which views were open is written, their windows close)
 	ui.views_destroy(&app.views)
 	host.host_close(&app.main)

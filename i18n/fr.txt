@@ -222,9 +222,6 @@ fr Réglages
 en Inspector
 fr Inspecteur
 
-en Command palette
-fr Palette de commandes
-
 en Keyboard shortcuts
 fr Raccourcis clavier
 
@@ -1258,12 +1255,11 @@ fr Sélection
 en View
 fr Affichage
 
-ctx palette: the word that shows Tab 1 to Last tab
-en tab
-fr onglet
+en Set a key
+fr Choisir une touche
 
-en Enter: run   Ctrl+Enter: a key of your own   Alt+Enter: the letters typed, its alias
-fr Entrée : exécuter   Ctrl+Entrée : choisir ses touches   Alt+Entrée : en faire un alias
+en Make the letters its alias
+fr En faire un alias
 
 en %s: an alias of %s.
 fr %s : un alias de %s.
@@ -1285,6 +1281,18 @@ fr Appuyez sur les touches…
 
 en Keep (Enter)
 fr Garder (Entrée)
+
+en Tabs
+fr Onglets
+
+en Show
+fr Afficher
+
+en Open in a new tab
+fr Ouvrir dans un nouvel onglet
+
+en Panel %d
+fr Panneau %d
 
 en Home
 fr Dossier personnel

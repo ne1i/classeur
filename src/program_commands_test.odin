@@ -34,7 +34,7 @@ test_program_commands_listed :: proc(t: ^testing.T) {
 	})
 }
 
-// "exit" finds Quit, "reboot" Restart: words their titles do not say.
+// "exit" finds Quit, "reboot" Restart: words their titles do not say; a command that cannot act is greyed.
 @(test)
 test_palette_finds_program_commands :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -44,18 +44,18 @@ test_palette_finds_program_commands :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		session.key(s, .K, {.Ctrl})
 		session.type_text(s, "exit")
-		session.frames(s, 2)
+		palette_ranked(s)
 		first := palette_first(app)
 		testing.expect(t, first >= 0 && COMMANDS[first].id == "app_quit", "\"exit\": Quit")
-		ui.line_edit_set(&app.palette.field, "reboot")
-		session.frames(s, 1)
+		ui.line_edit_set(&app.palette.pal.field, "reboot")
+		palette_ranked(s)
 		first = palette_first(app)
 		testing.expect(t, first >= 0 && COMMANDS[first].id == "app_restart", "\"reboot\": Restart")
-		// (headless, no updater: Install the update would do nothing, it is not offered)
-		ui.line_edit_set(&app.palette.field, "install the update")
-		session.frames(s, 1)
-		first = palette_first(app)
-		testing.expect(t, first < 0 || COMMANDS[first].id != "app_update_install", "no update to install: not offered")
+		// (headless, no updater: Install the update would do nothing, it is listed greyed, last)
+		ui.line_edit_set(&app.palette.pal.field, "install the update")
+		palette_ranked(s)
+		line := app.palette.line_of[command_index(command_find("app_update_install"))]
+		testing.expect(t, line >= 0 && app.palette.disabled[line], "no update to install: greyed")
 		session.key(s, .Escape)
 	})
 }

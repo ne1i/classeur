@@ -90,7 +90,7 @@ entry_menu_open :: proc(app: ^App, t: ^Tab, pos: ui.Vec2, from_keyboard := false
 	if on_entry {
 		if e := folder_cursor_entry(&t.folder); e != nil && e.kind != .Directory { handlers_ask(app, entry_path(t, e)) }
 	}
-	ui.menu_open(ENTRY_MENU, pos, from_keyboard = from_keyboard, search = true)
+	ui.menu_open(ENTRY_MENU, pos, from_keyboard = from_keyboard)
 }
 
 // An item that runs a command, with its first key. `title`: what the item says in place of the command's title (what
@@ -383,7 +383,9 @@ panel_menu_build :: proc(app: ^App, em: f32) {
 		t := current_tab(app)
 		if t == nil { ui.menu_close(); return }
 		// (where every command is, and the settings, first: the menu that the "…" opens is where one looks for them)
-		menu_command(app, "palette")
+		// (the palette's command is the toolkit's: read at the build, its keys the toolkit's)
+		pc := ui.palette_command()
+		if ui.menu_item(i18n.tr(pc.label), ui.command_shortcut(pc), icon = pc.icon).clicked { palette_open(app) }
 		menu_command(app, "options")
 		menu_command(app, "shortcuts")
 		ui.menu_separator()

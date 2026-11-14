@@ -24,11 +24,12 @@ test_command_keys_typing_text :: proc(t: ^testing.T) {
 	})
 }
 
-// The window's commands (window_keys): the palette, the keys, the settings and quit, each also in_text.
+// The window's commands (window_keys): the keys, the settings and quit, each also in_text (the palette's is the
+// toolkit's: ui.palette_command).
 @(test)
 test_window_commands_marked :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
-		for id in ([]string{"options", "palette", "shortcuts", "app_quit"}) {
+		for id in ([]string{"options", "shortcuts", "app_quit"}) {
 			c := command_find(id)
 			testing.expectf(t, c != nil && c.scope == .Window && c.in_text, "%s is the window's", id)
 		}

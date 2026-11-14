@@ -1,15 +1,15 @@
 package classeur
 
-// The command palette (Ctrl+K, Ctrl+Shift+P): the toolkit's (a view), over every command of the table under its group,
-// then every setting (prefs_page.palette_commands), then the moves of each open view (float it, dock it, put it in a
-// window, re-attach it, close it: ui.views_commands). A few letters find a command ("nf": New folder), an alias of one's
-// own too (its tags); Enter runs it. Ctrl+Enter records keys of one's own for it (the recorder, below), Alt+Enter makes
-// the letters typed its alias. The commands chosen most, and lately, come first, under Recent (ui.Choice_Memory, kept in
-// the state folder).
+// The command palette (Ctrl+K, Ctrl+Shift+P): the toolkit's (ui.Command_Palette), the same in every program of the
+// family. classeur gives it its sources (src/md/features/palette.md): its commands (`>`, and in the plain search), the
+// settings (`:`), the tabs (`@`) and the folders (`/`, palette_sources.odin); the toolkit adds the views' moves. A few
+// letters find a command ("nf": New folder), an alias of one's own too (its tags, and put first when typed whole); Enter
+// runs it. Ctrl+Enter records keys of one's own for it (the recorder, below), Alt+Enter makes the letters typed its
+// alias: the alternates of the commands source. The palette ranks on a chore and remembers the choices
+// (palette_choices.txt in the state folder).
 //
-// The palette and the sheet keep their lists: the tables they are given are built again only when what they read
-// changes (the keymap, the language, "tab" typed or not, a command that can or cannot run, the views), with a new
-// version, and given to them then (ui.palette_set), not at each frame.
+// The tables given to the palette and to the sheet are made again only when what they read changes (the keymap, the
+// language, a command that can or cannot act), with a new version: the palette compares the version, never the table.
 
 import "core:fmt"
 import vmem "core:mem/virtual"
@@ -20,38 +20,43 @@ import "gt:platform"
 import prefs_page "gt:prefs_page"
 import "gt:ui"
 
-PALETTE_RECENT :: ui.CHOICE_RECENT_MOST
-
 Palette :: struct {
-	using pal: ui.Command_Palette,
+	pal:       ui.Command_Palette,           // the toolkit's: its field, its sources, its usage memory
+	settings:  prefs_page.Palette_Settings,  // the settings source
+	tabs:      ui.Palette_Source,            // `@` (palette_sources.odin)
+	folders:   ui.Palette_Source,            // `/`
+	tabs_sig:  u64,                          // what the tabs source's items were made from (tabs_poll)
+	folders_cache: Folders_Cache,            // the last folder the folders source listed (palette_sources.odin)
 	recording: int,         // the command whose keys are recorded (-1: none): the recorder's view is open
 	chords:    [2]Shortcut, // what was pressed so far
 	count:     int,
-	choices:   ui.Choice_Memory,     // what the person chose before (palette_choices_file)
 	sheet:     ui.Shortcuts_Sheet,   // the sheet of the keys (F1)
 
-	list:       Palette_List,   // the palette's table, kept (in list_arena) while table_key holds
-	table_key:  Palette_Key,    // (not list_key: Command_Palette, used here, has one)
-	view_cmds:  ui.View_Commands,   // the views' moves, made again only when the views or the language change
-	first_given: int,           // the line put first that palette_set got (an alias typed whole; -1: none)
-	list_arena: vmem.Arena,
-	gated:      [dynamic]int,   // the commands that have an `enabled` (read each frame: few)
+	// the commands source's table: COMMANDS by group, but Tab 1 to Last tab (the tabs source lists the tabs) and the
+	// palette's own command; in table_arena, made again when table_key changes
+	table:       []ui.Command,
+	order:       []int,      // table index -> COMMANDS index
+	line_of:     []int,      // COMMANDS index -> table index (-1: not in the table)
+	names:       []string,   // table index -> the command's id (the usage memory's and the choice's)
+	keys:        []string,   // table index -> the text of its keys (one's own)
+	disabled:    [dynamic]bool,
+	table_key:   Table_Key,
+	enabled:     u64,        // a bit per gated command that can act, as `disabled` says it
+	version:     u64,        // the commands source's: bumped when the table or `disabled` changes
+	table_arena: vmem.Arena,
+	gated:       [dynamic]int,   // the commands that have an `enabled` (read each frame: few)
 
 	sheet_list:  []ui.Command,  // the sheet's table, kept (in sheet_arena) while sheet_key holds
 	sheet_key:   Sheet_Key,
 	sheet_arena: vmem.Arena,
 }
 
-// What the palette's table reads: when one changes, the table is built again and its version bumped.
+// What the commands' table reads: when one changes, it is made again.
 @(private = "file")
-Palette_Key :: struct {
+Table_Key :: struct {
 	built:    bool,
-	keymap:   u64,                // Keymap.version: one's own keys and aliases
-	language: u32,                // i18n.version(): the settings' groups and the keys' texts are in it
-	tabs:     bool,               // "tab" typed: Tab 1 to Last tab are offered
-	enabled:  u64,                // a bit per gated command that can run now
-	views:    u64,                // View_Commands.serial: the views' moves
-	version:  u64,
+	keymap:   u64,   // Keymap.version: one's own keys and aliases
+	language: u32,   // i18n.version(): the keys' texts are in it
 }
 
 @(private = "file")
@@ -62,49 +67,46 @@ Sheet_Key :: struct {
 	version:  u64,
 }
 
+// (the toolkit's palette is destroyed before the window: app_close)
 palette_free :: proc(p: ^Palette) {
-	ui.palette_destroy(&p.pal)
 	ui.shortcuts_sheet_destroy(&p.sheet)
-	ui.choice_memory_close(&p.choices)
-	vmem.arena_destroy(&p.list_arena)
+	vmem.arena_destroy(&p.table_arena)
 	vmem.arena_destroy(&p.sheet_arena)
-	ui.views_commands_destroy(&p.view_cmds)
+	folders_cache_free(&p.folders_cache)
+	delete(p.disabled)
 	delete(p.gated)
 	p^ = {}
 }
 
-// Where the palette's choices are kept: <state>/classeur/palette_choices, beside the tests' session file for theirs, none
-// (in memory only) when headless or standalone.
+// Where the palette's choices are kept: <state>/classeur/palette_choices.txt, beside the tests' session file for
+// theirs, none (in memory only) when headless or standalone.
 palette_choices_file :: proc(app: ^App) -> string {
 	if app.session_path != "" { return strings.concatenate({app.session_path, ".choices"}, context.temp_allocator) }
 	if app.headless || app.standalone { return "" }
-	return strings.concatenate({platform.user_dir(.State, APP_NAME, context.temp_allocator), "/palette_choices"}, context.temp_allocator)
+	return strings.concatenate({platform.user_dir(.State, APP_NAME, context.temp_allocator), "/palette_choices.txt"}, context.temp_allocator)
 }
 
-// (once the window's state is made: the file is read on its chores)
+// (once the window's state is made: the usage memory is read on its chores)
 palette_start :: proc(app: ^App) {
 	p := &app.palette
 	p.recording = -1   // (no command's keys recorded: the recorder is shut)
-	p.first_given = -1
-	ui.choice_memory_open(&p.choices, &app.main.state, palette_choices_file(app))
+	ui.palette_memory_open(&p.pal, &app.main.state, palette_choices_file(app))
 	for c, i in COMMANDS { if c.enabled != nil { append(&p.gated, i) } }
-	assert(len(p.gated) <= 64, "Palette_Key.enabled holds a bit per gated command")
+	assert(len(p.gated) <= 64, "Palette.enabled holds a bit per gated command")
+	// (the settings' page options read when the source needs them: the updater, the themes shown, as they are then)
+	prefs_page.palette_settings_add(&p.pal, &p.settings, &app.prefs, &app.options.page, proc(user: rawptr) -> prefs_page.Page_Options {
+		return options_page((^App)(user))
+	}, proc(user: rawptr) {
+		// (the setting chosen is already alone on its page: prefs_page.show)
+		app := (^App)(user)
+		ui.view_open(&app.views, OPTIONS_VIEW, app)
+	}, app)
+	palette_sources_add(app)
 }
 
-// The palette, its table given first (made again when what it reads changed).
-palette_open :: proc(app: ^App) {
-	p := &app.palette
-	palette_list(app)
-	ui.palette_open(&p.pal)
-}
-
-// The palette again after the recorder or an alias, with the letters typed before (palette_open empties its field).
-@(private = "file")
-palette_reopen :: proc(app: ^App) {
-	p := &app.palette
-	text := strings.clone(ui.line_edit_string(&p.field), context.temp_allocator)
-	palette_open(app)
-	ui.line_edit_set(&p.field, text)
+// The palette (a menu's line; Ctrl+K and Ctrl+Shift+P are the toolkit's: palette_build), `typed` in its field.
+palette_open :: proc(app: ^App, typed := "") {
+	ui.palette_open(&app.palette.pal, typed)
 }
 
 // The groups of the commands, in the palette's order, and the group of each (by its id). (Not rodata: i18n.later marks
@@ -120,103 +122,63 @@ command_group :: proc(id: string) -> int {
 	case has(id, "select"): return 3
 	case has(id, "view") || has(id, "zoom") || has(id, "sort") || has(id, "group") || id == "tree" || id == "hidden" || id == "sidebar" || id == "folders_mixed" || id == "inspector": return 4
 	case id == "filter" || id == "flat" || id == "types" || id == "files_only" || id == "folders_only" || id == "every_type": return 5
-	case id == "palette" || id == "shortcuts" || id == "options" || id == "jobs" || id == "jobs_cancel": return 6
+	case id == "shortcuts" || id == "options" || id == "jobs" || id == "jobs_cancel": return 6
 	}
 	return 2
 }
 
-// The palette's list: the program's commands by group (`order`: each line's command), then the settings (`settings`:
-// each one's preference), then the views' moves (`acts`: what each does); the keys' texts (one's own), the aliases as
-// tags, each line's name in the memory of choices (a command's id; a setting or a move is not remembered). All in the
-// palette's list_arena.
-@(private = "file")
-Palette_List :: struct {
-	commands: []ui.Command,
-	order:    []int,      // line -> COMMANDS index, for the program's commands (the lines before the settings)
-	settings: []string,   // the settings' names, after them
-	acts:     []ui.View_Command,   // the views' moves, after the settings (their strings view_cmds')
-	names:    []string,   // line -> its key in the memory of choices
-	keys:     []string,   // line -> the text of its keys
+// The index of a command of COMMANDS.
+command_index :: proc(c: ^Command) -> int {
+	return int((uintptr(c) - uintptr(&COMMANDS[0])) / size_of(Command))
 }
 
-// The palette's table as it is now: the one kept, built again when what it reads changed, and then given to the
-// palette at once (it lists from the arena, which the making empties).
-@(private = "file")
-palette_list :: proc(app: ^App) -> ^Palette_List {
-	p := &app.palette
-	// (Tab 1 to Last tab would take nine lines of every search: they show once "tab" is typed)
-	// (the word in the person's language: the titles they search are)
-	// (the views' moves made again only when the views or the language changed: their serial is in the key)
-	_ = ui.views_commands_update(&p.view_cmds, &app.views)
-	key := Palette_Key{built = true, keymap = app.keymap.version, language = i18n.version(), views = p.view_cmds.serial}
-	key.tabs = strings.has_prefix(strings.to_lower(strings.trim_space(ui.line_edit_string(&p.field)), context.temp_allocator), i18n.tr("palette: the word that shows Tab 1 to Last tab", "tab"))
-	for c, bit in p.gated { if COMMANDS[c].enabled(app) { key.enabled |= 1 << u64(bit) } }
-	key.version = p.table_key.version
-	if key == p.table_key { return &p.list }
-	key.version += 1
-	p.table_key = key
-
-	vmem.arena_free_all(&p.list_arena)
-	a := vmem.arena_allocator(&p.list_arena)
-	cmds := make([dynamic]ui.Command, a)
-	order := make([dynamic]int, a)
-	names := make([dynamic]string, a)
-	keys := make([dynamic]string, a)
-	for g in 0 ..< len(COMMAND_GROUPS) {
-		for &c, i in COMMANDS {
-			if command_group(c.id) != g || (!key.tabs && tab_pick_command(c.id)) { continue }
-			// (a command that would do nothing now is not offered)
-			if c.enabled != nil && !c.enabled(app) { continue }
-			tags := make([dynamic]string, a)
-			append(&tags, ..c.tags)
-			for alias, id in app.keymap.aliases { if id == c.id { append(&tags, strings.clone(alias, a)) } }
-			append(&cmds, ui.Command{label = c.title, group = COMMAND_GROUPS[g], icon = c.icon, keys = c.keys, tags = tags[:]})
-			append(&order, i)
-			append(&names, c.id)
-			append(&keys, strings.clone(command_keys(app, &c), a))
-		}
-	}
-	settings, setting_names := prefs_page.palette_commands(&app.prefs, options_page(app), a)
-	append(&cmds, ..settings)
-	for _ in settings { append(&names, "") }
-	// (the views' moves, but the palette's own: it is open while they are listed, moving it from itself is no help;
-	// their strings are view_cmds', which the table is made again with)
-	vc := &p.view_cmds
-	acts := make([dynamic]ui.View_Command, 0, len(vc.acts), a)
-	for c, i in vc.commands {
-		act := vc.acts[i]
-		if act.id == ui.PALETTE_VIEW { continue }
-		append(&cmds, c)
-		append(&acts, act)
-		append(&names, "")
-	}
-	p.list = {commands = cmds[:], order = order[:], settings = setting_names, acts = acts[:], names = names[:], keys = keys[:]}
-	palette_give(app, &p.list)
-	return &p.list
-}
-
-// What the palette lists, given to it (when it was made again, or when the line put first changed).
-@(private = "file")
-palette_give :: proc(app: ^App, l: ^Palette_List) {
-	o := palette_options(app, l)
-	app.palette.first_given = o.first.? or_else -1
-	ui.palette_set(&app.palette.pal, l.commands, nil, o)
-}
-
-// The palette's options for its kept table: the memory of choices, the keys' texts, an alias typed whole first.
-@(private = "file")
-palette_options :: proc(app: ^App, l: ^Palette_List) -> (o: ui.Palette_Options) {
-	o = {memory = &app.palette.choices, names = l.names, keys = l.keys, version = app.palette.table_key.version}
-	o.foot = i18n.tr("Enter: run   Ctrl+Enter: a key of your own   Alt+Enter: the letters typed, its alias")
-	if a := alias_command(app, ui.line_edit_string(&app.palette.field)); a != nil {
-		for c, line in l.order { if &COMMANDS[c] == a { o.first = line } }
-	}
-	return
-}
-
-// One of the commands that show the tab of a number (Alt+1 to Alt+9).
+// One of the commands that show the tab of a number (Alt+1 to Alt+9): out of the palette, whose tabs source lists the
+// tabs themselves.
 tab_pick_command :: proc(id: string) -> bool {
 	return id == "tab_last" || (len(id) == 5 && strings.has_prefix(id, "tab_") && id[4] >= '1' && id[4] <= '9')
+}
+
+// The commands source's table kept: made again when the keymap or the language changed; `disabled` made again when what
+// can act changed (a bit per gated command: three of them). Either bumps the source's version.
+@(private = "file")
+palette_table_keep :: proc(app: ^App) {
+	p := &app.palette
+	key := Table_Key{built = true, keymap = app.keymap.version, language = i18n.version()}
+	enabled: u64
+	for c, bit in p.gated { if COMMANDS[c].enabled(app) { enabled |= 1 << u64(bit) } }
+	if key == p.table_key && enabled == p.enabled { return }
+	if key != p.table_key {
+		p.table_key = key
+		vmem.arena_free_all(&p.table_arena)
+		a := vmem.arena_allocator(&p.table_arena)
+		table := make([dynamic]ui.Command, a)
+		order := make([dynamic]int, a)
+		names := make([dynamic]string, a)
+		keys := make([dynamic]string, a)
+		line_of := make([]int, len(COMMANDS), a)
+		for &l in line_of { l = -1 }
+		for g in 0 ..< len(COMMAND_GROUPS) {
+			for &c, i in COMMANDS {
+				if command_group(c.id) != g || tab_pick_command(c.id) { continue }
+				tags := make([dynamic]string, a)
+				append(&tags, ..c.tags)
+				for alias, id in app.keymap.aliases { if id == c.id { append(&tags, strings.clone(alias, a)) } }
+				line_of[i] = len(table)
+				append(&table, ui.Command{label = c.title, group = COMMAND_GROUPS[g], icon = c.icon, keys = c.keys, tags = tags[:]})
+				append(&order, i)
+				append(&names, c.id)
+				append(&keys, strings.clone(command_keys(app, &c), a))
+			}
+		}
+		p.table, p.order, p.names, p.keys, p.line_of = table[:], order[:], names[:], keys[:], line_of
+	}
+	p.enabled = enabled
+	resize(&p.disabled, len(p.order))
+	for ci, i in p.order {
+		c := &COMMANDS[ci]
+		p.disabled[i] = c.enabled != nil && !c.enabled(app)
+	}
+	p.version += 1
 }
 
 // The sheet of the keys (F1): every command that has keys under its group, the person's own keys when they set some (a
@@ -256,56 +218,64 @@ shortcuts_keep :: proc(app: ^App) {
 	}
 }
 
-// Each frame: the palette's choice, the recorder's end, and the tables of the palette and the sheet kept while they are
-// open.
+// What Ctrl+Enter and Alt+Enter do with a command (the hint row's words; English, translated where they show).
+// (not rodata: i18n.later marks them for the catalogue)
+@(private = "file")
+PALETTE_ALTERNATES := ui.Palette_Alternates{ctrl = i18n.later("Set a key"), alt = i18n.later("Make the letters its alias")}
+
+// Each build, before the page's keys: the commands given (compared by their version), Ctrl+K and Ctrl+Shift+P, the
+// choice, the recorder's end, the sheet's table.
 palette_build :: proc(app: ^App) {
 	p := &app.palette
 	if ui.shortcuts_sheet_is_open(&p.sheet) { shortcuts_keep(app) }
 	if _, ended := ui.view_ended(&app.views, RECORDER_VIEW); ended { palette_recorder_end(app) }
-	// (the choice is a line of the table it was made from: taken before the table is made again)
-	if chosen, mods, ok := ui.palette_chosen(&p.pal); ok && chosen < len(p.list.commands) {
-		palette_run(app, chosen, mods)
-	}
+	palette_table_keep(app)
+	// (an alias typed whole puts its command first: one lookup in the aliases, while the palette is open; the query is
+	// the palette's, its prefix left out)
+	first: Maybe(int)
 	if ui.palette_is_open(&p.pal) {
-		l := palette_list(app)
-		// (an alias typed whole puts its command first: what is typed is not in the table's key)
-		o := palette_options(app, l)
-		if first := o.first.? or_else -1; first != p.first_given { palette_give(app, l) }
+		if a := alias_command(app, p.pal.query); a != nil {
+			if line := p.line_of[command_index(a)]; line >= 0 { first = line }
+		}
 	}
+	ui.palette_commands(&p.pal, p.table, p.disabled[:], {names = p.names, keys = p.keys, first = first, version = p.version, alternates = PALETTE_ALTERNATES})
+	// (not while the recorder is open: it records any chord, Ctrl+K too, as the window's commands wait)
+	if !ui.view_is_open(&app.views, RECORDER_VIEW) { _ = ui.palette_keys(&p.pal) }
+	// (the toolkit's sources act in palette_chosen: a setting, a view's move)
+	if c, ok := ui.palette_chosen(&p.pal); ok { palette_run(app, c) }
 }
 
-// Line `chosen` of the palette's table, chosen with the modifiers `mods` of its Enter.
+// A choice of one of classeur's sources.
 @(private = "file")
-palette_run :: proc(app: ^App, chosen: int, mods: platform.Modifiers) {
+palette_run :: proc(app: ^App, c: ui.Palette_Choice) {
 	p := &app.palette
-	l := &p.list
-	settings_end := len(l.order) + len(l.settings)
-	// a setting: the settings, on that one alone; a view's move: done
-	if chosen >= settings_end {
-		ui.views_command_run(&app.views, l.acts[chosen - settings_end])
-		return
-	}
-	if chosen >= len(l.order) {
-		options_show(app, strings.clone(l.settings[chosen - len(l.order)], context.temp_allocator))
-		return
-	}
-	c := &COMMANDS[l.order[chosen]]
-	switch mods {
-	case {.Ctrl}:
-		// (the palette comes back as it was once the keys are recorded)
-		p.recording, p.count, p.chords = l.order[chosen], 0, {}
-		ui.view_open(&app.views, RECORDER_VIEW, app)
-	case {.Alt}:
-		needle := strings.trim_space(ui.line_edit_string(&p.field))
-		if needle != "" {
-			keymap_alias(app, needle, c.id)
-			say(app, i18n.tr("%s: an alias of %s."), needle, i18n.tr(c.title))
+	if _, is := ui.palette_chosen_command(&p.pal, c); is {
+		// (by its id, the answer's: the table may have been made again since it was ranked)
+		cmd := command_find(c.id)
+		if cmd == nil { return }
+		switch c.mods {
+		case {.Ctrl}:
+			// (the palette comes back as it was once the keys are recorded)
+			p.recording, p.count, p.chords = command_index(cmd), 0, {}
+			ui.view_open(&app.views, RECORDER_VIEW, app)
+		case {.Alt}:
+			// (the query it was chosen for, its prefix left out)
+			needle := strings.trim_space(c.query)
+			if needle != "" {
+				keymap_alias(app, needle, cmd.id)
+				say(app, i18n.tr("%s: an alias of %s."), needle, i18n.tr(cmd.title))
+			}
+			palette_open(app, strings.clone(c.query, context.temp_allocator))
+		case:
+			if t := current_tab(app); t != nil { t.focus_due = .List }
+			cmd.run(app)
 		}
-		palette_reopen(app)
-	case:
-		ui.choice_note(&p.choices, c.id)
-		if t := current_tab(app); t != nil { t.focus_due = .List }
-		c.run(app)
+		return
+	}
+	if c.source == &p.tabs {
+		palette_tab_chosen(app, c.id)
+	} else if c.source == &p.folders {
+		palette_folder_chosen(app, c.id, c.mods)
 	}
 }
 
@@ -383,30 +353,17 @@ palette_recorder_end :: proc(app: ^App) {
 	p := &app.palette
 	if p.recording < 0 { return }
 	p.recording = -1
-	palette_reopen(app)
+	palette_open(app, strings.clone(ui.line_edit_string(&p.pal.field), context.temp_allocator))
 }
 
-// The command of line `k` of the palette as it is now, nothing typed (the tests; -1: a setting or none).
-palette_line_command :: proc(app: ^App, k: int) -> int {
-	l := palette_list(app)
-	recent := ui.choice_recent(&app.palette.choices, l.names)
-	if k < len(recent) { return l.order[recent[k]] }
-	line := k - len(recent)
-	return line < len(l.order) ? l.order[line] : -1
+// The command of row `k` of the palette's list as the last ranking made it (the tests; -1: not a command, or none).
+palette_row_command :: proc(app: ^App, k: int) -> int {
+	p := &app.palette
+	src, id, ok := ui.palette_row(&p.pal, k)
+	if !ok || src != &p.pal.commands.source { return -1 }
+	c := command_find(id)
+	return c != nil ? command_index(c) : -1
 }
 
-// The command of the palette's first line for what is typed (the tests).
-palette_first :: proc(app: ^App) -> int {
-	if a := alias_command(app, ui.line_edit_string(&app.palette.field)); a != nil {
-		for &c, i in COMMANDS { if &c == a { return i } }
-	}
-	// (ranked as the palette ranks them: ui.palette_match, the label, then the aliases, the group, then with slips)
-	l := palette_list(app)
-	query := ui.line_edit_string(&app.palette.field)
-	best, at := min(int), -1
-	for c, line in l.commands[:len(l.order)] {
-		score, _, ok := ui.palette_match(query, c.label, c.group, c.tags)
-		if ok && score > best { best, at = score, l.order[line] }
-	}
-	return at
-}
+// The command of the palette's first row (the tests, once its ranking came).
+palette_first :: proc(app: ^App) -> int { return palette_row_command(app, 0) }

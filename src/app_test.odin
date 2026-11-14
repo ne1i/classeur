@@ -156,8 +156,8 @@ test_browse :: proc(t: ^testing.T) {
 		testing.expect(t, ui.palette_is_open(&app.palette.pal))
 		session.type_text(s, "hidden files")
 		session.key(s, .Return)
-		testing.expect(t, !ui.palette_is_open(&app.palette.pal))
-		testing.expect(t, app.show_hidden)
+		// (Enter waits for the ranking of what was typed; the choice runs in a build after)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { app := (^App)(s.user); return app.show_hidden && !ui.palette_is_open(&app.palette.pal) }, "the hidden files shown")
 		testing.expect(t, slice.contains(shown_names(tab), ".hidden"))
 	})
 }
@@ -456,6 +456,7 @@ test_shots :: proc(t: ^testing.T) {
 
 		session.key(s, .P, {.Ctrl, .Shift})
 		session.type_text(s, "open")
+		palette_ranked(s)
 		session.frames(s, 2)
 		session.save_png(s, "palette.png")
 		session.key(s, .Escape)
@@ -523,6 +524,15 @@ wait_jobs :: proc(s: ^session.Session, loc := #caller_location) {
 		return true
 	}, "the jobs ended", loc = loc)
 	wait_read(s, loc)
+}
+
+// Frames until the palette's list is ranked for what its field holds: the ranking runs on a chore, a frame or more after
+// the letters.
+palette_ranked :: proc(s: ^session.Session, loc := #caller_location) {
+	session.wait_until(s, proc(s: ^session.Session) -> bool {
+		p := &(^App)(s.user).palette.pal
+		return ui.palette_is_open(p) && !ui.palette_busy(p) && ui.palette_ranked_for(p, ui.line_edit_string(&p.field))
+	}, "the palette ranked", loc = loc)
 }
 
 // Frames until the view `id` (a dialog) has closed, then the build that takes its answer: an answer is read in the build
@@ -1305,8 +1315,8 @@ test_own_keys :: proc(t: ^testing.T) {
 		s, app := start(t, {dir})
 		session.key(s, .P, {.Ctrl, .Shift})
 		session.type_text(s, "new tab")
-		session.frames(s, 2)
-		testing.expect_value(t, COMMANDS[palette_first(app)].id, "tab_new")
+		palette_ranked(s)
+		testing.expect(t, palette_first(app) >= 0 && COMMANDS[palette_first(app)].id == "tab_new", "New tab first")
 		session.key(s, .Return, {.Ctrl})
 		// (the palette's answer is read in the build after its Enter; the recorder shows once its layout settles)
 		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording >= 0 }, "recording")
@@ -1317,11 +1327,12 @@ test_own_keys :: proc(t: ^testing.T) {
 		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording < 0 }, "recorded")
 		session.frames(s, 1)
 		testing.expect_value(t, binding_text(app.keymap.custom["tab_new"]), "Ctrl+M, T")
-		testing.expect_value(t, ui.line_edit_string(&app.palette.field), "new tab")
+		testing.expect_value(t, ui.line_edit_string(&app.palette.pal.field), "new tab")
 		// an alias: "ntab" for it (the letters of its words: "nt" alone is in "Font size", a whole match first)
-		ui.line_edit_set(&app.palette.field, "ntab")
-		session.frames(s, 1)
+		ui.line_edit_set(&app.palette.pal.field, "ntab")
+		palette_ranked(s)
 		session.key(s, .Return, {.Alt})
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return alias_command((^App)(s.user), "ntab") != nil }, "the alias made")
 		session.key(s, .Escape)
 		testing.expect(t, alias_command(app, "ntab") != nil && alias_command(app, "ntab").id == "tab_new")
 		// the sequence opens a tab; Ctrl+T alone no longer does (its own keys gave way)
@@ -1584,11 +1595,13 @@ test_palette_groups :: proc(t: ^testing.T) {
 		session.key(s, .P, {.Ctrl, .Shift})
 		session.type_text(s, "hidden files")
 		session.key(s, .Return)
-		session.frames(s, 1)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).show_hidden }, "the choice ran")
 		session.key(s, .P, {.Ctrl, .Shift})
-		session.frames(s, 3)
+		palette_ranked(s)
+		session.frames(s, 2)
 		testing.expect(t, session.find_text(s, "Recent") != nil && session.find_text(s, "Go") != nil, "the groups' titles")
-		testing.expect_value(t, COMMANDS[palette_line_command(app, 0)].id, "hidden")
+		first := palette_row_command(app, 0)
+		testing.expect(t, first >= 0 && COMMANDS[first].id == "hidden", "the one chosen last, first")
 		when SHOTS { session.save_png(s, "palette_groups.png") }
 		rows := session.get(s, "palette_list")
 		session.wheel(s, (rows.rect.min + rows.rect.max) * 0.5, {0, 3})
@@ -2639,6 +2652,7 @@ test_window_commands_from_the_settings :: proc(t: ^testing.T) {
 		session.frames(s, 2)
 		testing.expect(t, ui.palette_is_open(&app.palette.pal), "Ctrl+K opens the palette over the settings")
 		session.type_text(s, "radius")
+		palette_ranked(s)
 		session.frames(s, 2)
 		testing.expect(t, session.find_text(s, "Rounding") != nil, "the palette lists the settings")
 		session.key(s, .Escape)
@@ -2664,9 +2678,11 @@ test_palette_settings :: proc(t: ^testing.T) {
 		s, app := start(t, {dir}, size = {1200, 800})
 		session.key(s, .K, {.Ctrl})
 		session.type_text(s, "radius")
+		palette_ranked(s)
 		session.frames(s, 2)
 		testing.expect(t, session.find_text(s, "Rounding") != nil, "the rounding, by its tag")
 		session.key(s, .Return)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return ui.view_is_open(&(^App)(s.user).views, OPTIONS_VIEW) }, "the settings open")
 		session.frames(s, 3)
 		testing.expect(t, !ui.palette_is_open(&app.palette.pal) && ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings open")
 		testing.expect(t, strings.contains(ui.line_edit_string(&app.options.page.query), "appearance.rounding"), "on the rounding")
@@ -2840,7 +2856,7 @@ test_tabs_follow_a_resize :: proc(t: ^testing.T) {
 	})
 }
 
-// The palette forgives a slip (the toolkit's palette_match): "new foldr" still finds New folder, and Enter makes one.
+// The palette forgives a slip (the toolkit's ranking): "new foldr" still finds New folder, and Enter makes one.
 @(test)
 test_palette_slip :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -2850,8 +2866,8 @@ test_palette_slip :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		session.key(s, .P, {.Ctrl, .Shift})
 		session.type_text(s, "new foldr")
-		session.frames(s, 2)
-		testing.expect_value(t, COMMANDS[palette_first(app)].id, "new_folder")
+		palette_ranked(s)
+		testing.expect(t, palette_first(app) >= 0 && COMMANDS[palette_first(app)].id == "new_folder", "New folder first")
 		session.key(s, .Return)
 		wait_read(s)   // (made by the edits' worker)
 		_, made := fs.stat(fs.join(dir, "New folder", context.temp_allocator))

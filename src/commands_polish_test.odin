@@ -1,14 +1,16 @@
 package classeur
 
 // The commands' table read as a person reads it: short titles, a distinct icon each, the old words still found in the
-// palette, Tab 1 to Last tab out of the way, the sheet of the keys on F1.
+// palette, Tab 1 to Last tab out of it (the tabs are under `@`), the sheet of the keys on F1.
 
 import "base:runtime"
+import "core:fmt"
 import "core:strings"
 import "core:testing"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
 import "gt:ui"
+import "fs"
 
 // A title is a label of two to four words (one for a few: Open, Copy), without a colon or an explanation.
 @(test)
@@ -66,39 +68,72 @@ test_palette_finds_by_tag :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		session.key(s, .K, {.Ctrl})
 		session.type_text(s, "beside")
-		session.frames(s, 2)
+		palette_ranked(s)
 		first := palette_first(app)
 		testing.expect(t, first >= 0 && COMMANDS[first].id == "inspector", "the inspector by a word of its tags")
 		session.key(s, .Escape)
 	})
 }
 
-// Tab 1 to Last tab are in the palette once "tab" is typed, not for other letters.
+// The palette's prefixes are the ones classeur fills; `@` lists the tabs (the commands Tab 1 to Last tab are out of the
+// palette), and choosing one shows it.
 @(test)
-test_palette_tab_numbers :: proc(t: ^testing.T) {
+test_palette_tabs :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
 		files := FIXTURE
 		dir := make_fixture(t, files[:])
 		s, app := start(t, {dir})
 		context.allocator = runtime.heap_allocator()
-		lists_tab_number :: proc(app: ^App) -> bool {
-			for k in 0 ..< len(COMMANDS) + PALETTE_RECENT {
-				if c := palette_line_command(app, k); c >= 0 && tab_pick_command(COMMANDS[c].id) { return true }
-			}
-			return false
-		}
+		p := current_panel(app)
+		tab_open(app, p, fs.join(dir, "Documents", context.temp_allocator), p.active + 1)
+		wait_read(s)
+		first_tab := p.tabs[0].id
 		session.key(s, .K, {.Ctrl})
-		session.type_text(s, "tab")
-		session.frames(s, 2)
-		testing.expect(t, lists_tab_number(app), "\"tab\": Tab 1 and the others")
-		ui.line_edit_set(&app.palette.field, "tab 3")
+		testing.expect_value(t, strings.join(ui.palette_prefixes(&app.palette.pal), ", ", context.temp_allocator), "> Commands, @ Tabs, / Folders, : Settings")
+		session.type_text(s, "tab 3")
+		palette_ranked(s)
+		for k in 0 ..< ui.palette_row_count(&app.palette.pal) {
+			c := palette_row_command(app, k)
+			testing.expectf(t, c < 0 || !tab_pick_command(COMMANDS[c].id), "row %d: %s is out of the palette", k, c >= 0 ? COMMANDS[c].id : "")
+		}
+		ui.line_edit_set(&app.palette.pal.field, "@")
+		palette_ranked(s)
+		tabs := 0
+		for k in 0 ..< ui.palette_row_count(&app.palette.pal) {
+			if src, _, ok := ui.palette_row(&app.palette.pal, k); ok && src == &app.palette.tabs { tabs += 1 }
+		}
+		testing.expect_value(t, tabs, 2)
+		// the first tab, chosen by its folder's name
+		ui.line_edit_set(&app.palette.pal.field, fmt.tprintf("@%s", tab_title(app, p.tabs[0])))
+		palette_ranked(s)
+		session.key(s, .Return)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return !ui.palette_is_open(&(^App)(s.user).palette.pal) }, "chosen")
 		session.frames(s, 1)
-		first := palette_first(app)
-		testing.expect(t, first >= 0 && COMMANDS[first].id == "tab_3", "\"tab 3\": Tab 3 first")
-		ui.line_edit_set(&app.palette.field, "zo")
-		session.frames(s, 1)
-		testing.expect(t, !lists_tab_number(app), "\"zo\": no Tab 1")
-		session.key(s, .Escape)
+		testing.expect_value(t, panel_tab(p).id, first_tab)
+	})
+}
+
+// `/` lists the folders of the path typed, read on a worker and found by the letters after its last separator; Enter
+// goes there.
+@(test)
+test_palette_folders :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {dir})
+		context.allocator = runtime.heap_allocator()
+		session.key(s, .K, {.Ctrl})
+		want := fs.join(dir, "Documents", context.temp_allocator)
+		typed := fs.join(dir, "Doc", context.temp_allocator)
+		if typed[0] != '/' { typed = fmt.tprintf("/%s", typed) }   // (a drive's path after the prefix)
+		ui.line_edit_set(&app.palette.pal.field, typed)
+		palette_ranked(s)
+		src, id, ok := ui.palette_row(&app.palette.pal, 0)
+		testing.expect(t, ok && src == &app.palette.folders && id == want, "Documents first")
+		session.key(s, .Return)
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return !ui.palette_is_open(&(^App)(s.user).palette.pal) }, "chosen")
+		wait_read(s)
+		testing.expect_value(t, current_tab(app).path, want)
 	})
 }
 

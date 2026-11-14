@@ -6,9 +6,10 @@ keyboard is a small state machine (`app.keys_at`: the sidebar, a panel's list, t
 
 ## The order of a build
 
-0. `view_build` reads the keys of the window's commands first (`window_keys`: the palette, the keys, the settings, quit;
-   `scope = .Window`). They work in every page and whatever has the keyboard: a field, the sidebar, a view, and over a
-   view shown as a dialog (the settings are one). The toolkit's `ui.chord_pressed` takes their chords from wherever the
+0. `view_build` reads the palette's keys first, Ctrl+K and Ctrl+Shift+P (the toolkit's `ui.palette_keys`, in
+   `palette_build`: the command is the toolkit's, `ui.palette_command`, with no line in `COMMANDS`), then the keys of the
+   window's commands (`window_keys`: the keys, the settings, quit; `scope = .Window`). They work in every page and
+   whatever has the keyboard: a field, the sidebar, a view, and over a view shown as a dialog (the settings are one). The toolkit's `ui.chord_pressed` takes their chords from wherever the
    focus is. One exception: while the recorder of a command's keys is open, they wait. It records any chord, Ctrl+K too,
    and it has no field that could claim the chords (`ui.keys_claim`).
 1. Then the keys of the page's commands (`commands_keys`). While a text field has the keyboard, only the

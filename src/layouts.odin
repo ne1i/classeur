@@ -144,7 +144,7 @@ act_layout_open :: proc(app: ^App) {
 	}
 	em := ui.font_size()
 	at := [2]f32{app.room * ui.scale() * 0.5 - em * MENU_WIDTH_EM * 0.5, em * 6}
-	ui.menu_open(LAYOUTS_MENU, at, from_keyboard = true, search = true)
+	ui.menu_open(LAYOUTS_MENU, at, from_keyboard = true)
 }
 
 layouts_build :: proc(app: ^App, em: f32) {

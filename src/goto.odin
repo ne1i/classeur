@@ -73,8 +73,7 @@ Goto_Row :: struct {
 	ranges: []ui.Fuzzy_Range,
 }
 
-// "~/x" with the home folder in full.
-@(private = "file")
+// "~/x" with the home folder in full (GoTo's, the palette's folders).
 expand_home :: proc(app: ^App, s: string) -> string {
 	if s == "~" { return strings.concatenate({app.home, fs.SEPARATOR_STRING}, context.temp_allocator) }   // (its folders)
 	if strings.has_prefix(s, "~/") || strings.has_prefix(s, "~\\") { return fs.join(app.home, s[2:], context.temp_allocator) }

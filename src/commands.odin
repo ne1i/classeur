@@ -41,7 +41,6 @@ COMMANDS := [?]Command{
 	{id = "flat", title = i18n.later("Search subfolders"), icon = lucide.SEARCH, tags = {"every folder below", "flatten"}, keys = {{.F, {.Ctrl, .Shift}}}, in_text = true, run = act_flat},
 	{id = "options", title = i18n.later("Settings"), icon = lucide.SETTINGS, tags = {"options", "preferences"}, keys = {{.Comma, {.Ctrl}}}, in_text = true, scope = .Window, run = act_options},
 	{id = "inspector", title = i18n.later("Inspector"), icon = lucide.INFO, tags = {"what the cursor is on", "beside the list", "preview"}, keys = {{.Space, {}}, {.I, {.Ctrl, .Shift}}}, run = act_inspector},
-	{id = "palette", title = i18n.later("Command palette"), icon = lucide.COMMAND, keys = {{.K, {.Ctrl}}, {.P, {.Ctrl, .Shift}}}, in_text = true, scope = .Window, run = act_palette},
 	{id = "shortcuts", title = i18n.later("Keyboard shortcuts"), icon = lucide.KEYBOARD, tags = {"keys", "help"}, keys = {{.F1, {}}}, in_text = true, scope = .Window, run = act_shortcuts},
 
 	{id = "tab_new", title = i18n.later("New tab"), icon = lucide.PLUS, keys = {{.T, {.Ctrl}}}, in_text = true, run = act_tab_new},

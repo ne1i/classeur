@@ -203,7 +203,6 @@ act_filter :: proc(app: ^App) {
 	t.focus_due = .Filter
 }
 
-act_palette :: proc(app: ^App) { palette_open(app) }
 
 act_shortcuts :: proc(app: ^App) { shortcuts_open(app) }
 

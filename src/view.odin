@@ -70,6 +70,8 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 			// first; the toolkit's F6 comes last, only when nothing took it). The window's commands first, over a
 			// dialog too (the settings are one); not while the recorder is open: it records any chord, Ctrl+K too,
 			// and has no field to claim them with (keys_claim)
+			// (the palette first: its keys are the toolkit's, and its choice runs a command as a key does)
+			palette_build(app)
 			if !ui.view_is_open(&app.views, RECORDER_VIEW) { window_keys(app) }
 			if app.no_dialog {
 				gesture_escape(app)
@@ -88,7 +90,6 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	entry_menu_build(app, em)
 	side_menu_build(app, em)
 	panel_menus_build(app, em)
-	palette_build(app)
 	layouts_build(app, em)
 	setup_follow(app)
 	#partial switch prefs_page.install_frame(&app.install) {
