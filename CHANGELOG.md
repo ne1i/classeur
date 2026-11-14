@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.22.0] - 2026-11-14
+
+### Changed
+- **One command palette, with tabs and folders in it**: the palette is the one of the other programs of the family, with the same look and keys. `>` lists the commands and the moves of the panes and dialogs, `:` the settings (a switch flips and the palette stays open), `@` the tabs of every panel (Enter shows one), and `/` the folders: type a path and its folders come as you type, with the recent folders, the bookmarks and the places; Tab completes the path, Enter goes there, Ctrl+Enter opens it in a new tab. The foot of the palette names the prefixes and what Enter, Ctrl+Enter and Alt+Enter do. A command that cannot act now is listed greyed, last, instead of hidden. "Tab 1" to "Last tab" are no longer in the palette: `@` lists the tabs themselves (Alt+1 to Alt+9 still pick them). The palette's memory of what you chose starts afresh.
+
 ## [0.21.0] - 2026-11-14
 
 ### Added
@@ -485,6 +490,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.22.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.0
 [0.21.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.21.0
 [0.20.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.2
 [0.20.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.1
