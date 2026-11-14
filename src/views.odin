@@ -43,7 +43,7 @@ views_start :: proc(app: ^App) {
 	h := &app.main
 	ui.views_init(&app.views, {path = views_file(app)})
 	ui.set_views(&h.state, &app.views)
-	ui.views_set_windows(&app.views, host.view_windows(h))
+	ui.views_set_windows(&app.views, host.view_windows(h.shared))
 	vs := &app.views
 	ui.view_register(vs, SIDEBAR_VIEW, sidebar_view, ui.View_Options{title = i18n.later("Sidebar"), icon = lucide.PANEL_LEFT,
 		home = .Panel, home_place = {edge = .Left}, extent_em = SIDEBAR_EM, width_em = SIDEBAR_EM, min_width_em = SIDEBAR_MIN_EM})
