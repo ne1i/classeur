@@ -46,13 +46,14 @@ updates_auto :: proc(app: ^App) {
 	update.set_auto(app.updater, auto ? .Install : .Off)
 }
 
-// Each frame: what changed is said once (asked, or something to know: not each check that found nothing).
+// Each frame: what changed is said once. The head bar's badge shows the phase (a version on offer, its download, a
+// restart); the status line says only what the badge cannot (update.notice).
 updates_follow :: proc(app: ^App) {
 	if app.updater == nil { return }
 	st := update.status(app.updater)
 	if st.serial == app.update_serial { return }
 	app.update_serial = st.serial
-	if st.asked || st.phase == .Installed || st.phase == .Available { say(app, "%s", update.status_words(st)) }
+	if words, _ := update.notice(st); words != "" { say(app, "%s", words) }
 	// (the installed copy: its manifest and Settings > Apps say the new version; written on a worker)
 	if st.phase == .Installed {
 		version := new_clone(strings.clone(st.version))
