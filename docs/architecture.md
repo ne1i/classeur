@@ -1,7 +1,8 @@
 # Architecture
 
 classeur is one process and one window. The interface is built again at every frame from the program's data (gui_toolkit
-is immediate-mode); the data changes only on the interface's thread.
+is immediate-mode); the data changes only on the interface's thread. This page is the map of the code; the reasons behind
+it (the decisions, the refused alternatives, the subtle points) are in [src/md](../src/md/README.md).
 
 ## Packages and files
 
@@ -54,22 +55,8 @@ is immediate-mode); the data changes only on the interface's thread.
 
 ## The keyboard
 
-1. `view_build` reads the keys of the commands first (`commands_keys`). While a text field has the keyboard (the fields
-   built in the last frame are noted in `app.text_keys_before`), only the commands marked `in_text` run.
-2. Then the keys of the selection (`list_keys` in `view.odin`: Shift ranges, Ctrl+Space, Escape, Menu).
-3. Then the virtual list of the focused panel takes the moves (Up, Down, Page Up, Page Down, Home, End). It takes no
-   letter (`no_typeahead`): the letters typed go to the panel's filter (`type_to_field`). A move of the list selects the
-   cursor's row alone (`folder_pick`). The list has the keyboard from the start (`app_open`).
-4. A press in a panel gives it the keyboard; unless the press is on a text field, the list gets the focus back at the
-   next build (`Tab.focus_due`).
-5. F6 and Ctrl+Shift+F6 move the keyboard round its stops (`app.keys_at`): the sidebar, each panel's list, the inspector.
-   While the sidebar or the inspector has it, the list's keys do not run and only the `in_text` commands do; Escape gives
-   it back to the list. These keys are read inside the views' frame, after the views docked or floating (a view with the
-   focus reads its keys first); the toolkit's F6 comes last and only when nothing took it, so F6 and Shift+F6 stay
-   classeur's.
-6. A view shown as a dialog holds the keys (`ui.views_hold_keys`: `app.no_dialog` false). A view that floats, is docked
-   or is in a window keeps the focus it is given: while the focus is in it (`focus_in_view`, from `ui.views_focus`),
-   only the `in_text` commands run.
+The order in which a build reads the keys, and who has the keyboard, are in
+[src/md/features/keyboard.md](../src/md/features/keyboard.md).
 
 ## Tests
 

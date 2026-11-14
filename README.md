@@ -66,7 +66,7 @@ Its site: [classeur.froment.software](https://classeur.froment.software/).
 | ![The palette](docs/screenshots/palette.png) | ![The options](docs/screenshots/options.png) |
 | The command palette | The options |
 
-What comes next is in [docs/roadmap.md](docs/roadmap.md).
+What comes next is in [ROADMAP.md](ROADMAP.md). Why the program has its shape is in [src/md](src/md/README.md).
 
 ## Keys
 
