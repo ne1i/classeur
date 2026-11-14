@@ -336,12 +336,13 @@ batch_view :: proc(v: ^ui.View, app: ^App) {
 						path_icon(app, fs.join(b.dir, b.names[i], context.temp_allocator), false, em * 1.5)
 						ui.spacer(ui.px(em * 0.4))
 						if ui.tags("weak") {
-							ui.next({width = ui.pct(0.42), height = ui.pct(1)})
+							// (content: the names before and after, to check and copy)
+							ui.next({width = ui.pct(0.42), height = ui.pct(1), flags = {.Selectable}})
 							ui.label(fmt.tprintf("%s###old", ui.text_shown(b.names[i])))
 						}
 						if ui.tags("weak") { glyph(app, lucide.ARROW_RIGHT, em * 1.4) }
 						ui.spacer(ui.px(em * 0.4))
-						ui.next({width = ui.fill(), height = ui.pct(1), fg = problem != "" ? ui.color("bad text") : nil})
+						ui.next({width = ui.fill(), height = ui.pct(1), fg = problem != "" ? ui.color("bad text") : nil, flags = {.Selectable}})
 						ui.label(problem != "" ? fmt.tprintf("%s (%s)###new", ui.text_shown(news[i]), problem) : fmt.tprintf("%s###new", ui.text_shown(news[i])))
 						ui.spacer(ui.px(em * 0.9))
 					}

@@ -19,7 +19,7 @@ polish_ready :: proc(s: ^session.Session) -> bool { return (^App)(s.user).inspec
 @(private = "file")
 polish_inspect :: proc(t: ^testing.T, s: ^session.Session, tab: ^Tab, name: string, loc := #caller_location) {
 	testing.expect(t, folder_cursor_to_name(&tab.folder, name), loc = loc)
-	folder_pick(&tab.folder, tab.folder.cursor)
+	folder_pick(&tab.folder, tab.folder.sel)
 	session.key(s, .Space)
 	testing.expect(t, inspector_shown((^App)(s.user)), loc = loc)
 	session.wait_until(s, polish_ready, "the inspector", loc = loc)
@@ -82,7 +82,7 @@ test_inspector_text_cut :: proc(t: ^testing.T) {
 		// a short text: no note
 		context.allocator = runtime.heap_allocator()
 		folder_cursor_to_name(&tab.folder, "short.txt")
-		folder_pick(&tab.folder, tab.folder.cursor)
+		folder_pick(&tab.folder, tab.folder.sel)
 		session.frames(s, 1)
 		session.wait_until(s, polish_ready, "the inspector")
 		session.frames(s, 2)

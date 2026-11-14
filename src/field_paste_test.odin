@@ -19,7 +19,7 @@ test_a_field_pastes_the_clipboard_s_text :: proc(t: ^testing.T) {
 
 		// the rename in place: over the name, selected
 		testing.expect(t, folder_cursor_to_name(&tab.folder, "a.txt"))
-		folder_pick(&tab.folder, tab.folder.cursor)
+		folder_pick(&tab.folder, tab.folder.sel)
 		session.key(s, .F2)
 		testing.expect(t, app.rename.active)
 		session.key(s, .A, {.Ctrl})

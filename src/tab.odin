@@ -110,7 +110,7 @@ tab_row_items :: proc(t: ^Tab) -> int { return tab_mode(t) >= .Columns ? max(t.g
 tab_set_zoom :: proc(app: ^App, t: ^Tab, zoom: int) {
 	t.zoom = clamp(zoom, 0, len(ZOOMS) - 1)
 	app.default_zoom = t.zoom
-	ui.list_select(&t.vl, t.folder.cursor / tab_row_items(t))
+	ui.list_select(&t.vl, t.folder.sel / tab_row_items(t))
 }
 
 // What the next build gives the keyboard to (it knows the boxes' keys).
@@ -130,7 +130,7 @@ tab_new :: proc(app: ^App, path: string) -> ^Tab {
 	t.folder.sort = app.default_sort
 	t.folder.show_hidden = app.show_hidden
 	t.folder.group_tz = app.tz   // (the days kept with each listing are in it: folder_prepare)
-	t.folder.cursor = -1
+	t.folder.sel = -1
 	t.zoom = app.default_zoom
 	t.path = fs.clean(path)
 	tab_load(app, t)
@@ -357,11 +357,10 @@ load_batch :: proc(data: rawptr, word: u64) {
 		t.walk_shown = b.serial
 		f.flat, f.tree = true, false
 		folder_set_listing(f, &b.listing)
-		f.cursor = len(f.shown) > 0 ? 0 : -1
-		f.anchor = f.cursor
+		folder_cursor_place(f, len(f.shown) > 0 ? 0 : -1)
 		// (a new search: at its top, its first row chosen; load_done sees the same place and keeps it)
 		ui.vlist_scroll_to(&t.vl, 0)
-		ui.list_select(&t.vl, f.cursor)
+		ui.list_select(&t.vl, f.sel)
 	} else {
 		folder_add_entries(f, &b.listing)
 	}
@@ -420,7 +419,7 @@ load_done :: proc(data: rawptr, word: u64) {
 	t.folder.tree = t.tree && !job.flat
 	if !same_place {
 		folder_select_none(&t.folder)
-		t.folder.cursor = -1
+		t.folder.sel = -1
 		if l.error == .None && !job.flat { recent_add(job.app, l.path) }
 	}
 	if t.folder.group != t.group { t.folder.group, t.folder.group_now, t.folder.group_tz = t.group, job.view.group_now, job.view.group_tz }
@@ -438,20 +437,19 @@ load_done :: proc(data: rawptr, word: u64) {
 	if r := &job.app.rename; r.active && r.tab == t.id { r.focus_due = true }
 	// the row asked for (made, renamed, the folder we came up from) has the cursor and the selection
 	revealed := t.reveal_name != "" && folder_cursor_to_name(&t.folder, t.reveal_name)
-	if revealed { folder_pick(&t.folder, t.folder.cursor) }
+	if revealed { folder_pick(&t.folder, t.folder.sel) }
 	// (Back, Forward: the list where it was left; the cursor's row is in it, the reveal below keeps it there)
 	if y, ok := t.reveal_scroll.?; ok && revealed { ui.vlist_scroll_to(&t.vl, y) }
 	if !same_place && !revealed {
-		t.folder.cursor = len(t.folder.shown) > 0 ? 0 : -1
-		t.folder.anchor = t.folder.cursor
+		folder_cursor_place(&t.folder, len(t.folder.shown) > 0 ? 0 : -1)
 		ui.vlist_scroll_to(&t.vl, 0)
 	}
-	if revealed || !same_place { ui.list_select(&t.vl, t.folder.cursor) }
+	if revealed || !same_place { ui.list_select(&t.vl, t.folder.sel) }
 	delete(t.reveal_name)
 	t.reveal_name = ""
 	t.reveal_scroll = nil
 	if len(t.select_names) > 0 {
-		if tab_select_apply(t) { ui.list_select(&t.vl, t.folder.cursor / tab_row_items(t)) }
+		if tab_select_apply(t) { ui.list_select(&t.vl, t.folder.sel / tab_row_items(t)) }
 		tab_select_forget(t)
 	}
 	// (a change came while it was read: what was read may not have it)
@@ -475,7 +473,7 @@ tab_select_apply :: proc(t: ^Tab) -> bool {
 		folder_set_row(f, row, true)
 	}
 	if first < 0 { return false }
-	f.cursor, f.anchor = first, first
+	folder_cursor_place(f, first)
 	return true
 }
 

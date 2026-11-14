@@ -5,7 +5,6 @@ package classeur
 // the cursor card by card (view.odin's list_keys); a row of the list is a row of cards.
 
 import "core:fmt"
-import "core:slice"
 import "core:strings"
 import "gt:draw"
 import "gt:render"
@@ -40,7 +39,7 @@ grid_list :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 	t.grid_cols = cols
 	n := len(f.shown)
 	grid_ids_update(t, cols)
-	t.vl.sel = f.cursor >= 0 ? f.cursor / cols : -1
+	t.vl.sel = f.sel >= 0 ? f.sel / cols : -1
 	t.vl.list.no_typeahead = true   // (the letters typed go to the filter: filter_field)
 	rows, ok := ui.vlist("###grid", &t.vl, t.grid_ids[:], ids_version = t.grid_ids_version)
 	if !ok { return }
@@ -93,8 +92,8 @@ grid_ids_update :: proc(t: ^Tab, cols: int) {
 item :: proc(app: ^App, t: ^Tab, row: int, look: ^Row_Look, line: bool, width, height, em: f32) -> (opened, pressed: bool) {
 	f := &t.folder
 	e := &f.listing.entries[f.shown[row]]
-	selected := f.selected[f.shown[row]]
-	cursor := row == f.cursor && (!selected || f.count > 1)
+	selected := f.ids[row] in f.selected
+	cursor := row == f.sel && (!selected || len(f.selected) > 1)
 	ui.next({width = ui.px(width), height = ui.px(height), axis = line ? .X : .Y, radius = 0, cross = line ? .Center : nil})
 	// (the wheel's click on a folder opens it in a tab; on a file it scrolls, the toolkit's autoscroll)
 	flags := ui.Box_Flags{.Clickable, .Draw_Hot_Effects, .Hot_Within}
@@ -132,17 +131,16 @@ item :: proc(app: ^App, t: ^Tab, row: int, look: ^Row_Look, line: bool, width, h
 	}
 	if selected && look.focused { ui.pop_tags() }
 	pressed = sig.pressed || sig.right_clicked
-	if sig.pressed && selected && sig.mods == {} && f.count > 1 {
-		f.cursor = row   // (a press on the selection may drag it: the item alone is picked at the click)
+	if sig.pressed && selected && sig.mods == {} && len(f.selected) > 1 {
+		f.sel = row   // (a press on the selection may drag it: the item alone is picked at the click)
 	} else if sig.pressed && .Ctrl in sig.mods && .Shift not_in sig.mods {
 		// (Ctrl: the card toggled, and a drag from it does the same to the cards it passes, as the list's rows)
-		base := slice.clone(f.selected[:], context.temp_allocator)
-		folder_pick(f, row, toggle = true)
-		band_begin_on_row(app, t, selected, base)
+		band_begin_on_row(app, t, selected)
+		folder_pick(f, row, {.Ctrl})
 	} else if sig.pressed {
-		folder_pick(f, row, extend = .Shift in sig.mods, toggle = .Ctrl in sig.mods)
+		folder_pick(f, row, sig.mods)
 	}
-	if sig.clicked && selected && sig.mods == {} && f.count > 1 && !app.drag_started { folder_pick(f, row) }
+	if sig.clicked && selected && sig.mods == {} && len(f.selected) > 1 && !app.drag_started { folder_pick(f, row) }
 	drag_maybe(app, t, sig)
 	if e.kind == .Directory {
 		dir := fs.join(t.path, e.name, context.temp_allocator)
@@ -151,8 +149,7 @@ item :: proc(app: ^App, t: ^Tab, row: int, look: ^Row_Look, line: bool, width, h
 	}
 	if !app.drag_started && !app.band.active { entry_tip(app, t, e, sig) }
 	if sig.right_clicked {
-		if !folder_row_selected(f, row) { folder_pick(f, row) }
-		f.cursor = row
+		ui.item_selection_context(&f.selection, folder_rows(f), row)
 		entry_menu_open(app, t, ui.mouse_pos())
 	}
 	if sig.middle_clicked && e.kind == .Directory {
@@ -195,7 +192,8 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	st := ui.top_style()
 	name := card_name(ui.text_shown(fs.base(shown_name(app, e^))), width - 2 * st.text_pad - 1, lines)
 	ui.next({width = ui.fill(), height = ui.px(lines == 2 ? em * CARD_LINE_EM * 2 : em * 1.5), text_align = .Center})
-	ui.paragraph(fmt.tprintf("%s###n", name))
+	// (a tile's name is the tile's: its drag moves the files, its press picks them; not text to select)
+	ui.paragraph(fmt.tprintf("%s###n", name), selectable = false)
 	size := ""
 	if e.size >= 0 { size = size_text(e.size) } else if m, ok := measure_of(app, t, e^); ok { size = size_text(m.bytes) }
 	if !selected { ui.push_tags("weak") }
@@ -283,12 +281,12 @@ columns_list :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 	// the wheel, either way, scrolls sideways; the cursor moved by the keys is brought into view
 	limit := max(0, f32(ncols) * col_w - size.x)
 	if d := sig.scrolled.x + sig.scrolled.y; d != 0 { b.view_target.x = clamp(b.view_target.x + d, 0, limit) }
-	if f.cursor != t.cols_cursor && f.cursor >= 0 {
-		c := f32(f.cursor / per)
+	if f.sel != t.cols_cursor && f.sel >= 0 {
+		c := f32(f.sel / per)
 		ui.view_reveal(b, c * col_w, (c + 1) * col_w, .X)
 		b.view_target.x = clamp(b.view_target.x, 0, limit)
 	}
-	t.cols_cursor = f.cursor
+	t.cols_cursor = f.sel
 	off := b.view_off.x
 	first := clamp(int(off / col_w) - 1, 0, ncols)
 	last := clamp(int((off + size.x) / col_w) + 2, first, ncols)

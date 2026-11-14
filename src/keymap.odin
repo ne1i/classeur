@@ -178,15 +178,16 @@ bindings_pressed :: proc(app: ^App, c: ^Command) -> bool {
 	k := &app.keymap
 	for b in command_bindings(app, c) {
 		first, second := b.chords[0], b.chords[1]
+		// (the toolkit's rules: a window command's chord from wherever the focus is, a widget's claim kept)
 		if second.key == .None {
-			if k.pending.key == .None && ui.key_press(first.key, first.mods) { return true }
+			if k.pending.key == .None && ui.chord_pressed(first, c.scope) { return true }
 			continue
 		}
-		if k.pending == first && ui.key_press(second.key, second.mods) {
+		if k.pending == first && ui.chord_pressed(second, c.scope) {
 			k.pending = {}
 			return true
 		}
-		if k.pending.key == .None && ui.key_press(first.key, first.mods) {
+		if k.pending.key == .None && ui.chord_pressed(first, c.scope) {
 			k.pending, k.pending_until = first, ui.now_ms() + SEQUENCE_MS
 			app_frames(app)
 		}

@@ -67,7 +67,10 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 		if ui.views_frame(&app.views) {
 			app.content_rect = ui.parent_box().rect
 			// the program's keys, after the views' (built first in the frame: a view with the focus reads its keys
-			// first; the toolkit's F6 comes last, only when nothing took it)
+			// first; the toolkit's F6 comes last, only when nothing took it). The window's commands first, over a
+			// dialog too (the settings are one); not while the recorder is open: it records any chord, Ctrl+K too,
+			// and has no field to claim them with (keys_claim)
+			if !ui.view_is_open(&app.views, RECORDER_VIEW) { window_keys(app) }
 			if app.no_dialog {
 				gesture_escape(app)
 				// (the sidebar, the inspector or another view has the keyboard: its moves are its own, the commands
@@ -399,7 +402,8 @@ build_body :: proc(app: ^App, em: f32) {
 }
 
 ////////////////////////////////
-// The keys of the list that change the selection (Shift ranges, Ctrl+Space); the moves are the list's own.
+// The keys of the list that change the selection (the moves with Shift, Ctrl and Ctrl+Shift, Ctrl+Space, Escape); the
+// plain moves of the details are the list's own, the grid's and the columns view's are here.
 
 @(private = "file")
 list_keys :: proc(app: ^App) {
@@ -411,37 +415,32 @@ list_keys :: proc(app: ^App) {
 	grid := tab_mode(t) >= .Columns
 	row := tab_row_items(t)
 	page := max(t.vl.page_rows - 1, 1) * row
-	Move :: struct { key: Shortcut, to: int, extend: bool }
+	// the row each key takes the cursor to: by rows of the list, by rows of cards, down a column of the columns view
+	Move :: struct { key: platform.Key, to: int }
+	at := f.sel
 	moves := make([dynamic]Move, context.temp_allocator)
-	append(&moves, Move{{.Down, {.Shift}}, f.cursor + row, true}, Move{{.Up, {.Shift}}, f.cursor - row, true},
-		Move{{.Page_Down, {.Shift}}, f.cursor + page, true}, Move{{.Page_Up, {.Shift}}, f.cursor - page, true},
-		Move{{.Home, {.Shift}}, 0, true}, Move{{.End, {.Shift}}, n - 1, true})
 	if tab_mode(t) == .Columns {
-		// (the columns view: down a column, across to the next one)
-		clear(&moves)
 		per := max(t.grid_cols, 1)
-		for shift in ([]bool{false, true}) {
-			mods := shift ? platform.Modifiers{.Shift} : platform.Modifiers{}
-			append(&moves, Move{{.Down, mods}, f.cursor + 1, shift}, Move{{.Up, mods}, f.cursor - 1, shift},
-				Move{{.Right, mods}, f.cursor + per, shift}, Move{{.Left, mods}, f.cursor - per, shift},
-				Move{{.Page_Down, mods}, f.cursor + per, shift}, Move{{.Page_Up, mods}, f.cursor - per, shift},
-				Move{{.Home, mods}, 0, shift}, Move{{.End, mods}, n - 1, shift})
-		}
-	} else if grid {
-		// (the grid's moves are its own: the list under it moves by rows of cards)
-		append(&moves, Move{{.Right, {}}, f.cursor + 1, false}, Move{{.Left, {}}, f.cursor - 1, false},
-			Move{{.Down, {}}, f.cursor + row, false}, Move{{.Up, {}}, f.cursor - row, false},
-			Move{{.Page_Down, {}}, f.cursor + page, false}, Move{{.Page_Up, {}}, f.cursor - page, false},
-			Move{{.Home, {}}, 0, false}, Move{{.End, {}}, n - 1, false},
-			Move{{.Right, {.Shift}}, f.cursor + 1, true}, Move{{.Left, {.Shift}}, f.cursor - 1, true})
+		append(&moves, Move{.Down, at + 1}, Move{.Up, at - 1}, Move{.Right, at + per}, Move{.Left, at - per},
+			Move{.Page_Down, at + per}, Move{.Page_Up, at - per}, Move{.Home, 0}, Move{.End, n - 1})
+	} else {
+		append(&moves, Move{.Down, at + row}, Move{.Up, at - row}, Move{.Page_Down, at + page}, Move{.Page_Up, at - page},
+			Move{.Home, 0}, Move{.End, n - 1})
+		if grid { append(&moves, Move{.Right, at + 1}, Move{.Left, at - 1}) }
 	}
-	for m in moves {
-		if ui.key_press(m.key.key, m.key.mods) {
-			folder_pick(f, clamp(m.to, 0, n - 1), extend = m.extend)
-			ui.list_select(&t.vl, grid ? f.cursor / row : f.cursor)
+	// what the move does to the selection is the toolkit's (item_selection_move): alone, the row alone; Shift, the range;
+	// Ctrl+Shift, the range added; Ctrl, the cursor alone. The details' list makes its own moves alone (t.vl.changed).
+	for mods in ([4]platform.Modifiers{{}, {.Shift}, {.Ctrl}, {.Ctrl, .Shift}}) {
+		if mods == {} && !grid { continue }
+		for m in moves {
+			// (Ctrl+Page Up and Page Down go to the tabs)
+			if .Ctrl in mods && (m.key == .Page_Up || m.key == .Page_Down) { continue }
+			if !ui.key_press(m.key, mods) { continue }
+			ui.item_selection_move(&f.selection, folder_rows(f), clamp(m.to, 0, n - 1), mods)
+			ui.list_select(&t.vl, grid ? f.sel / row : f.sel)
 		}
 	}
-	if ui.key_press(.Space, {.Ctrl}) { folder_pick(f, f.cursor, toggle = true) }
+	if ui.key_press(.Space, {.Ctrl}) { ui.item_selection_toggle(&f.selection, folder_rows(f), f.sel) }
 	// the tree: Right opens the folder at the cursor in place, Left closes it (or goes to the folder that holds it)
 	if f.tree && !grid {
 		if e := folder_cursor_entry(f); e != nil {
@@ -452,16 +451,17 @@ list_keys :: proc(app: ^App) {
 					tab_tree_toggle(app, t, name)
 				} else if parent := fs.parent(name); parent != "" {
 					folder_cursor_to_name(f, parent)
-					folder_pick(f, f.cursor)
-					ui.list_select(&t.vl, f.cursor)
+					folder_pick(f, f.sel)
+					ui.list_select(&t.vl, f.sel)
 				}
 			}
 		}
 	}
-	// (Escape ends a gesture first: a drag, a rectangle, the jobs' view; then the selection becomes the cursor's row)
-	if f.count > 1 && !gesture_running(app) && ui.key_press(.Escape) { folder_pick(f, f.cursor) }
+	// (Escape ends a gesture first: a drag, a rectangle, the jobs' view; then, on several rows, the toolkit's rule: the
+	// cursor's row alone. On one row, Escape goes on to the rest of the window.)
+	if !gesture_running(app) && ui.key_pressed_peek(.Escape) && ui.item_selection_escape(&f.selection, folder_rows(f)) { _ = ui.key_press(.Escape) }
 	if ui.key_press(.Menu) || ui.key_press(.F10, {.Shift}) {
-		if f.cursor >= 0 { entry_menu_open(app, t, {t.cursor_rect.min.x + 24, t.cursor_rect.max.y}, from_keyboard = true) }
+		if f.sel >= 0 { entry_menu_open(app, t, {t.cursor_rect.min.x + 24, t.cursor_rect.max.y}, from_keyboard = true) }
 	}
 }
 

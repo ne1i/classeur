@@ -292,7 +292,7 @@ inspect_done :: proc(data: rawptr, word: u64) {
 inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 	insp := &app.inspector
 	e := folder_cursor_entry(&t.folder)
-	several := t.folder.count > 1
+	several := len(t.folder.selected) > 1
 	// (several selected: a summary of them, nothing to read)
 	if e != nil && !several { inspector_ask(app, fs.join(t.path, e.name, context.temp_allocator), e^) }
 	ui.next({width = ui.fill(), height = ui.fill(), axis = .Y})
@@ -356,7 +356,7 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 			if insp.caption == "" { ui.spacer(ui.px(em * 0.8)) }
 			if insp.caption != "" {
 				if ui.tags("weak") {
-					ui.next({width = ui.fill(), height = ui.px(em * 2.2), text_align = .Center, font_size = em * 0.86})
+					ui.next({width = ui.fill(), height = ui.px(em * 2.2), text_align = .Center, font_size = em * 0.86, flags = {.Selectable}})
 					ui.label(fmt.tprintf("%s###insp_caption", insp.caption))
 				}
 			}
@@ -370,7 +370,7 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 				if ui.row() {
 					ui.spacer(ui.px(em * 0.8))
 					ui.next({width = ui.fill()})
-					if ui.style({font = app.mono, font_size = em * 0.92}) {
+					if ui.style({font = ui.mono_font(), font_size = em * 0.92}) {
 						// (a source file in its language's colours: the toolkit's syntax lexer; plain text as it is)
 						if insp.language {
 							ui.rich_paragraph("###insp_body", code_runs(insp.text, insp.spans[:]))
@@ -481,11 +481,12 @@ inspector_head :: proc(app: ^App, path: string, folder: bool, title, meta: strin
 		ui.next({width = ui.fill(), height = ui.pct(1), axis = .Y})
 		if ui.column() {
 			ui.spacer(ui.fill())
-			ui.next({width = ui.fill(), height = ui.px(em * 1.4)})
+			// (content: its name and what it is, to copy)
+			ui.next({width = ui.fill(), height = ui.px(em * 1.4), flags = {.Selectable}})
 			ui.label(fmt.tprintf("%s###name", ui.text_shown(title)))
 			if meta != "" {
 				if ui.tags("weak") {
-					ui.next({width = ui.fill(), height = ui.px(em * 1.3), font_size = em * 0.86})
+					ui.next({width = ui.fill(), height = ui.px(em * 1.3), font_size = em * 0.86, flags = {.Selectable}})
 					ui.label(fmt.tprintf("%s###meta", meta))
 				}
 			}
@@ -536,7 +537,7 @@ inspector_summary :: proc(app: ^App, t: ^Tab, em: f32) {
 summary_update :: proc(app: ^App, t: ^Tab) -> ^Summary {
 	s := &app.inspector.summary
 	f := &t.folder
-	key := Summary_Key{t.id, f.sel_serial, f.ids_version, app.measures_serial, len(f.listing.entries)}
+	key := Summary_Key{t.id, f.version, f.ids_version, app.measures_serial, len(f.listing.entries)}
 	if s.made > 0 && s.key == key { return s }
 	s.key = key
 	s.made += 1
@@ -555,11 +556,11 @@ summary_update :: proc(app: ^App, t: ^Tab) -> ^Summary {
 		s.count += 1
 	}
 	// (the selected rows, as folder_targets has them: shown only for several, never the cursor's entry alone)
-	if f.count == 0 { return s }
-	for i in f.shown {
-		if !f.selected[i] { continue }
+	if len(f.selected) == 0 { return s }
+	for i, row in f.shown {
+		if f.ids[row] not_in f.selected { continue }
 		add(app, t, s, i)
-		if s.count == f.count { break }
+		if s.count == len(f.selected) { break }
 	}
 	return s
 }
@@ -578,10 +579,11 @@ inspector_props :: proc(app: ^App, t: ^Tab, e: fs.Entry, em: f32) {
 				ui.next({width = ui.px(em * 6.5), height = ui.pct(1), font_size = em * 0.88})
 				ui.label(fmt.tprintf("%s###k", key))
 			}
+			// (the value is content, its name a field's: a drag down the pane copies the values)
 			if mono {
-				ui.next({width = ui.fill(), height = ui.pct(1), font = app.mono, font_size = em * 0.86})
+				ui.next({width = ui.fill(), height = ui.pct(1), font = ui.mono_font(), font_size = em * 0.86, flags = {.Selectable}})
 			} else {
-				ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.9})
+				ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.9, flags = {.Selectable}})
 			}
 			ui.label(fmt.tprintf("%s###v", ui.text_shown(value)))
 			ui.spacer(ui.px(em * 0.5))

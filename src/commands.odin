@@ -18,6 +18,9 @@ Command :: struct {
 	tags:    []string,   // words the palette finds it by that its title does not say (a short title keeps its old words here)
 	keys:    []Shortcut,   // its chords, any number (the first is the one shown)
 	in_text: bool,   // its keys work while a text field has the keyboard (they have Ctrl or Alt, or are function keys)
+	// .Window: the window's (the palette, the keys, the settings, quit): its keys work in every page, whatever has the
+	// keyboard, over a dialog too (window_keys); it is in_text too
+	scope:   ui.Command_Scope,
 	run:     proc(app: ^App),
 	enabled: proc(app: ^App) -> bool,   // nil: always; else, when it says false, its keys do nothing and the palette hides it
 }
@@ -36,10 +39,10 @@ COMMANDS := [?]Command{
 	{id = "goto", title = i18n.later("Type the path"), icon = lucide.TEXT_CURSOR_INPUT, tags = {"address", "location"}, keys = {{.L, {.Ctrl}}, {.D, {.Alt}}}, in_text = true, run = act_goto},
 	{id = "filter", title = i18n.later("Filter this folder"), icon = lucide.FILTER, keys = {{.F, {.Ctrl}}}, in_text = true, run = act_filter},
 	{id = "flat", title = i18n.later("Search subfolders"), icon = lucide.SEARCH, tags = {"every folder below", "flatten"}, keys = {{.F, {.Ctrl, .Shift}}}, in_text = true, run = act_flat},
-	{id = "options", title = i18n.later("Settings"), icon = lucide.SETTINGS, tags = {"options", "preferences"}, keys = {{.Comma, {.Ctrl}}}, in_text = true, run = act_options},
+	{id = "options", title = i18n.later("Settings"), icon = lucide.SETTINGS, tags = {"options", "preferences"}, keys = {{.Comma, {.Ctrl}}}, in_text = true, scope = .Window, run = act_options},
 	{id = "inspector", title = i18n.later("Inspector"), icon = lucide.INFO, tags = {"what the cursor is on", "beside the list", "preview"}, keys = {{.Space, {}}, {.I, {.Ctrl, .Shift}}}, run = act_inspector},
-	{id = "palette", title = i18n.later("Command palette"), icon = lucide.COMMAND, keys = {{.K, {.Ctrl}}, {.P, {.Ctrl, .Shift}}}, in_text = true, run = act_palette},
-	{id = "shortcuts", title = i18n.later("Keyboard shortcuts"), icon = lucide.KEYBOARD, tags = {"keys", "help"}, keys = {{.F1, {}}}, in_text = true, run = act_shortcuts},
+	{id = "palette", title = i18n.later("Command palette"), icon = lucide.COMMAND, keys = {{.K, {.Ctrl}}, {.P, {.Ctrl, .Shift}}}, in_text = true, scope = .Window, run = act_palette},
+	{id = "shortcuts", title = i18n.later("Keyboard shortcuts"), icon = lucide.KEYBOARD, tags = {"keys", "help"}, keys = {{.F1, {}}}, in_text = true, scope = .Window, run = act_shortcuts},
 
 	{id = "tab_new", title = i18n.later("New tab"), icon = lucide.PLUS, keys = {{.T, {.Ctrl}}}, in_text = true, run = act_tab_new},
 	{id = "tab_close", title = i18n.later("Close tab"), icon = lucide.X, keys = {{.W, {.Ctrl}}}, in_text = true, run = act_tab_close},
@@ -126,7 +129,7 @@ COMMANDS := [?]Command{
 	{id = "tab_last", title = i18n.later("Last tab"), icon = lucide.HASH, keys = {{.N9, {.Alt}}}, in_text = true, run = proc(app: ^App) { tab_pick(app, -1) }},
 
 	// The program itself (program_actions.odin): the palette's Program group
-	{id = "app_quit", title = i18n.later("Quit"), icon = lucide.POWER, tags = {"exit", "close", "leave"}, keys = {{.Q, {.Ctrl}}}, in_text = true, run = act_app_quit},
+	{id = "app_quit", title = i18n.later("Quit"), icon = lucide.POWER, tags = {"exit", "close", "leave"}, keys = {{.Q, {.Ctrl}}}, in_text = true, scope = .Window, run = act_app_quit},
 	{id = "app_restart", title = i18n.later("Restart classeur"), icon = lucide.ZAP, tags = {"relaunch", "reload", "reboot", "start again"}, keys = {{.Q, {.Ctrl, .Shift}}}, in_text = true, run = act_app_restart, enabled = can_restart},
 	{id = "app_new_window", title = i18n.later("New window"), icon = lucide.APP_WINDOW, tags = {"another window", "open"}, keys = {{.N, {.Ctrl}}}, in_text = true, run = act_app_new_window},
 	{id = "app_minimize", title = i18n.later("Minimize window"), icon = lucide.ARROW_DOWN, tags = {"hide", "iconify", "taskbar"}, keys = {{.F9, {.Alt}}}, in_text = true, run = act_app_minimize},
@@ -153,12 +156,23 @@ COMMANDS := [?]Command{
 	{id = "app_thumbs_clear", title = i18n.later("Clear thumbnails"), icon = lucide.IMAGE, tags = {"pictures", "cache", "previews"}, keys = {{.I, {.Ctrl, .Shift, .Alt}}}, in_text = true, run = act_app_thumbs_clear},
 }
 
-// The keys of the commands, before the interface sees them. `typing`: a text field has the keyboard, and only the
-// commands marked `in_text` run.
-commands_keys :: proc(app: ^App, typing: bool) {
+// The keys of the window's commands (scope .Window), before the interface sees them: in every page and mode, whatever
+// has the keyboard, over a dialog too (the settings are one). The toolkit takes their keys from wherever the focus is.
+window_keys :: proc(app: ^App) {
 	// (a sequence's first chord waits for its second a moment: SEQUENCE_MS)
 	if app.keymap.pending.key != .None && ui.now_ms() > app.keymap.pending_until { app.keymap.pending = {} }
 	for &c in COMMANDS {
+		if c.scope != .Window { continue }
+		if c.enabled != nil && !c.enabled(app) { continue }
+		if bindings_pressed(app, &c) { c.run(app) }
+	}
+}
+
+// The keys of the page's commands, before the interface sees them (window_keys read the window's). `typing`: a text
+// field has the keyboard, and only the commands marked `in_text` run.
+commands_keys :: proc(app: ^App, typing: bool) {
+	for &c in COMMANDS {
+		if c.scope == .Window { continue }
 		if typing && !c.in_text { continue }
 		if c.enabled != nil && !c.enabled(app) { continue }
 		if bindings_pressed(app, &c) { c.run(app) }

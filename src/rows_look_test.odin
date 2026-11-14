@@ -76,9 +76,9 @@ test_cut_and_pasted :: proc(t: ^testing.T) {
 
 		// cut a.txt and b.txt: their rows are dimmed, c.txt is not
 		testing.expect(t, folder_cursor_to_name(f, "a.txt"))
-		folder_pick(f, f.cursor)
+		folder_pick(f, f.sel)
 		testing.expect(t, folder_cursor_to_name(f, "b.txt"))
-		folder_pick(f, f.cursor, toggle = true)
+		folder_pick(f, f.sel, {.Ctrl})
 		session.key(s, .X, {.Ctrl})
 		session.frames(s, 2)
 		testing.expect(t, row_is_cut(app, fs.join(dir, "a.txt", context.temp_allocator)), "a.txt cut")
@@ -90,7 +90,7 @@ test_cut_and_pasted :: proc(t: ^testing.T) {
 
 		// pasted in Dest: moved there, selected there, the cursor on the first; nothing is cut any more
 		testing.expect(t, folder_cursor_to_name(f, "Dest"))
-		folder_pick(f, f.cursor)
+		folder_pick(f, f.sel)
 		session.key(s, .Return)
 		wait_read(s)
 		testing.expect_value(t, fs.base(tab.path), "Dest")
@@ -98,9 +98,9 @@ test_cut_and_pasted :: proc(t: ^testing.T) {
 		wait_jobs(s)
 		testing.expect(t, fs.exists(fs.join(dir, "Dest/a.txt", context.temp_allocator)), "a.txt moved")
 		testing.expect_value(t, len(app.cut), 0)
-		testing.expect_value(t, f.count, 2)
-		testing.expect(t, f.selected[folder_find_name(f, "a.txt")], "a.txt selected")
-		testing.expect(t, f.selected[folder_find_name(f, "b.txt")], "b.txt selected")
+		testing.expect_value(t, len(f.selected), 2)
+		testing.expect(t, folder_entry_selected(f, folder_find_name(f, "a.txt")), "a.txt selected")
+		testing.expect(t, folder_entry_selected(f, folder_find_name(f, "b.txt")), "b.txt selected")
 		testing.expect_value(t, folder_cursor_entry(f).name, "a.txt")
 		session.frames(s, 2)
 		testing.expect(t, session.find(s, "cut") == nil, "no row dimmed once pasted")
@@ -134,7 +134,7 @@ test_footer_counts :: proc(t: ^testing.T) {
 		testing.expectf(t, strings.has_prefix(info, "a1.txt · "), "the cursor's item: %q", info)
 		session.key(s, .Down, {.Shift}, repeat = 2)
 		session.frames(s, 2)
-		testing.expect_value(t, tab.folder.count, 3)
+		testing.expect_value(t, len(tab.folder.selected), 3)
 		// (three: the selection's count says it, not the left part again)
 		info_box := session.find(s, "item_info")
 		testing.expect(t, info_box == nil || ui.box_text(info_box) == "", "three selected: no item described")

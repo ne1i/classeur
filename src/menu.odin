@@ -143,7 +143,7 @@ entry_menu_items :: proc(app: ^App, m: ^Entry_Menu) {
 		}
 		menu_command(app, "delete")
 		// (several: the batch rename, as F2 opens it)
-		n := t.folder.count
+		n := len(t.folder.selected)
 		menu_command(app, "rename", title = n > 1 ? fmt.tprintf(i18n.tr(n, "Rename %d item…", "Rename %d items…"), n) : "")
 		ui.menu_separator()
 		menu_command(app, "bookmark_folder", enabled = folder, title = folder && bookmarked(app, full) ? i18n.tr("Remove the bookmark") : i18n.tr("Bookmark this folder"))
@@ -154,7 +154,7 @@ entry_menu_items :: proc(app: ^App, m: ^Entry_Menu) {
 		menu_command(app, "undo", enabled = len(app.undo) > 0)
 		menu_command(app, "redo", enabled = len(app.redo) > 0)
 		if trash {
-			menu_command(app, "put_back", enabled = t.folder.count > 0, title = i18n.tr("Put back"))
+			menu_command(app, "put_back", enabled = len(t.folder.selected) > 0, title = i18n.tr("Put back"))
 			menu_command(app, "empty_trash", enabled = len(t.folder.listing.entries) > 0)
 		}
 		ui.menu_separator()

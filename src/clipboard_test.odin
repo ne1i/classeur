@@ -84,9 +84,9 @@ test_batch_names_from_the_clipboard :: proc(t: ^testing.T) {
 		tab := current_tab(app)
 		f := &tab.folder
 		testing.expect(t, folder_cursor_to_name(f, "a.txt"))
-		folder_pick(f, f.cursor)
+		folder_pick(f, f.sel)
 		testing.expect(t, folder_cursor_to_name(f, "b.txt"))
-		folder_pick(f, f.cursor, toggle = true)
+		folder_pick(f, f.sel, {.Ctrl})
 		batch_open(app, tab)
 		session.frames(s, 2)
 		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW), "the batch rename opens")

@@ -380,8 +380,8 @@ ADDRESS_ROWS :: 8
 list_move :: proc(t: ^Tab, by: int) {
 	f := &t.folder
 	if len(f.shown) == 0 { return }
-	folder_pick(f, clamp(f.cursor + by, 0, len(f.shown) - 1))
-	ui.list_select(&t.vl, f.cursor / tab_row_items(t))
+	folder_pick(f, clamp(f.sel + by, 0, len(f.shown) - 1))
+	ui.list_select(&t.vl, f.sel / tab_row_items(t))
 }
 
 ////////////////////////////////
@@ -415,9 +415,9 @@ header :: proc(app: ^App, t: ^Tab, em: f32) -> ui.Key {
 			f := &h.t.folder
 			ui.spacer(ui.px(em * (ROW_INSET_EM + ROW_LEAD_EM)))
 			if f.tree && f.filter == "" { ui.spacer(ui.px(em * TREE_CHEVRON_EM)) }
-			all := len(f.shown) > 0 && f.count == len(f.shown)
-			if check_box(h.app, "check_all", all, f.count > 0 && !all, em * ICON_CELL_EM) {
-				if f.count > 0 { folder_select_none(f) } else { folder_select_all(f) }
+			all := len(f.shown) > 0 && len(f.selected) == len(f.shown)
+			if check_box(h.app, "check_all", all, len(f.selected) > 0 && !all, em * ICON_CELL_EM) {
+				if len(f.selected) > 0 { folder_select_none(f) } else { folder_select_all(f) }
 			}
 		},
 		// a column's filter: its funnel, while the pointer is on its title or while it filters
@@ -543,7 +543,7 @@ icon_check :: proc(app: ^App, t: ^Tab, e: fs.Entry, row: int, selected: bool, em
 	cell := ui.build_box({}, fmt.tprintf("###check%d", row))
 	over = ui.pointer_on(cell)   // (the last layout's)
 	if ui.parent(cell) {
-		if over || selected && t.folder.count > 1 {
+		if over || selected && len(t.folder.selected) > 1 {
 			d := ui.frame_new(Check_Draw)
 			d^ = {selected, false, ui.color("text"), ui.color("accent"), ui.ink_on(ui.color("accent")), corner_k()}
 			ui.next({width = ui.px(width), height = ui.pct(1)})
@@ -620,7 +620,7 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 	f := &t.folder
 	if empty_state(app, t, em) { return }
 	// the cursor and the list's active row are the same row
-	t.vl.sel = f.cursor
+	t.vl.sel = f.sel
 	// (the details: each row as wide as their columns at least)
 	least: f32 = 0
 	if !names_only { least = ui.table_min_width(&app.columns) }
@@ -643,7 +643,7 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 	look := row_look(app, focused, em)
 	for row in rows.first ..< rows.last {
 		e := &f.listing.entries[f.shown[row]]
-		selected := f.selected[f.shown[row]]
+		selected := f.ids[row] in f.selected
 		// a group's first row: its title above it (File Pilot's Group By)
 		title := ""
 		if f.group != .None && f.filter == "" {
@@ -663,9 +663,9 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 		if sig.box != nil && e.kind == .Directory { sig.box.flags += {.Middle_Click} }
 		if selected && focused { ui.pop_tags() }
 		// (its neighbours selected too: one pill over them)
-		sel_up := row > 0 && f.selected[f.shown[row - 1]]
-		sel_down := row + 1 < len(f.shown) && f.selected[f.shown[row + 1]]
-		if !folded { row_paint(sig.box, look, selected, row == f.cursor && (!selected || f.count > 1), row & 1 == 1, head, sel_up, sel_down) }
+		sel_up := row > 0 && f.ids[row - 1] in f.selected
+		sel_down := row + 1 < len(f.shown) && f.ids[row + 1] in f.selected
+		if !folded { row_paint(sig.box, look, selected, row == f.sel && (!selected || len(f.selected) > 1), row & 1 == 1, head, sel_up, sel_down) }
 		check := false
 		if ui.parent(sig.box) {
 			if title != "" {
@@ -703,30 +703,29 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 		// (the icon is the row's box: a click on it checks the row, the others kept; a press there selects nothing yet)
 		if check && sig.clicked && !app.drag_started {
 			clicked = true
-			folder_pick(f, row, toggle = true)
+			folder_pick(f, row, {.Ctrl})
 		} else if check && sig.pressed {
 			clicked = true
-			f.cursor = row
+			f.sel = row
 		} else if app.settings.single_click && sig.clicked && sig.mods == {} {
 			folder_pick(f, row)
 			act_open(app)
 			return
-		} else if sig.pressed && selected && sig.mods == {} && f.count > 1 {
+		} else if sig.pressed && selected && sig.mods == {} && len(f.selected) > 1 {
 			// (a press on the selection may drag it: the row alone is picked at the click)
 			clicked = true
-			f.cursor = row
+			f.sel = row
 		} else if sig.pressed {
 			clicked = true
 			if .Ctrl in sig.mods && .Shift not_in sig.mods {
 				// (Ctrl: the row toggled, and a drag from it goes on doing the same to the rows it passes)
-				base := slice.clone(f.selected[:], context.temp_allocator)
-				folder_pick(f, row, toggle = true)
-				band_begin_on_row(app, t, selected, base)
+				band_begin_on_row(app, t, selected)
+				folder_pick(f, row, {.Ctrl})
 			} else {
-				folder_pick(f, row, extend = .Shift in sig.mods, toggle = .Ctrl in sig.mods)
+				folder_pick(f, row, sig.mods)
 			}
 		}
-		if sig.clicked && !check && selected && sig.mods == {} && f.count > 1 && !app.drag_started { folder_pick(f, row) }
+		if sig.clicked && !check && selected && sig.mods == {} && len(f.selected) > 1 && !app.drag_started { folder_pick(f, row) }
 		drag_maybe(app, t, sig)
 		if e.kind == .Directory {
 			dir := fs.join(t.path, e.name, context.temp_allocator)
@@ -735,8 +734,7 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 		}
 		if sig.right_clicked {
 			clicked = true
-			if !folder_row_selected(f, row) { folder_pick(f, row) }
-			f.cursor = row
+			ui.item_selection_context(&f.selection, folder_rows(f), row)
 			entry_menu_open(app, t, ui.mouse_pos())
 		}
 		if sig.middle_clicked && e.kind == .Directory {
@@ -1039,7 +1037,8 @@ footer :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 		if _, running := jobs_progress(app); focused && running {
 			ui.spacer(ui.fill())
 		} else if ui.tags("weak") {
-			ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.92, text_pad = em * 0.6})
+			// (content: the cursor's name, type and size)
+			ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.92, text_pad = em * 0.6, flags = {.Selectable}})
 			ui.label(fmt.tprintf("%s###item_info", footer_info(app, t)))
 		}
 		if focused {
@@ -1065,9 +1064,9 @@ footer :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 				// (counted when the rows change: folder_refilter)
 				folders, files, folders_shown, files_shown := f.folders, f.files, f.folders_shown, f.files_shown
 				if t.walk != nil { stat(app, "walk", lucide.LOADER, fmt.tprintf("%s…", count_text(i64(tab_walked(t)))), i18n.tr("Entries read so far"), em) }
-				if f.count > 0 {
+				if len(f.selected) > 0 {
 					bytes, _ := folder_selection_size(f)
-					stat(app, "sel", lucide.LAYERS_2, bytes > 0 ? fmt.tprintf("%d · %s", f.count, size_text(bytes)) : fmt.tprintf("%d", f.count), i18n.tr("Selected, and the size of their files"), em)
+					stat(app, "sel", lucide.LAYERS_2, bytes > 0 ? fmt.tprintf("%d · %s", len(f.selected), size_text(bytes)) : fmt.tprintf("%d", len(f.selected)), i18n.tr("Selected, and the size of their files"), em)
 				}
 				stat(app, "fol", lucide.FOLDER, shown_count_text(folders_shown, folders), folders_shown < folders ? i18n.tr("Folders shown, of all: a filter leaves some out") : i18n.tr("Folders"), em, lit = folders_shown < folders)
 				stat(app, "fil", lucide.FILE, shown_count_text(files_shown, files), files_shown < files ? i18n.tr("Files shown, of all: a filter leaves some out") : i18n.tr("Files"), em, lit = files_shown < files)
@@ -1237,7 +1236,7 @@ shown_count_text :: proc(shown, all: int) -> string {
 // selected: the selection's count at the right says how many and their size.
 footer_info :: proc(app: ^App, t: ^Tab) -> string {
 	f := &t.folder
-	if f.count > 1 { return "" }
+	if len(f.selected) > 1 { return "" }
 	e := folder_cursor_entry(f)
 	if e == nil { return "" }
 	name := ui.text_shown(fs.base(shown_name(app, e^)))

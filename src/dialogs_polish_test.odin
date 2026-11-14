@@ -24,7 +24,7 @@ test_batch_case_segmented :: proc(t: ^testing.T) {
 		tab := current_tab(app)
 		for name in ([]string{"notes.txt", "report 2.pdf"}) {
 			testing.expect(t, folder_cursor_to_name(&tab.folder, name))
-			folder_pick(&tab.folder, tab.folder.cursor, toggle = true)
+			folder_pick(&tab.folder, tab.folder.sel, {.Ctrl})
 		}
 		session.key(s, .F2)
 		session.frames(s, 2)

@@ -113,11 +113,11 @@ test_large_folder :: proc(t: ^testing.T) {
 		append(&tab.select_names, strings.clone("gone.txt"))
 		tab_load(app, tab)
 		wait_read(s)
-		testing.expect_value(t, f.count, LARGE_FOLDER / 2)
+		testing.expect_value(t, len(f.selected), LARGE_FOLDER / 2)
 		testing.expect_value(t, len(tab.select_names), 0)
 		e := folder_cursor_entry(f)
 		testing.expect(t, e != nil && e.name == large_name(LARGE_FOLDER - 1), "the cursor on the first name pasted")
-		testing.expect(t, f.selected[f.shown[f.cursor]], "it is selected")
+		testing.expect(t, folder_row_selected(f, f.sel), "it is selected")
 		testing.expect(t, !folder_row_selected(f, 0), "n0.md was not pasted")
 	})
 }
@@ -140,9 +140,9 @@ test_folder_take_settings_changed :: proc(t: ^testing.T) {
 		first := listing({1, 2, 3, 4})
 		folder_set_listing(&f, &first)
 		folder_cursor_to_name(&f, "c.txt")
-		folder_pick(&f, f.cursor, toggle = true)
-		folder_pick(&f, 1, toggle = true)   // (b.txt)
-		testing.expect_value(t, f.count, 2)
+		folder_pick(&f, f.sel, {.Ctrl})
+		folder_pick(&f, 1, {.Ctrl})   // (b.txt)
+		testing.expect_value(t, len(f.selected), 2)
 
 		p: Folder
 		folder_view_copy(&p, &f)
@@ -155,8 +155,8 @@ test_folder_take_settings_changed :: proc(t: ^testing.T) {
 		names := make([dynamic]string, context.temp_allocator)
 		for i in f.shown { append(&names, f.listing.entries[i].name) }
 		testing.expect_value(t, fmt.tprint(names), `["e.txt", "d.txt", "c.txt", "b.txt", "a.txt"]`)
-		testing.expect_value(t, f.count, 2)
-		testing.expect(t, f.selected[folder_find_name(&f, "b.txt")] && f.selected[folder_find_name(&f, "c.txt")], "the names selected")
+		testing.expect_value(t, len(f.selected), 2)
+		testing.expect(t, folder_entry_selected(&f, folder_find_name(&f, "b.txt")) && folder_entry_selected(&f, folder_find_name(&f, "c.txt")), "the names selected")
 		testing.expect_value(t, folder_cursor_entry(&f).name, "b.txt")   // (the last picked)
 		bytes, _ := folder_selection_size(&f)
 		testing.expect_value(t, bytes, i64(5))

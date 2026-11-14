@@ -80,7 +80,7 @@ wait_read :: proc(s: ^session.Session, loc := #caller_location) {
 // (shared by the tests of the package: each file of tests uses it)
 point_at :: proc(t: ^testing.T, tab: ^Tab, name: string, loc := #caller_location) {
 	testing.expect(t, folder_cursor_to_name(&tab.folder, name), loc = loc)
-	folder_pick(&tab.folder, tab.folder.cursor)
+	folder_pick(&tab.folder, tab.folder.sel)
 }
 
 // (shared by the tests of the package: each file of tests uses it)
@@ -145,11 +145,11 @@ test_browse :: proc(t: ^testing.T) {
 		// Shift+Down selects a range, Ctrl+A all
 		session.key(s, .Home)
 		session.key(s, .Down, {.Shift}, repeat = 2)
-		testing.expect_value(t, tab.folder.count, 3)
+		testing.expect_value(t, len(tab.folder.selected), 3)
 		session.key(s, .A, {.Ctrl})
-		testing.expect_value(t, tab.folder.count, 7)
+		testing.expect_value(t, len(tab.folder.selected), 7)
 		session.key(s, .Down)
-		testing.expect_value(t, tab.folder.count, 1)
+		testing.expect_value(t, len(tab.folder.selected), 1)
 
 		// the hidden files, from the palette
 		session.key(s, .P, {.Ctrl, .Shift})
@@ -300,10 +300,10 @@ test_grid :: proc(t: ^testing.T) {
 		testing.expect(t, tab.grid_cols >= 2, "cards side by side")
 		session.key(s, .Home)
 		session.key(s, .Right)
-		testing.expect_value(t, tab.folder.cursor, 1)
+		testing.expect_value(t, tab.folder.sel, 1)
 		session.key(s, .Down)
-		testing.expect_value(t, tab.folder.cursor, min(1 + tab.grid_cols, 6))
-		testing.expect_value(t, tab.folder.count, 1)
+		testing.expect_value(t, tab.folder.sel, min(1 + tab.grid_cols, 6))
+		testing.expect_value(t, len(tab.folder.selected), 1)
 		session.key(s, .N1, {.Ctrl})
 		testing.expect_value(t, tab_mode(tab), View_Mode.Details)
 	})
@@ -408,10 +408,10 @@ test_inspector :: proc(t: ^testing.T) {
 		session.wheel(s, session.center(pic), {0, -3})   // (up: larger)
 		session.frames(s, 4)
 		testing.expectf(t, app.inspector.preview.zoom > 1, "zoomed: %v", app.inspector.preview.zoom)
-		cursor := tab.folder.cursor
+		cursor := tab.folder.sel
 		session.key(s, .Down)
 		session.frames(s, 2)
-		testing.expect(t, tab.folder.cursor != cursor || len(tab.folder.shown) < 2, "Down moves the list's cursor")
+		testing.expect(t, tab.folder.sel != cursor || len(tab.folder.shown) < 2, "Down moves the list's cursor")
 		session.key(s, .Space)
 		testing.expect(t, !inspector_shown(app))
 	})
@@ -447,7 +447,7 @@ test_shots :: proc(t: ^testing.T) {
 		left.zoom = ZOOM_GRID
 		wait_read(s)
 		session.wait_until(s, thumbs_ready, "the thumbnails")
-		left.folder.cursor = 2
+		left.folder.sel = 2
 		session.key(s, .Home)
 		session.key(s, .Down)
 		session.key(s, .Down, {.Shift}, repeat = 2)
@@ -854,9 +854,9 @@ test_batch_rename :: proc(t: ^testing.T) {
 		// the two reports and notes.txt
 		for name in ([]string{"notes.txt", "report 2.pdf", "report 10.pdf"}) {
 			testing.expect(t, folder_cursor_to_name(&tab.folder, name))
-			folder_pick(&tab.folder, tab.folder.cursor, toggle = true)
+			folder_pick(&tab.folder, tab.folder.sel, {.Ctrl})
 		}
-		testing.expect_value(t, tab.folder.count, 3)
+		testing.expect_value(t, len(tab.folder.selected), 3)
 		session.key(s, .F2)
 		session.frames(s, 2)
 		testing.expect(t, ui.view_is_open(&app.views, BATCH_VIEW))
@@ -981,10 +981,10 @@ test_band :: proc(t: ^testing.T) {
 		session.move(s, from + {0, -10})
 		session.move(s, to)
 		session.frames(s, 1)
-		testing.expect_value(t, tab.folder.count, 3)
+		testing.expect_value(t, len(tab.folder.selected), 3)
 		session.release(s, to)
 		session.frames(s, 2)
-		testing.expect_value(t, tab.folder.count, 3)
+		testing.expect_value(t, len(tab.folder.selected), 3)
 		testing.expect(t, !app.band.active)
 	})
 }
@@ -1468,11 +1468,11 @@ test_columns_view :: proc(t: ^testing.T) {
 		session.frames(s, 8)
 		box := ui.box_from_key(tab.cols_key)
 		testing.expect(t, box.view_target.x > 0, "scrolled sideways")
-		testing.expect_value(t, tab.folder.cursor, 59)
+		testing.expect_value(t, tab.folder.sel, 59)
 		// Home, then Right: a column further
 		session.key(s, .Home)
 		session.key(s, .Right)
-		testing.expect_value(t, tab.folder.cursor, per)
+		testing.expect_value(t, tab.folder.sel, per)
 		// the wheel scrolls sideways
 		session.key(s, .Home)
 		session.frames(s, 8)
@@ -1653,17 +1653,17 @@ test_icon_checks :: proc(t: ^testing.T) {
 		session.click_at(s, session.center(session.get(s, "check1")))
 		session.click_at(s, session.center(session.get(s, "check3")))
 		session.frames(s, 2)
-		testing.expect_value(t, tab.folder.count, 2)
+		testing.expect_value(t, len(tab.folder.selected), 2)
 		session.leave(s)
 		session.frames(s, 2)
 		testing.expect(t, session.find(s, "box", 1) != nil, "the rows checked among others show their box")
 		when SHOTS { session.save_png(s, "icon_checks.png") }
 		session.click(s, "check_all")
 		session.frames(s, 1)
-		testing.expect_value(t, tab.folder.count, 0)
+		testing.expect_value(t, len(tab.folder.selected), 0)
 		session.click(s, "check_all")
 		session.frames(s, 1)
-		testing.expect_value(t, tab.folder.count, len(tab.folder.shown))
+		testing.expect_value(t, len(tab.folder.selected), len(tab.folder.shown))
 	})
 }
 
@@ -2205,7 +2205,7 @@ test_ctrl_band_and_empty_menu :: proc(t: ^testing.T) {
 		wait_read(s)
 		session.frames(s, 2)
 		folder_select_all(&tab.folder)
-		n := tab.folder.count
+		n := len(tab.folder.selected)
 		row1 := session.get(s, "check1").rect
 		row3 := session.get(s, "check3").rect
 		from := [2]f32{row1.max.x + 200, (row1.min.y + row1.max.y) * 0.5}
@@ -2223,7 +2223,7 @@ test_ctrl_band_and_empty_menu :: proc(t: ^testing.T) {
 		ctrl(s, .Mouse_Move, from + {0, 6})
 		ctrl(s, .Mouse_Move, to)
 		ctrl(s, .Mouse_Release, to)
-		testing.expectf(t, tab.folder.count == n - 3, "rows 1 to 3 taken out: %d of %d", tab.folder.count, n)
+		testing.expectf(t, len(tab.folder.selected) == n - 3, "rows 1 to 3 taken out: %d of %d", len(tab.folder.selected), n)
 		testing.expect(t, len(app.drag_paths) == 0, "no file dragged")
 		// the empty part, right-clicked: the folder's menu (New folder)
 		session.click_at(s, {from.x, 600}, .Right)
@@ -2343,11 +2343,11 @@ mouse_matrix :: proc(t: ^testing.T, zoom: int) {
 		r, ok := rect_of(s, tab, lb, i)
 		if ok && r.max.x > band.min.x && r.min.x < band.max.x && r.max.y > band.min.y && r.min.y < band.max.y { want += 1 }
 	}
-	testing.expectf(t, want >= 1 && tab.folder.count == want, "%v: the rectangle selects what it touches: %d selected, %d touched", mode, tab.folder.count, want)
+	testing.expectf(t, want >= 1 && len(tab.folder.selected) == want, "%v: the rectangle selects what it touches: %d selected, %d touched", mode, len(tab.folder.selected), want)
 	when SHOTS { session.save_png(s, fmt.tprintf("band_%v.png", mode)) }
 	session.release(s, to)
 	session.frames(s, 2)
-	testing.expectf(t, tab.folder.count == want && !app.band.active, "%v: kept when let go", mode)
+	testing.expectf(t, len(tab.folder.selected) == want && !app.band.active, "%v: kept when let go", mode)
 	testing.expectf(t, !app.file_drag && len(app.drag_paths) == 0, "%v: no file dragged by the rectangle", mode)
 
 	// 2. a right click on the empty part: the folder's menu
@@ -2375,7 +2375,7 @@ mouse_matrix :: proc(t: ^testing.T, zoom: int) {
 	ctrl(s, .Mouse_Move, a + (b - a) * 0.3)
 	ctrl(s, .Mouse_Move, b)
 	ctrl(s, .Mouse_Release, b)
-	testing.expectf(t, tab.folder.count == n - 2, "%v: Ctrl and a drag deselect: %d of %d", mode, tab.folder.count, n)
+	testing.expectf(t, len(tab.folder.selected) == n - 2, "%v: Ctrl and a drag deselect: %d of %d", mode, len(tab.folder.selected), n)
 	testing.expectf(t, !app.file_drag && len(app.drag_paths) == 0, "%v: no file dragged by Ctrl", mode)
 
 	// 4. a click of the wheel on a folder: its tab (the toolkit's autoscroll leaves the rows' middle button alone)
@@ -2417,7 +2417,7 @@ mouse_matrix :: proc(t: ^testing.T, zoom: int) {
 	session.frames(s, 2)
 	session.move(s, middle(r0) + {4, 4})
 	session.frames(s, 2)
-	testing.expectf(t, !app.band.active && tab.folder.count == 1 && folder_row_selected(&tab.folder, index_of(tab, "report 2.pdf")), "%v: Escape gives the selection back: %d", mode, tab.folder.count)
+	testing.expectf(t, !app.band.active && len(tab.folder.selected) == 1 && folder_row_selected(&tab.folder, index_of(tab, "report 2.pdf")), "%v: Escape gives the selection back: %d", mode, len(tab.folder.selected))
 	session.release(s, middle(r0) + {4, 4})
 	session.frames(s, 2)
 	_ = r1
@@ -2587,14 +2587,14 @@ test_escape_ends_gestures :: proc(t: ^testing.T) {
 		// the jobs' view: Escape closes it, the selection of the list untouched
 		tab := current_tab(app)
 		folder_select_all(&tab.folder)
-		n := tab.folder.count
+		n := len(tab.folder.selected)
 		session.key(s, .J, {.Ctrl, .Alt})
 		session.frames(s, 2)
 		testing.expect(t, app.jobs_view.open, "the jobs' view")
 		session.key(s, .Escape)
 		session.frames(s, 2)
 		testing.expect(t, !app.jobs_view.open, "Escape closes it")
-		testing.expect_value(t, tab.folder.count, n)
+		testing.expect_value(t, len(tab.folder.selected), n)
 	})
 }
 
@@ -2619,6 +2619,39 @@ test_keypad_binding :: proc(t: ^testing.T) {
 		testing.expect_value(t, command_keys(app, command_find("zoom_in")), "Ctrl+Num +")
 		saved := config.string_of(&app.prefs, "keys.custom")
 		testing.expectf(t, strings.contains(saved, "zoom_in=Ctrl+Num +"), "kept: %q", saved)
+	})
+}
+
+// The window's commands work over the settings (a view shown as a dialog), their search with the keyboard: the palette
+// opens there and lists the settings; F1 shows the keys; Ctrl+, closes the settings.
+@(test)
+test_window_commands_from_the_settings :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {dir}, size = {1200, 800})
+		session.key(s, .Comma, {.Ctrl})
+		session.frames(s, 2)
+		testing.expect(t, ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings open")
+		session.type_text(s, "hid")
+		testing.expect_value(t, ui.line_edit_string(&app.options.page.query), "hid")
+		session.key(s, .K, {.Ctrl})
+		session.frames(s, 2)
+		testing.expect(t, ui.palette_is_open(&app.palette.pal), "Ctrl+K opens the palette over the settings")
+		session.type_text(s, "radius")
+		session.frames(s, 2)
+		testing.expect(t, session.find_text(s, "Rounding") != nil, "the palette lists the settings")
+		session.key(s, .Escape)
+		session.frames(s, 2)
+		testing.expect(t, !ui.palette_is_open(&app.palette.pal) && ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings under it")
+		session.key(s, .F1)
+		session.frames(s, 2)
+		testing.expect(t, ui.shortcuts_sheet_is_open(&app.palette.sheet), "F1 shows the keys over the settings")
+		session.key(s, .Escape)
+		session.frames(s, 2)
+		session.key(s, .Comma, {.Ctrl})
+		session.frames(s, 2)
+		testing.expect(t, !ui.view_is_open(&app.views, OPTIONS_VIEW), "Ctrl+, closes the settings")
 	})
 }
 
@@ -2775,7 +2808,7 @@ test_band_folded_group :: proc(t: ^testing.T) {
 			e := tab.folder.listing.entries[i]
 			if strings.has_suffix(e.name, ".pdf") { testing.expectf(t, !folder_row_selected(&tab.folder, row), "%s, in the folded group, not taken", e.name) }
 		}
-		testing.expect(t, tab.folder.count > 0, "the others taken")
+		testing.expect(t, len(tab.folder.selected) > 0, "the others taken")
 	})
 }
 

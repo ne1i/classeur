@@ -41,7 +41,7 @@ App :: struct {
 	shared:      host.Shared,
 	main:        host.Host,
 	icons:       font.Font_Id,      // Lucide: the thin icons of the bars' buttons
-	mono:        font.Font_Id,
+	mono:        font.Font_Id,      // classeur's own monospace face (Standard_Targets.faces; drawn: ui.mono_font())
 	devtools:    ^devtools.Server,  // TOOLKIT_DEVTOOLS=<port>: driven and captured over the Chrome DevTools Protocol
 	theme_shown: ui.Theme_Shown,
 	pool:        tasks.Pool,        // the reads of folders, the places, the launches: it grows while a share hangs

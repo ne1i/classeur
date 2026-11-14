@@ -12,7 +12,7 @@ Band :: struct {
 	active: bool,
 	tab:    u64,
 	start:  [2]f32,       // in the list's content
-	base:   [dynamic]bool,   // the selection at the press (Ctrl: the rows are added to it), per entry
+	base:   map[u64]struct{},   // the selection at the press, its rows' ids (Ctrl: the rows are added to it)
 	removing: bool,          // the rows it touches leave the selection (Ctrl and a press on a selected row)
 	keeping:  bool,          // the selection at the press stays (Ctrl); else the rows it touches alone are selected
 	// the rows it could touch at the last frame (the rows outside are as the press left them): a frame visits the rows
@@ -20,16 +20,22 @@ Band :: struct {
 	lo, hi:   int,
 }
 
-// Ctrl and a press on a row: a band from there, its rows taken out of the selection when that row was in it (`base`: the
-// selection before the press toggled the row).
-band_begin_on_row :: proc(app: ^App, t: ^Tab, removing: bool, base: []bool) {
+// Ctrl and a press on a row: a band from there, its rows taken out of the selection when that row was in it. Called
+// before the press toggles the row: the base is the selection there was.
+band_begin_on_row :: proc(app: ^App, t: ^Tab, removing: bool) {
 	lb := band_box(t)
 	if lb == nil { return }
 	b := &app.band
 	b.active, b.tab, b.removing, b.keeping, b.lo, b.hi = true, t.id, removing, true, 0, 0
 	b.start = ui.mouse_pos() - lb.rect.min + lb.view_off
+	band_keep_base(b, &t.folder)
+}
+
+// The selection at the press, kept (Ctrl adds to it; Escape gives it back).
+@(private = "file")
+band_keep_base :: proc(b: ^Band, f: ^Folder) {
 	clear(&b.base)
-	append(&b.base, ..base)
+	for id in f.selected { b.base[id] = {} }
 }
 
 // Where the items are in the content of the box the band is drawn over:
@@ -72,8 +78,7 @@ band_update :: proc(app: ^App, t: ^Tab, pressed_row: bool, pressed_empty := fals
 	if (sig.pressed || pressed_empty) && !pressed_row && !b.active {
 		b.active, b.tab, b.start, b.removing, b.keeping, b.lo, b.hi = true, t.id, content, false, .Ctrl in sig.mods, 0, 0
 		// (the selection at the press, kept for Escape, which gives it back)
-		clear(&b.base)
-		append(&b.base, ..f.selected[:])
+		band_keep_base(b, f)
 		if !b.keeping { folder_select_none(f) }
 	}
 
@@ -81,6 +86,8 @@ band_update :: proc(app: ^App, t: ^Tab, pressed_row: bool, pressed_empty := fals
 	// (held: the list's press, or a row's for a band begun on it)
 	if ui.active_key() == 0 {
 		b.active = false
+		// (a Shift range after it starts from the cursor, over what the band selected)
+		f.anchored = false
 		return
 	}
 	y0, y1 := min(b.start.y, content.y), max(b.start.y, content.y)
@@ -116,10 +123,10 @@ band_update :: proc(app: ^App, t: ^Tab, pressed_row: bool, pressed_empty := fals
 			_, key := group_of(f, f.listing.entries[f.shown[row]])
 			if key in f.folded { touched = false }
 		}
-		was := b.keeping && len(b.base) == len(f.selected) && b.base[f.shown[row]]
+		was := b.keeping && f.ids[row] in b.base
 		on := b.removing ? was && !touched : was || touched
 		folder_set_row(f, row, on)
-		if touched { f.cursor = row }
+		if touched { f.sel = row }
 	}
 	// the rectangle, on screen
 	a := b.start - lb.view_off + lb.rect.min
@@ -142,11 +149,8 @@ band_cancel :: proc(app: ^App) {
 	t := find_tab(app, b.tab)
 	if t == nil { return }
 	f := &t.folder
-	if len(b.base) == len(f.selected) {
-		for row in 0 ..< len(f.shown) { folder_set_row(f, row, b.base[f.shown[row]]) }
-	} else {
-		folder_select_none(f)
-	}
+	// (by ids: rows the band's frames added or moved stay right)
+	for row in 0 ..< len(f.shown) { folder_set_row(f, row, f.ids[row] in b.base) }
 }
 
 // The rows (their indices among those shown, [lo, hi)) a rectangle from y0 to y1 (and x0 to x1: the grid's and the

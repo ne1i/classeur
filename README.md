@@ -73,6 +73,9 @@ What comes next is in [ROADMAP.md](ROADMAP.md). Why the program has its shape is
 | Key | |
 |---|---|
 | Enter, double click | open |
+| Ctrl+click, Shift+click, Ctrl+Shift+click | the item toggled; the range from the last one clicked; the range added |
+| Shift+arrows, Ctrl+arrows, Ctrl+Space | the range to the cursor; the cursor alone; the item at the cursor toggled |
+| Ctrl+A, Ctrl+Shift+A, Escape | select all; select none; several items: the cursor's alone |
 | Backspace, Alt+Up | the parent folder |
 | Alt+Left, Alt+Right, the mouse's side buttons | back, forward |
 | Ctrl+G | GoTo |

@@ -66,7 +66,7 @@ test_rename_refused_and_tab :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		tab := current_tab(app)
 		testing.expect(t, folder_cursor_to_name(&tab.folder, "a.txt"))
-		folder_pick(&tab.folder, tab.folder.cursor)
+		folder_pick(&tab.folder, tab.folder.sel)
 
 		session.key(s, .F2)
 		testing.expect(t, app.rename.active)
@@ -103,7 +103,7 @@ test_rename_refused_and_tab :: proc(t: ^testing.T) {
 
 		// a change of case alone
 		testing.expect(t, folder_cursor_to_name(&tab.folder, "c.txt"))
-		folder_pick(&tab.folder, tab.folder.cursor)
+		folder_pick(&tab.folder, tab.folder.sel)
 		session.key(s, .F2)
 		session.key(s, .A, {.Ctrl})
 		session.type_text(s, "C.txt")

@@ -166,7 +166,7 @@ conflict_file_line :: proc(app: ^App, word: string, f, other: fs.Info, em: f32, 
 	if date := date_text(app, f.mtime); date != "" { text = fmt.tprintf("%s · %s", what, date) }
 	ui.next({width = ui.fill(), height = ui.px(em * 1.5)})
 	if ui.row(.Center, id = id) {
-		ui.next({width = ui.text_size(0, 0), height = ui.pct(1)})
+		ui.next({width = ui.text_size(0, 0), height = ui.pct(1), flags = {.Selectable}})   // (content: its size and date)
 		ui.label(fmt.tprintf("%s: %s###file", word, text))
 		if other.mtime != 0 && f.mtime > other.mtime {
 			ui.spacer(ui.px(em * 0.3))

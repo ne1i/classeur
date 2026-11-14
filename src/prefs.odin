@@ -108,11 +108,12 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 	themes_path := ""
 	if !app.headless { themes_path = themes_file() }
 	prefs_page.themes_file_init(&app.themes_file, themes_path, ui.THEMES[:])
-	fonts_apply(app)
+	emoji_apply(app)
 	settings_apply(app)
 	// (the toolkit's settings to the toolkit, now and at each change: the feel, the zoom, the density, the corners, the
-	// motion, the scrolling, the text's rendering)
-	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw})
+	// motion, the scrolling, the text's rendering, the font families, live; classeur's own monospace face is the
+	// monospace setting's Default)
+	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw, faces = #partial [ui.Text_Face]font.Font_Id{.Mono = app.mono}})
 	if path := prefs_path(app); path != "" { config.user_writer_start(&app.prefs_writer, &app.prefs, path) }
 }
 
@@ -128,19 +129,11 @@ themes_file :: proc(allocator := context.temp_allocator) -> string {
 	return strings.concatenate({platform.user_dir(.Config, APP_NAME, context.temp_allocator), "/themes.txt"}, allocator)
 }
 
-// The fonts the person named (appearance.text.*), read at the start: the system's family in place of classeur's.
+// The emoji file the person named, read at the start. (The families are the toolkit's: standard_watch.)
 @(private = "file")
-fonts_apply :: proc(app: ^App) {
+emoji_apply :: proc(app: ^App) {
 	if app.headless { return }   // (the tests' fonts are compiled in)
-	p := &app.prefs
-	fonts := &app.shared.fonts
-	if family := config.string_of(p, prefs_page.UI_FONT_PREF); family != "" {
-		if id, ok := font.load_system(fonts, family); ok { app.shared.font = id }
-	}
-	if family := config.string_of(p, prefs_page.MONO_FONT_PREF); family != "" {
-		if id, ok := font.load_system(fonts, family); ok { app.mono = id }
-	}
-	if path := config.string_of(p, prefs_page.EMOJI_FONT_PREF); path != "" { font.set_emoji_source(fonts, path) }
+	if path := config.string_of(&app.prefs, prefs_page.EMOJI_FONT_PREF); path != "" { font.set_emoji_source(&app.shared.fonts, path) }
 }
 
 // Each round of the loop: the user's changes since the last text handed to the writer's thread, which writes them (config.User_Writer:

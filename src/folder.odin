@@ -4,8 +4,9 @@ package classeur
 // hidden files) and the selection. No interface here: the view reads `shown` and changes the selection through these
 // procedures (tests: folder_test.odin).
 //
-// Rows are indices into `listing.entries`. The selection is a flag per entry, so that it survives a new sort or filter;
-// `cursor` is the active row (in `shown`), `anchor` the row a Shift range starts from.
+// Rows are indices into `listing.entries`. The selection is the toolkit's Item_Selection over the rows shown, by the
+// rows' ids (the hash of each name): it survives a new sort, a filter and a new listing of the same names. Its `sel` is
+// the cursor, the active row (in `shown`); the gestures' rules are the toolkit's (gt src/md/features/selection.md).
 
 import "core:hash"
 import "core:mem/virtual"
@@ -16,6 +17,7 @@ import "core:time/datetime"
 import "core:time"
 import "core:unicode/utf8"
 import "gt:i18n"
+import "gt:platform"
 import "gt:ui"
 import "fs"
 
@@ -56,18 +58,18 @@ Folder :: struct {
 	// counted when the rows change, read by the footer (a frame does no pass over the entries)
 	folders, files:  int,           // of all (the hidden ones only while they are shown)
 	folders_shown, files_shown: int,
-	selected:    [dynamic]bool,     // per entry
-	count:       int,               // entries selected
-	sel_bytes:   i64,               // the bytes of the files selected (folders count none)
-	sel_serial:  u64,               // raised at each change of the selection (what is worked out of it is made again)
+	// `sel` the cursor, `selected` the ids of the rows selected, `version` raised at each change (what is worked out of
+	// the selection is made again: its bytes, the inspector's summary)
+	using selection: ui.Item_Selection,
+	sel_bytes:   i64,               // the bytes of the files selected (folders count none), as of `bytes_of`
+	bytes_of:    u64,               // the selection's version `sel_bytes` was counted at
+	bytes_known: bool,              // `sel_bytes` holds for `bytes_of` (false: a new listing, sizes changed)
 	// the types' popup's counts (folder_types_kept), exts owned: counted when the listing or its rows change, not each frame
 	types:       [dynamic]Type_Count,
 	types_of:    u64,               // the `ids_version` they were counted at
 	types_n:     int,               // the entries they were counted for
 	types_due:   bool,              // counted again at the next ask (the popup opened)
 	types_made:  int,               // the times they were counted
-	cursor:      int,               // the active row, -1: none
-	anchor:      int,               // where a Shift range starts
 }
 
 folder_destroy :: proc(f: ^Folder) {
@@ -86,7 +88,7 @@ folder_destroy :: proc(f: ^Folder) {
 	delete(f.lowered)
 	virtual.arena_destroy(&f.lower_arena)
 	delete(f.days)
-	delete(f.selected)
+	ui.item_selection_destroy(&f.selection)
 	for x in f.types { delete(x.ext) }
 	delete(f.types)
 	f^ = {}
@@ -144,23 +146,15 @@ folder_prepare :: proc(p: ^Folder, l: ^fs.Listing) {
 	for i in 0 ..< n { p.order[i] = u32(i) }
 	fs.sort_order(p.listing.entries[:], p.order[:], p.sort)
 	if p.tree { tree_order(p) }
-	resize(&p.selected, n)
-	p.cursor, p.anchor = -1, -1
+	p.sel = -1
 	folder_refilter(p)
 }
 
 // The listing `p` prepared, in place of the folder's (the old one freed; `p` is emptied). Its rows are taken when they
 // were made with the folder's settings, else made again (a sort or a filter changed during the read). The names that
-// were selected stay selected and the cursor stays on its name, by the names' index.
+// were selected stay selected (the ids are their hashes: the selection holds over the new rows) and the cursor stays on
+// its name, by the names' index.
 folder_take :: proc(f, p: ^Folder) {
-	keep := make([dynamic]string, context.temp_allocator)
-	if f.count > 0 {
-		for sel, i in f.selected {
-			if !sel || i >= len(f.listing.entries) { continue }
-			append(&keep, strings.clone(f.listing.entries[i].name, context.temp_allocator))
-			if len(keep) == f.count { break }
-		}
-	}
 	cursor_name := ""
 	if e := folder_cursor_entry(f); e != nil { cursor_name = strings.clone(e.name, context.temp_allocator) }
 	same := folder_view_same(f, p)
@@ -178,32 +172,25 @@ folder_take :: proc(f, p: ^Folder) {
 	f.days_tz = p.days_tz
 	f.name_index, p.name_index = p.name_index, f.name_index
 	f.name_index_n = p.name_index_n
-	f.selected, p.selected = p.selected, f.selected
 	f.size_max = p.size_max
 	f.folders, f.files, f.folders_shown, f.files_shown = p.folders, p.files, p.folders_shown, p.files_shown
-	f.count, f.sel_bytes = 0, 0
 	f.loaded = true
 	f.ids_version += 1
-	f.sel_serial += 1
+	f.multi = true
+	f.bytes_known = false   // (the same names, other sizes)
 	folder_destroy(p)
 
-	f.cursor = -1
+	f.sel = -1
 	if !same {
 		for &o, i in f.order { o = u32(i) }
 		fs.sort_order(f.listing.entries[:], f.order[:], f.sort)
 		if f.tree { tree_order(f) }
 		folder_refilter(f)
-	}
-	for name in keep {
-		i := folder_find_name(f, name)
-		if i < 0 || f.row_of[i] < 0 || f.selected[i] { continue }
-		f.selected[i] = true
-		f.count += 1
-		f.sel_bytes += file_bytes(f.listing.entries[i])
+	} else {
+		ui.item_selection_keep(&f.selection, folder_rows(f))
 	}
 	if cursor_name != "" { folder_cursor_to_name(f, cursor_name) }
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
-	f.anchor = f.cursor
+	if f.sel < 0 && len(f.shown) > 0 { folder_cursor_place(f, 0) }
 }
 
 // What is kept per entry, made for the entries that have none yet (a new listing; a walk's batch added).
@@ -255,7 +242,6 @@ folder_add_entries :: proc(f: ^Folder, batch: ^fs.Listing) {
 		x := e
 		x.name = fs.keep_name(&f.listing, e.name)
 		append(&f.listing.entries, x)
-		append(&f.selected, false)
 	}
 	if len(f.listing.entries) == n { return }
 	f.name_index_n = -1   // (the names' index is made again when asked)
@@ -324,7 +310,8 @@ shown_before :: proc(f: ^Folder, a, b: Shown_Key) -> bool {
 }
 
 // The rows of `added` (sorted) that the filters keep, put where folder_refilter would put them: each found by a search
-// among the rows shown, the rows after it moved once. The cursor and the anchor stay on their rows.
+// among the rows shown, the rows after it moved once. The cursor stays on its row (the selection and its anchor are
+// ids: they need no move).
 @(private = "file")
 folder_merge_shown :: proc(f: ^Folder, added: []u32) {
 	entries := f.listing.entries[:]
@@ -371,11 +358,9 @@ folder_merge_shown :: proc(f: ^Folder, added: []u32) {
 		for p in places { if p <= row { before += 1 } }
 		return row + before
 	}
-	f.cursor = moved(f.cursor, at)
-	f.anchor = moved(f.anchor, at)
+	f.sel = moved(f.sel, at)
+	// (the selected rows' order changed too: the inspector's summary, which lists them in it, keys on ids_version)
 	f.ids_version += 1
-	// (the selected rows' order changed: the inspector's summary lists them in it)
-	f.sel_serial += 1
 }
 
 // The entry of a name in the listing (-1: none), by an index of the names made at the first ask after the listing changed.
@@ -428,12 +413,11 @@ folder_set_filter :: proc(f: ^Folder, text: string) {
 	folder_refilter(f)
 	// typing: the best match has the cursor (Enter opens it); the filter cleared: the cursor goes back to its row
 	if f.filter != "" {
-		f.cursor = len(f.shown) > 0 ? 0 : -1
-		f.anchor = f.cursor
+		folder_cursor_place(f, len(f.shown) > 0 ? 0 : -1)
 	} else if name != "" {
 		folder_cursor_to_name(f, name)
 	}
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
+	if f.sel < 0 && len(f.shown) > 0 { f.sel = 0 }
 }
 
 // Which entries the types' popup keeps (File Pilot's): both, the files alone, the folders alone.
@@ -454,7 +438,7 @@ folder_set_kinds :: proc(f: ^Folder, k: Kind_Filter) {
 	if f.kinds == k { return }
 	f.kinds = k
 	folder_refilter(f)
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
+	if f.sel < 0 && len(f.shown) > 0 { f.sel = 0 }
 }
 
 // A type in or out of the rows.
@@ -466,7 +450,7 @@ folder_toggle_type :: proc(f: ^Folder, ext: string) {
 		f.types_off[strings.clone(ext)] = true
 	}
 	folder_refilter(f)
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
+	if f.sel < 0 && len(f.shown) > 0 { f.sel = 0 }
 }
 
 // Every type in or out at once (out: each type of the listing).
@@ -525,7 +509,7 @@ folder_toggle_rank :: proc(f: ^Folder, by: Group_By, rank: int, now: i64, tz: ^d
 	}
 	f.filter_now, f.group_tz = now, tz
 	folder_refilter(f)
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
+	if f.sel < 0 && len(f.shown) > 0 { f.sel = 0 }
 }
 
 // Every date (or size) shown again.
@@ -544,13 +528,13 @@ folder_set_show_hidden :: proc(f: ^Folder, show: bool) {
 	f.show_hidden = show
 	folder_refilter(f)
 	if name != "" { folder_cursor_to_name(f, name) }
-	if f.cursor < 0 && len(f.shown) > 0 { f.cursor = 0 }
+	if f.sel < 0 && len(f.shown) > 0 { f.sel = 0 }
 }
 
 // The rows again from `order`: the letters of the filter must be in the name in their order (fuzzy, File Pilot's: "rp10"
 // keeps "report 10.pdf"; a space is no letter). A row that leaves the view leaves the
-// selection too (what is selected is what the person sees). What the frames read of the rows (their ids, the counts,
-// the selection's size) is counted here, when they change.
+// selection too (what is selected is what the person sees). What the frames read of the rows (their ids, the counts)
+// is counted here, when they change.
 folder_refilter :: proc(f: ^Folder) {
 	folder_derive(f)
 	entries := f.listing.entries[:]
@@ -605,18 +589,8 @@ folder_refilter :: proc(f: ^Folder) {
 		if !f.show_hidden && (.Hidden in e.flags || .System in e.flags) { continue }
 		if e.kind == .Directory { f.folders += 1 } else { f.files += 1 }
 	}
-	resize(&f.selected, len(entries))
-	f.sel_serial += 1
-	f.count, f.sel_bytes = 0, 0
-	for &sel, i in f.selected {
-		if sel && f.row_of[i] < 0 { sel = false }
-		if sel {
-			f.count += 1
-			f.sel_bytes += file_bytes(entries[i])
-		}
-	}
-	f.cursor = min(f.cursor, len(f.shown) - 1)
-	f.anchor = min(f.anchor, len(f.shown) - 1)
+	ui.item_selection_keep(&f.selection, folder_rows(f))
+	f.sel = min(f.sel, len(f.shown) - 1)
 }
 
 // Whether entry `i` is a row: the hidden setting, the types' popup, the columns' filters and the filter keep it (the
@@ -633,8 +607,18 @@ folder_keeps :: proc(f: ^Folder, i: u32) -> bool {
 }
 
 folder_cursor_entry :: proc(f: ^Folder) -> ^fs.Entry {
-	if f.cursor < 0 || f.cursor >= len(f.shown) { return nil }
-	return &f.listing.entries[f.shown[f.cursor]]
+	if f.sel < 0 || f.sel >= len(f.shown) { return nil }
+	return &f.listing.entries[f.shown[f.sel]]
+}
+
+// The rows the selection is over: those shown, by their ids.
+folder_rows :: proc(f: ^Folder) -> ui.Item_Rows { return {count = len(f.shown), ids = f.ids[:]} }
+
+// The cursor on `row`, the selection as it is; the anchor dropped, so that a Shift range starts from the cursor (a
+// filter typed, a name found again).
+folder_cursor_place :: proc(f: ^Folder, row: int) {
+	f.sel = row
+	f.anchored = false
 }
 
 folder_row_entry :: proc(f: ^Folder, row: int) -> ^fs.Entry {
@@ -645,79 +629,72 @@ folder_row_entry :: proc(f: ^Folder, row: int) -> ^fs.Entry {
 folder_cursor_to_name :: proc(f: ^Folder, name: string) -> bool {
 	i := folder_find_name(f, name)
 	if i < 0 || i >= len(f.row_of) || f.row_of[i] < 0 { return false }
-	f.cursor = int(f.row_of[i])
-	f.anchor = f.cursor
+	folder_cursor_place(f, int(f.row_of[i]))
 	return true
 }
 
 folder_row_selected :: proc(f: ^Folder, row: int) -> bool {
-	return row >= 0 && row < len(f.shown) && f.selected[f.shown[row]]
+	return row >= 0 && row < len(f.shown) && ui.item_selection_has(&f.selection, folder_rows(f), row)
 }
 
-folder_select_none :: proc(f: ^Folder) {
-	if f.count > 0 { f.sel_serial += 1 }
-	for &s in f.selected { s = false }
-	f.count, f.sel_bytes = 0, 0
+// Whether entry `i` (of the listing, shown or not) is selected.
+folder_entry_selected :: proc(f: ^Folder, i: int) -> bool {
+	return i >= 0 && i < len(f.entry_ids) && f.entry_ids[i] in f.selected
 }
 
-folder_select_all :: proc(f: ^Folder) {
-	folder_select_none(f)
-	for i in f.shown {
-		f.selected[i] = true
-		f.sel_bytes += file_bytes(f.listing.entries[i])
-	}
-	f.count = len(f.shown)
-	f.sel_serial += 1
-}
+folder_select_none :: proc(f: ^Folder) { ui.item_selection_clear(&f.selection) }
 
+folder_select_all :: proc(f: ^Folder) { ui.item_selection_all(&f.selection, folder_rows(f)) }
+
+// Row `row` in the selection or out of it (the rectangle's rows, one by one): the bytes follow it, row by row, so that a
+// rectangle drawn costs the rows it touches, not a count of the whole selection at each frame.
 folder_set_row :: proc(f: ^Folder, row: int, on: bool) {
 	if row < 0 || row >= len(f.shown) { return }
-	i := f.shown[row]
-	if f.selected[i] == on { return }
-	f.selected[i] = on
-	f.sel_serial += 1
-	f.count += on ? 1 : -1
-	f.sel_bytes += on ? file_bytes(f.listing.entries[i]) : -file_bytes(f.listing.entries[i])
+	known := f.bytes_known && f.bytes_of == f.version
+	before := f.version
+	ui.item_selection_set(&f.selection, folder_rows(f), row, on)
+	if f.version == before || !known { return }
+	b := file_bytes(f.listing.entries[f.shown[row]])
+	f.sel_bytes += on ? b : -b
+	f.bytes_of = f.version
 }
 
-// What a click or a move does to the selection: the row alone; with Ctrl the row toggled; with Shift the range from the
-// anchor (the anchor stays). `toggle` and `extend` say which.
-folder_pick :: proc(f: ^Folder, row: int, extend := false, toggle := false) {
+// A press on a row, or a move of the keys to it (with Ctrl, Shift, Ctrl+Shift): the toolkit's rules.
+folder_pick :: proc(f: ^Folder, row: int, mods := platform.Modifiers{}) {
 	if row < 0 || row >= len(f.shown) { return }
-	switch {
-	case extend:
-		if f.anchor < 0 { f.anchor = row }
-		if !toggle { folder_select_none(f) }
-		lo, hi := min(f.anchor, row), max(f.anchor, row)
-		for r in lo ..= hi { folder_set_row(f, r, true) }
-	case toggle:
-		folder_set_row(f, row, !folder_row_selected(f, row))
-		f.anchor = row
-	case:
-		folder_select_none(f)
-		folder_set_row(f, row, true)
-		f.anchor = row
-	}
-	f.cursor = row
+	ui.item_selection_click(&f.selection, folder_rows(f), row, mods)
 }
 
 folder_invert_selection :: proc(f: ^Folder) {
 	for row in 0 ..< len(f.shown) { folder_set_row(f, row, !folder_row_selected(f, row)) }
 }
 
-// The entries an action applies to: the selection, else the entry at the cursor.
+// The entries an action applies to: the selection, else the entry at the cursor (Ctrl and the arrows took the cursor
+// off a selection that Escape cleared).
 folder_targets :: proc(f: ^Folder, allocator := context.temp_allocator) -> []^fs.Entry {
 	out := make([dynamic]^fs.Entry, allocator)
-	for i in f.shown { if f.selected[i] { append(&out, &f.listing.entries[i]) } }
+	if len(f.selected) > 0 {
+		for i, row in f.shown { if f.ids[row] in f.selected { append(&out, &f.listing.entries[i]) } }
+	}
 	if len(out) == 0 {
 		if e := folder_cursor_entry(f); e != nil { append(&out, e) }
 	}
 	return out[:]
 }
 
-// The total size of the selected files (folders count none), and how many entries are selected: counted as the
-// selection changes, not here.
-folder_selection_size :: proc(f: ^Folder) -> (bytes: i64, files: int) { return f.sel_bytes, f.count }
+// The total size of the selected files (folders count none), and how many entries are selected. The bytes are counted
+// again once after a change of the selection (a pass over the rows, the frame after a gesture); a rectangle keeps them
+// row by row (folder_set_row).
+folder_selection_size :: proc(f: ^Folder) -> (bytes: i64, files: int) {
+	if !f.bytes_known || f.bytes_of != f.version {
+		f.sel_bytes = 0
+		if len(f.selected) > 0 {
+			for i, row in f.shown { if f.ids[row] in f.selected { f.sel_bytes += file_bytes(f.listing.entries[i]) } }
+		}
+		f.bytes_of, f.bytes_known = f.version, true
+	}
+	return f.sel_bytes, len(f.selected)
+}
 
 // Whether the letters of `needle` are in `hay` in that order (both in lower case; spaces in the needle ignored).
 fuzzy_holds :: proc(hay, needle: string) -> bool {

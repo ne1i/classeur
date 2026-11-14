@@ -128,7 +128,7 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 					ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 2.4))})
 					if ui.row(.Center, id = "###line") {
 						ui.spacer(ui.px(em * 0.9))
-						ui.next({width = ui.fill(), height = ui.pct(1)})
+						ui.next({width = ui.fill(), height = ui.pct(1), flags = {.Selectable}})   // (content: the paths it acts on)
 						ui.label(fmt.tprintf("%s###what", ui.text_shown(job_title(job))))
 						state := ""
 						switch st {
@@ -168,7 +168,8 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 							if ui.tags("weak") { ui.label(fmt.tprintf("%s###more", fmt.tprintf(i18n.tr(len(job.errors) - 3, "    and %d more", "    and %d more"), len(job.errors) - 3))) }
 							break
 						}
-						ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 1.7)), font_size = em * 0.85, fg = ui.color("bad text")})
+						// (content: an error, copied to search it or to report it)
+						ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 1.7)), font_size = em * 0.85, fg = ui.color("bad text"), flags = {.Selectable}})
 						ui.label(fmt.tprintf("    %s###err%d", ui.text_shown(e), i))
 					}
 					sync.mutex_unlock(&job.mutex)

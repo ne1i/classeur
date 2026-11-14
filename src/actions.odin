@@ -380,7 +380,7 @@ act_rename :: proc(app: ^App) {
 		return
 	}
 	// several items: batch rename (batch.odin)
-	if t.folder.count > 1 {
+	if len(t.folder.selected) > 1 {
 		batch_open(app, t)
 		return
 	}
@@ -449,8 +449,8 @@ rename_next :: proc(app: ^App, t: ^Tab, next: string, renamed: bool) {
 		t.reveal_name = strings.clone(next)
 	}
 	if folder_cursor_to_name(f, next) {
-		folder_pick(f, f.cursor)
-		ui.list_select(&t.vl, f.cursor)
+		folder_pick(f, f.sel)
+		ui.list_select(&t.vl, f.sel)
 	}
 	rename_begin(app, t, next)
 }
