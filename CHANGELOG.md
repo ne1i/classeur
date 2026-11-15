@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.24.0] - 2026-11-15
+
+### Added
+- **classeur as the default file manager**: the install (and the settings' Installation page) has a box that makes classeur open the folders other programs open. On Windows, folders, drives and Win+E open in classeur in place of File Explorer; on Linux, classeur becomes the default application of folders. The box shows what the system does, and unticked, it gives the former file manager back. The box of the PATH also shows what the install has now.
+
 ## [0.23.0] - 2026-11-15
 
 ### Changed
@@ -507,6 +512,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.24.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.24.0
 [0.23.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.23.0
 [0.22.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.2
 [0.22.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.1
