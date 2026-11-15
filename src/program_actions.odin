@@ -94,7 +94,7 @@ update_installed :: proc(app: ^App) -> bool { return app.updater != nil && updat
 // About classeur
 
 act_app_about :: proc(app: ^App) {
-	say(app, i18n.tr("classeur %s, on gui_toolkit %s. %s"), APP_VERSION, ui.VERSION, SITE_URL)
+	say(app, i18n.tr("Classeur %s, on gui_toolkit %s. %s"), APP_VERSION, ui.VERSION, SITE_URL)
 }
 
 act_app_website :: proc(app: ^App) { launch(app, .Open, SITE_URL) }
@@ -103,11 +103,11 @@ act_app_changelog :: proc(app: ^App) { launch(app, .Open, REPOSITORY_URL + "/rel
 
 // Where the settings, the session, the layouts are (prefs_file's folder).
 act_app_settings_folder :: proc(app: ^App) {
-	launch(app, .Open, platform.user_dir(.Config, APP_NAME, context.temp_allocator))
+	launch(app, .Open, platform.user_dir(.Config, APP_FOLDER, context.temp_allocator))
 }
 
 act_app_version_copy :: proc(app: ^App) {
-	platform.set_clipboard(app.main.win, "classeur " + APP_VERSION)
+	platform.set_clipboard(app.main.win, APP_TITLE + " " + APP_VERSION)
 	announce(app, .Good, i18n.tr("The version is copied."))
 }
 

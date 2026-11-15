@@ -24,6 +24,18 @@ test_command_keys_typing_text :: proc(t: ^testing.T) {
 	})
 }
 
+// Every command has an id the keymap can store (keys.custom, keys.aliases) and the palette's memory remembers: no
+// empty, malformed or duplicate one.
+@(test)
+test_command_ids :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		table: [len(COMMANDS)]ui.Command
+		commands_make(table[:])
+		got := ui.command_ids_check(table[:])
+		testing.expectf(t, len(got) == 0, "wrong ids: %v", got)
+	})
+}
+
 // The window's commands (window_keys): the keys, the settings and quit, each also in_text (the palette's is the
 // toolkit's: ui.palette_command).
 @(test)

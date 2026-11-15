@@ -33,7 +33,7 @@ location_say :: proc(app: ^App, text: string, e: fs.Location_Error) {
 	case .Unsupported:
 		say(app, i18n.tr("%s: this system reaches no such place by a path."), text)
 	case .Not_A_Location:
-		say(app, i18n.tr("%s: not a place classeur knows."), text)
+		say(app, i18n.tr("%s: not a place Classeur knows."), text)
 	}
 }
 
@@ -67,7 +67,7 @@ share_open_start :: proc(app: ^App, text: string, tab: u64) {
 			if ok {
 				m.mounted = true
 				r, e = fs.location_resolve(m.text, context.temp_allocator)
-				if e == .Not_Mounted { why = i18n.tr("it is mounted, but classeur finds no folder for it") }
+				if e == .Not_Mounted { why = i18n.tr("it is mounted, but Classeur finds no folder for it") }
 			}
 			m.why = strings.clone(why)
 		}

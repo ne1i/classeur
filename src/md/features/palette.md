@@ -9,7 +9,7 @@ choice as a source and an id.
 
 | Prefix | Source | Items | Choosing |
 |---|---|---|---|
-| `>`, plain | the commands (`ui.palette_commands`) | `COMMANDS` by group, the person's keys, the aliases as tags | runs it; Ctrl+Enter records a key of one's own, Alt+Enter makes the letters typed its alias (the source's alternates) |
+| `>`, plain | the commands (`ui.palette_commands`) | `COMMANDS` by group, the keys in effect, the aliases as tags (the toolkit's keymap) | runs it; Ctrl+Enter records a key of one's own, Alt+Enter makes the letters typed its alias (both the toolkit's) |
 | `>`, plain | the views' moves (the toolkit's) | float, dock, re-attach, close each open view | the toolkit runs it |
 | `:`, plain | the settings (`prefs_page.palette_settings_add`) | each setting the pages show | a switch flips, the palette stays; another opens the settings on it |
 | `@`, plain | the tabs | every tab, under its panel's name; the shown one marked | its panel gets the keyboard and shows it |
@@ -20,9 +20,9 @@ choice as a source and an id.
 - **The tabs source replaces "Tab 1" to "Last tab" in the palette.** They showed once "tab" was typed: a rule of
   classeur's own. They stay commands (Alt+1 to Alt+9), out of the palette's table.
 - **A command that cannot act now is listed, greyed and last** (the toolkit's rule), not hidden as before. The table
-  of the commands source is made again when the keymap or the language changes; what can act is a bit per gated
-  command, read at each build (three commands), and a change of it bumps the source's version: the palette compares
-  versions, never `disabled`.
+  of the commands source is made once, at the start: the labels are translated where they show, and the keys and
+  aliases in effect are the toolkit's to follow. What can act is a bit per gated command, read at each build (three
+  commands), and a change of it bumps the source's version: the palette compares versions, never `disabled`.
 - **The folders are read on the workers.** A question for a path lists its folder on `app.pool`; the job also gets a
   copy of the recent folders, the bookmarks and the places (lists of a few dozen) and finds them by the letters there.
   The answer is built in the job's own arena and given whole (`ui.palette_answer`) by the job itself: an end is safe
@@ -39,8 +39,10 @@ choice as a source and an id.
   recorder is open, as the window's commands do: it records any chord.
 - **The settings source is added once.** Its page options are read when it needs them (`options_page`, a procedure):
   the updater and the themes shown as they are then.
-- **Personal keys and aliases stay classeur's** until the toolkit has them for every program: the alternates of the
-  commands source, and its `first` (an alias typed whole).
+- **Personal keys and aliases are the toolkit's** (`ui.Keymap`, gui_toolkit's
+  [src/md/features/keymap.md](../../../ext/gui_toolkit/src/md/features/keymap.md)): its recorder, Alt+Enter, an alias
+  typed whole put first. Classeur had them alone and the toolkit took them; [keyboard.md](keyboard.md) says what
+  classeur keeps.
 
 ## Refused
 
@@ -55,5 +57,3 @@ choice as a source and an id.
 - The tabs' ids last one run: the tabs source does not remember its choices.
 - The tabs source follows the panels with a small signature made while the palette is open (`poll`): the ids, the
   paths, which tab is shown, which panel has the keyboard. A few dozen tabs: no pass over a folder's entries.
-- Alt+Enter makes the choice's query (`Palette_Choice.query`, its prefix left out) an alias: not the field read after
-  the palette closed.

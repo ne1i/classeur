@@ -10,7 +10,7 @@ SETUP_AT_START :: false
 PERMISSIONS_WORD := i18n.later("Permissions")
 
 // The install's box that makes classeur the file manager (the default application of folders).
-SETUP_FILE_MANAGER_WORDS := i18n.later("classeur as the default file manager")
+SETUP_FILE_MANAGER_WORDS := i18n.later("Classeur as the default file manager")
 
 // This system's words for the pieces of an install, in the Setup's "On this system" (i18n.later: tr where they are shown).
 SETUP_MENU_WORDS   := i18n.later("applications menu")

@@ -22,7 +22,7 @@ shop :: proc() -> tk_site.Shop {
 		worker         = "https://classeur-licence.sacha-42a.workers.dev",
 		thanks         = "https://classeur.froment.software/thanks/",
 		help           = REPOSITORY + "/issues/new",
-		register       = "Open the file with classeur, or paste the key in <strong>Settings &gt; General &gt; Licence</strong>.",
+		register       = "Open the file with Classeur, or paste the key in <strong>Settings &gt; General &gt; Licence</strong>.",
 		extension      = classeur_licence.PRODUCT.file_extension,
 		repository     = REPOSITORY,
 		seller         = SELLER,

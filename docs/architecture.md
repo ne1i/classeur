@@ -16,11 +16,11 @@ it (the decisions, the refused alternatives, the subtle points) are in [src/md](
 | `src/watcher.odin` | The folders of the tabs, watched on a thread (`fs.Watch`); a change reads the tab again. |
 | `src/commands.odin` | The table of every command: id, title, icon, keys, whether its keys work while a text field has the keyboard. The keyboard (`commands_keys`), the palette and the menus read it. |
 | `src/actions.odin` | What the commands do, and the rename in place. |
-| `src/palette.odin` | The command palette (the toolkit's `ui.Command_Palette`): the commands source's table, the settings source, the choice, the keys' recorder, the sheet of the keys. |
+| `src/palette.odin` | The command palette (the toolkit's `ui.Command_Palette`): the commands source's table, the settings source, the choice, the sheet of the keys. The person's keys and aliases are the toolkit's (`ui.Keymap`, its recorder). |
 | `src/palette_sources.odin` | The palette's own sources: `@` the tabs, `/` the folders (listed on the workers, answered in an arena of their own). |
 | `src/menu.odin` | The menu of a row or of the folder (right click, Menu key). |
 | `src/view.odin` | The window: the top row (the sidebar's head, each panel's tabs as wide as the panel under them, from the last frame's boxes; the window's buttons), then the views' frame (`ui.views_frame`) around the panels; the keys of the commands and of the selection. |
-| `src/views.odin` | The views (gui_toolkit's `ui.Views`, `app.views`): the sidebar and the inspector (home: docked at the left and the right of the frame), GoTo, the settings, the name-taken question, batch rename, the keys' recorder; the memory of where each is shown (`<state>/classeur/views.txt`). |
+| `src/views.odin` | The views (gui_toolkit's `ui.Views`, `app.views`): the sidebar and the inspector (home: docked at the left and the right of the frame), GoTo, the settings, the name-taken question, batch rename; the memory of where each is shown (`<state>/FromentSoftware/Classeur/views.txt`). |
 | `src/view_panel.odin` | A panel: toolbar (back, forward, up, history, lock, bookmark, the crumbs or the typed path, the panel's menu), the columns' header, the virtual list (a box per row, the measures of folders), the footer (the filter, the counts). |
 | `src/sidebar.odin` | The sidebar: its filter, its sections (Recents, Bookmarks, Storage, Network, Places). |
 | `src/icons.odin` | The entries' icons: drawn folders and pages, Lucide icons coloured by kind. |

@@ -17,7 +17,7 @@ LICENCE_PRICING_URL :: SITE_URL + "pricing/"
 licence_open :: proc(app: ^App) {
 	// (the tests keep it in memory: the person's folder is never touched)
 	prefs_page.licence_init(&app.licence, &app.main.state, {
-		store = {product = LICENCE, program = APP_NAME, memory = app.headless, accept_dev = ODIN_DEBUG},
+		store = {product = LICENCE, program = APP_FOLDER, memory = app.headless, accept_dev = ODIN_DEBUG},
 		name = "Classeur", pricing_url = LICENCE_PRICING_URL, owner = app.main.win,
 	})
 }

@@ -14,7 +14,7 @@ VERSION_MARK :: "{{version}}"
 // Where the site is published, what it is: the one place that says it.
 SITE_META :: tk_site.Meta{
 	url         = "https://classeur.froment.software/",
-	name        = "classeur",
+	name        = "Classeur",
 	repository  = REPOSITORY,
 	tagline     = "A fast file manager you drive from the keyboard",
 	changes     = "CHANGELOG.md",

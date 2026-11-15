@@ -10,7 +10,7 @@ SETUP_AT_START :: true
 PERMISSIONS_WORD := i18n.later("Attributes")
 
 // The install's box that makes classeur the file manager: Windows has one by name, and Win+E is its key.
-SETUP_FILE_MANAGER_WORDS := i18n.later("Open folders and Win+E with classeur (in place of File Explorer)")
+SETUP_FILE_MANAGER_WORDS := i18n.later("Open folders and Win+E with Classeur (in place of File Explorer)")
 
 // This system's words for the pieces of an install, in the Setup's "On this system" (i18n.later: tr where they are shown).
 SETUP_MENU_WORDS   := i18n.later("Start menu")

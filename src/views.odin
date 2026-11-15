@@ -2,7 +2,7 @@ package classeur
 
 // The views (gui_toolkit's views): the sidebar and the inspector, panels docked at the left and the right of the window,
 // and the dialogs. The user floats each one, opens it in a window of its own or docks it elsewhere; the toolkit keeps
-// that choice, a panel's width and whether it was open in <state>/classeur/views.txt.
+// that choice, a panel's width and whether it was open in <state>/FromentSoftware/Classeur/views.txt.
 
 import "core:strings"
 import "gt:host"
@@ -17,7 +17,6 @@ GOTO_VIEW      :: "goto"
 OPTIONS_VIEW   :: "options"
 CONFLICT_VIEW  :: "conflict"
 BATCH_VIEW     :: "batch"
-RECORDER_VIEW  :: "recorder"
 // The ready-made views of the toolkit that classeur opens.
 CONFIRM_DELETE_VIEW :: "confirm_delete"
 LAYOUT_NAME_VIEW    :: "layout_name"
@@ -34,7 +33,7 @@ INSPECTOR_MIN_EM :: 16
 views_file :: proc(app: ^App) -> string {
 	if app.session_path != "" { return strings.concatenate({app.session_path, ".views"}, context.temp_allocator) }
 	if app.headless || app.standalone { return "" }
-	return strings.concatenate({platform.user_dir(.State, APP_NAME, context.temp_allocator), "/views.txt"}, context.temp_allocator)
+	return strings.concatenate({platform.user_dir(.State, APP_FOLDER, context.temp_allocator), "/views.txt"}, context.temp_allocator)
 }
 
 // Once the window is made, before anything opens a view: the memory read, every view declared, the sidebar and the
@@ -53,7 +52,6 @@ views_start :: proc(app: ^App) {
 	options_register(app)
 	conflict_register(app)
 	batch_register(app)
-	recorder_register(app)
 	// (as they were at the last quit; the sidebar open at the very first start)
 	_ = ui.view_restore(vs, SIDEBAR_VIEW, app, first_start_open = true, owner = &h.state)
 	_ = ui.view_restore(vs, INSPECTOR_VIEW, app, owner = &h.state)

@@ -9,9 +9,10 @@ keyboard is a small state machine (`app.keys_at`: the sidebar, a panel's list, t
 0. `view_build` reads the palette's keys first, Ctrl+K and Ctrl+Shift+P (the toolkit's `ui.palette_keys`, in
    `palette_build`: the command is the toolkit's, `ui.palette_command`, with no line in `COMMANDS`), then the keys of the
    window's commands (`window_keys`: the keys, the settings, quit; `scope = .Window`). They work in every page and
-   whatever has the keyboard: a field, the sidebar, a view, and over a view shown as a dialog (the settings are one). The toolkit's `ui.chord_pressed` takes their chords from wherever the
-   focus is. One exception: while the recorder of a command's keys is open, they wait. It records any chord, Ctrl+K too,
-   and it has no field that could claim the chords (`ui.keys_claim`).
+   whatever has the keyboard: a field, the sidebar, a view, and over a view shown as a dialog (the settings are one). The
+   toolkit's `ui.command_pressed` takes their chords from wherever the focus is. One exception: while the toolkit's
+   recorder of a command's keys is open, they wait. It records any chord, Ctrl+K too, and claims them all
+   (`ui.keys_claim`).
 1. Then the keys of the page's commands (`commands_keys`). While a text field has the keyboard, only the
    commands marked `in_text` run. The fields built in the last frame are noted in `app.text_keys_before`: this frame's
    fields are not built yet when the commands read the keys.
@@ -22,6 +23,23 @@ keyboard is a small state machine (`app.keys_at`: the sidebar, a panel's list, t
 3. Then the virtual list of the focused panel takes the plain moves (Up, Down, Page Up, Page Down, Home, End). It takes
    no letter (`no_typeahead`): the letters typed go to the panel's filter (`type_to_field`). A move of the list selects
    the cursor's row alone (`folder_pick`). The list has the keyboard from the start (`app_open`).
+
+## The person's keys and aliases
+
+The person's keys (Ctrl+Enter on a command of the palette) and aliases (Alt+Enter) are the toolkit's `ui.Keymap`, the
+same in every program of the family: its intent is gui_toolkit's
+[src/md/features/keymap.md](../../../ext/gui_toolkit/src/md/features/keymap.md). Classeur had them first; the toolkit
+took its design, and classeur keeps none of it.
+
+- `COMMANDS` stays classeur's table: `run`, `enabled` and `in_text` are its own. `commands_make` derives `app.commands`
+  from it once, a `ui.Command` per line at the same index, and every reader of keys reads that one: `window_keys`,
+  `commands_keys`, the palette, the sheet, the menus and the tooltips.
+- **A command's id never changes.** It is the key of `keys.custom`, `keys.aliases` and the palette's memory. The ids
+  are the ones classeur stored before the toolkit had a keymap: the values of a person who set keys still apply.
+- The two settings are the toolkit's standard ones (`Standard_Set.Keys`, under the same names). `standard_watch` reads
+  them into `app.keymap` and writes them back.
+- `ui.keymap_known` runs before the preferences are read and before the first `command_pressed`. Else a person's key on
+  an id not yet known takes no chord, and the command's own key acts once.
 
 ## Who has the keyboard
 

@@ -465,8 +465,8 @@ fr Dernier onglet
 en Quit
 fr Quitter
 
-en Restart classeur
-fr Redémarrer classeur
+en Restart Classeur
+fr Redémarrer Classeur
 
 en New window
 fr Nouvelle fenêtre
@@ -489,8 +489,8 @@ fr Installer la mise à jour
 en Restart to update
 fr Redémarrer pour mettre à jour
 
-en About classeur
-fr À propos de classeur
+en About Classeur
+fr À propos de Classeur
 
 en Open the website
 fr Ouvrir le site web
@@ -944,8 +944,8 @@ fr Dernier accès
 en Owner
 fr Propriétaire
 
-en classeur in the terminal (on the PATH)
-fr classeur dans le terminal (dans le PATH)
+en Classeur in the terminal (on the PATH)
+fr Classeur dans le terminal (dans le PATH)
 
 en The desktop's launcher cannot be changed: %s
 fr Le lanceur du bureau ne peut pas être modifié : %s
@@ -1163,11 +1163,11 @@ fr Supprimer une disposition
 en %s: this system reaches no such place by a path.
 fr %s : ce système ne permet pas d'accéder à ce type d'emplacement par un chemin d'accès.
 
-en %s: not a place classeur knows.
-fr %s : emplacement inconnu de classeur.
+en %s: not a place Classeur knows.
+fr %s : emplacement inconnu de Classeur.
 
-en it is mounted, but classeur finds no folder for it
-fr il est monté, mais classeur ne trouve pas son dossier
+en it is mounted, but Classeur finds no folder for it
+fr il est monté, mais Classeur ne trouve pas son dossier
 
 en Connecting to %s…
 fr Connexion à %s…
@@ -1261,33 +1261,6 @@ fr Sélection
 en View
 fr Affichage
 
-en Set a key
-fr Définir un raccourci
-
-en Make the letters its alias
-fr Utiliser ces lettres comme alias
-
-en %s: an alias of %s.
-fr %s : un alias de %s.
-
-en Keys of a command
-fr Raccourcis d'une commande
-
-en Keys for %s
-fr Raccourcis de %s
-
-en %s: its own keys again.
-fr %s : raccourcis par défaut rétablis.
-
-en Press them: two for a sequence. Backspace first gives it its own keys again.
-fr Appuyez sur les touches (deux combinaisons pour une séquence). Appuyez d'abord sur Retour arrière pour rétablir les raccourcis par défaut.
-
-en Press the keys…
-fr Appuyez sur les touches…
-
-en Keep (Enter)
-fr Conserver (Entrée)
-
 en Tabs
 fr Onglets
 
@@ -1375,8 +1348,8 @@ fr Impossible d'enregistrer les réglages dans %s
 en No window could be started.
 fr Impossible d'ouvrir une fenêtre.
 
-en classeur %s, on gui_toolkit %s. %s
-fr classeur %s, sur gui_toolkit %s. %s
+en Classeur %s, on gui_toolkit %s. %s
+fr Classeur %s, sur gui_toolkit %s. %s
 
 en The version is copied.
 fr Version copiée.
@@ -1456,8 +1429,8 @@ fr Ouvrir %s
 en Permissions
 fr Permissions
 
-en classeur as the default file manager
-fr classeur comme gestionnaire de fichiers par défaut
+en Classeur as the default file manager
+fr Classeur comme gestionnaire de fichiers par défaut
 
 en applications menu
 fr menu des applications
@@ -1468,8 +1441,8 @@ fr icônes
 en Attributes
 fr Attributs
 
-en Open folders and Win+E with classeur (in place of File Explorer)
-fr Ouvrir les dossiers et Win+E avec classeur (au lieu de l'Explorateur de fichiers)
+en Open folders and Win+E with Classeur (in place of File Explorer)
+fr Ouvrir les dossiers et Win+E avec Classeur (au lieu de l'Explorateur de fichiers)
 
 en Start menu
 fr menu Démarrer

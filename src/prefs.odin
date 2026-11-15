@@ -1,6 +1,6 @@
 package classeur
 
-// The preferences: one registry (gt:config), its user file at <config>/classeur/prefs, read at the start and written at
+// The preferences: one registry (gt:config), its user file at <config>/FromentSoftware/Classeur/prefs, read at the start and written at
 // each change made in the options (options.odin). `settings_apply` copies classeur's values where the program reads
 // them; the toolkit's standard ones go to the toolkit by themselves (prefs_page.standard_watch).
 
@@ -27,8 +27,6 @@ PREF_DEFS := [?]config.Def{
 	{name = "files.measure_folders", title = i18n.later("Measure folders"), tags = {"size", "du", "count"}, description = i18n.later("Measures the folders shown: what they hold all the way down, in the Folders, Files and Size columns."), kind = .Bool, default = {b = true}},
 	{name = "view.columns", description = "The columns of the details shown after the name, in their order.", kind = .String, default = {s = DETAIL_COLUMNS_DEFAULT}, hidden = true},
 	{name = "view.column_widths", description = "The widths of the details' columns the person changed (ems).", kind = .String, default = {s = ""}, hidden = true},
-	{name = "keys.custom", description = "The person's keys of the commands (palette: Ctrl+Enter).", kind = .String, default = {s = ""}, hidden = true},
-	{name = "keys.aliases", description = "The aliases of the commands (palette: Alt+Enter).", kind = .String, default = {s = ""}, hidden = true},
 	{name = "side.order", description = "The sidebar's sections in their order.", kind = .String, default = {s = "recents,bookmarks,storage,network,places"}, hidden = true},
 	{name = "open.single_click", title = i18n.later("Single click"), tags = {"click", "double click"}, description = i18n.later("Opens an item with one click instead of two."), kind = .Bool, default = {b = false}},
 }
@@ -41,7 +39,7 @@ CATALOGUES :: []i18n.Catalog{{"fr", #load("../i18n/fr.txt", string)}}
 @(private = "file")
 standard_defaults :: proc() -> prefs_page.Standard_Defaults {
 	d := prefs_page.STANDARD_DEFAULTS
-	d.theme, d.app_name = "Graphite", APP_NAME
+	d.theme, d.app_name = "Graphite", APP_TITLE
 	// (File Pilot's rows: a line under each, no stripes)
 	d.values = ROWS_DEFAULTS[:]
 	return d
@@ -69,7 +67,7 @@ Settings :: struct {
 }
 
 prefs_file :: proc(allocator := context.temp_allocator) -> string {
-	return strings.concatenate({platform.user_dir(.Config, APP_NAME, context.temp_allocator), "/prefs"}, allocator)
+	return strings.concatenate({platform.user_dir(.Config, APP_FOLDER, context.temp_allocator), "/prefs"}, allocator)
 }
 
 // Where the changes are written: the person's file; the tests', beside their session file (none: headless).
@@ -117,8 +115,8 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 	settings_apply(app)
 	// (the toolkit's settings to the toolkit, now and at each change: the feel, the zoom, the density, the corners, the
 	// motion, the scrolling, the text's rendering, the font families, live; classeur's own monospace face is the
-	// monospace setting's Default)
-	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw, pacer = &app.main.pacer, faces = #partial [ui.Text_Face]font.Font_Id{.Mono = app.mono}})
+	// monospace setting's Default; the person's keys and aliases, keys.custom and keys.aliases, into the keymap and back)
+	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw, pacer = &app.main.pacer, faces = #partial [ui.Text_Face]font.Font_Id{.Mono = app.mono}, keymap = &app.keymap})
 	if path := prefs_path(app); path != "" { config.user_writer_start(&app.prefs_writer, &app.prefs, path) }
 }
 
@@ -131,7 +129,7 @@ prefs_close :: proc(app: ^App) {
 
 // The person's own themes ([Name] sections of colours): made from the toolkit's template at the settings' first click.
 themes_file :: proc(allocator := context.temp_allocator) -> string {
-	return strings.concatenate({platform.user_dir(.Config, APP_NAME, context.temp_allocator), "/themes.txt"}, allocator)
+	return strings.concatenate({platform.user_dir(.Config, APP_FOLDER, context.temp_allocator), "/themes.txt"}, allocator)
 }
 
 // The emoji file the person named, read at the start. (The families are the toolkit's: standard_watch.)
@@ -174,7 +172,6 @@ settings_apply :: proc(app: ^App) {
 	app.announcer.mode = prefs_page.announce_mode(p)
 	columns_read(app, config.string_of(p, "view.columns"), config.string_of(p, "view.column_widths"))
 	side_order_read(app, config.string_of(p, "side.order"))
-	keymap_read(app, config.string_of(p, "keys.custom"), config.string_of(p, "keys.aliases"))
 	updates_auto(app)
 	hidden := config.bool_of(p, "files.show_hidden")
 	if hidden != app.show_hidden {

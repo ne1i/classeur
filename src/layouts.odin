@@ -2,7 +2,7 @@ package classeur
 
 // Layouts (File Pilot's): the panels and their tabs saved by name, opened again in place of the ones shown. Ctrl+Alt+S
 // names the one shown; Ctrl+Alt+L lists them in a menu searched by typing (a submenu deletes one). Kept in
-// <config>/classeur/layouts, a block per layout: a line `layout <name>`, then the session's panel lines (session.odin's
+// <config>/FromentSoftware/Classeur/layouts, a block per layout: a line `layout <name>`, then the session's panel lines (session.odin's
 // panels_text). The tests keep theirs beside their session file.
 
 import "core:fmt"
@@ -34,7 +34,7 @@ layouts_free :: proc(l: ^Layouts) {
 layouts_file :: proc(app: ^App) -> string {
 	if app.session_path != "" { return strings.concatenate({app.session_path, ".layouts"}, context.temp_allocator) }
 	if app.headless { return "" }
-	return strings.concatenate({platform.user_dir(.Config, APP_NAME, context.temp_allocator), "/layouts"}, context.temp_allocator)
+	return strings.concatenate({platform.user_dir(.Config, APP_FOLDER, context.temp_allocator), "/layouts"}, context.temp_allocator)
 }
 
 // Read once, on this thread: at the start, before the window is shown and the first frame (the changes are written on a

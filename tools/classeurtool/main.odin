@@ -53,7 +53,7 @@ DEV_SEED :: "Y2xhc3NldXItZGV2LWxpY2VuY2Utc2VlZC0wMDAxISE"
 LICENCE_TOOL :: toolbox.Licence_Tool{
 	product  = classeur_licence.PRODUCT,
 	dev_seed = DEV_SEED,
-	hint     = "Open this file with classeur (Settings > General > Licence > Choose a file), or paste the key there.",
+	hint     = "Open this file with Classeur (Settings > General > Licence > Choose a file), or paste the key there.",
 	paddle   = {name = "Classeur User License", description = "A personal, perpetual licence of classeur that supports its work.", amounts = "supporter=2900", currency = "EUR"},
 }
 

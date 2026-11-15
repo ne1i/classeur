@@ -96,7 +96,7 @@ SHOTS_BUILD :: #config(CLASSEUR_SHOTS, false)
 // The settings page's options: its build's, and the palette's list of the settings (palette.odin).
 options_page :: proc(app: ^App) -> prefs_page.Page_Options {
 	return {
-		version = SHOTS_BUILD ? "" : "classeur " + APP_VERSION,
+		version = SHOTS_BUILD ? "" : APP_TITLE + " " + APP_VERSION,
 		user = app,
 		pages = OPTIONS_PAGES[:],
 		icon_font = app.icons, search_icon = lucide.SEARCH, reset_icon = lucide.ROTATE_CCW,

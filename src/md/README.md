@@ -40,6 +40,10 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 - The Recycle Bin of Windows is no folder: `fs.list` reads every drive's `$I` records into a listing whose entries
   carry their real paths (`Listing.trashed`).
 - A rename never replaces (`fs.rename`).
+- The person reads the name `APP_TITLE` ("Classeur"); `APP_NAME` ("classeur") stays the technical one. The settings,
+  the state and the caches are in the vendor's folder (`APP_FOLDER`, `FromentSoftware/Classeur`). `app_run` moves the
+  folders of the old name there once (`platform.user_dirs_move`). The single instance's name keeps `APP_NAME`: an old and
+  a new copy still find each other.
 - The tests open the real program headless; they wait for the answers with `wait_read` (`app.answers_due`), never for
   a delay.
 
@@ -47,8 +51,8 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 
 - [layers.md](layers.md): how the program grew layer by layer, and the decisions of each layer (jobs, the clipboard of
   files, the trash, undo, batch rename, thumbnails); the known gaps
-- [features/keyboard.md](features/keyboard.md): the order in which a build reads the keys, who has the keyboard, why
-  F6 stays classeur's
+- [features/keyboard.md](features/keyboard.md): the order in which a build reads the keys, the person's keys and
+  aliases (the toolkit's keymap, classeur's ids), who has the keyboard, why F6 stays classeur's
 - [features/palette.md](features/palette.md): the command palette's sources (commands, moves, settings, `@` tabs, `/`
   folders), what reads on the workers, what each choice does
 - [data/folder.md](data/folder.md): a folder as a panel shows it: the selection as flags, the worker that prepares the

@@ -149,7 +149,7 @@ test_shortcuts_sheet :: proc(t: ^testing.T) {
 		session.frames(s, 3)
 		testing.expect(t, ui.shortcuts_sheet_is_open(&app.palette.sheet), "open")
 		testing.expect(t, session.find_text(s, "Keyboard shortcuts") != nil, "the sheet")
-		testing.expect(t, session.find_text(s, "Backspace, Alt+Up") != nil, "a command's keys (its two; the sheet builds the lines in view)")
+		testing.expect(t, session.find_text(s, "Backspace / Alt+Up") != nil, "a command's keys (its two, \" / \" between them; the sheet builds the lines in view)")
 		n := len(current_panel(app).tabs)
 		session.key(s, .T, {.Ctrl})
 		session.frames(s, 1)

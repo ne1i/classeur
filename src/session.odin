@@ -25,11 +25,11 @@ import store "gt:store"
 import "gt:ui"
 import "fs"
 
-// Where the session is kept: <config>/classeur/session, unless the tests gave theirs.
+// Where the session is kept: <config>/FromentSoftware/Classeur/session, unless the tests gave theirs.
 session_file :: proc(app: ^App, allocator := context.temp_allocator) -> string {
 	if app.session_path != "" { return strings.clone(app.session_path, allocator) }
 	if app.headless || app.standalone { return "" }
-	return strings.concatenate({platform.user_dir(.Config, APP_NAME, context.temp_allocator), "/session"}, allocator)
+	return strings.concatenate({platform.user_dir(.Config, APP_FOLDER, context.temp_allocator), "/session"}, allocator)
 }
 
 // `later`: written by its writer's thread (the session changed while the window runs); else now, waited for (the window

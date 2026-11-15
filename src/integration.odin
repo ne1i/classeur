@@ -73,6 +73,7 @@ env_lookup :: proc(name: string) -> string { return os.get_env(name, context.tem
 setup_options :: proc() -> setup.Setup_Options {
 	return setup.Setup_Options{
 		identity = classeur_identity(), version = APP_VERSION, install_folder = APP_NAME, icons = ICON_PNGS[:],
+		vendor_url = "https://froment.software",
 		choices = SETUP_CHOICES[:], square = true, running = app_running, quit = app_quit,
 		prepare = proc(o: ^desktop.Integration_Options, choices: []bool, user: rawptr) {
 			classeur_parts(o)
@@ -88,7 +89,7 @@ setup_options :: proc() -> setup.Setup_Options {
 // (SETUP_FILE_MANAGER_WORDS, system_<os>.odin).
 @(private = "file")
 SETUP_CHOICES := [?]setup.Choice{
-	{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
+	{label = i18n.later("Classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
 	{label = SETUP_FILE_MANAGER_WORDS, on = false, parts = {.File_Manager}},
 }
 

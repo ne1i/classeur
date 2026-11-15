@@ -122,7 +122,10 @@ App :: struct {
 	batch:       Batch,             // batch rename (batch.odin)
 	band:        Band,              // the rectangle selection (band.odin)
 	layouts:     Layouts,           // the layouts saved by name (layouts.odin)
-	keymap:      Keymap,            // the person's keys and aliases (keymap.odin)
+	keymap:      ui.Keymap,         // the person's keys and aliases (the toolkit's: keys.custom, keys.aliases)
+	// COMMANDS as the toolkit reads them (commands_make), by COMMANDS' index. A slice: an array of len(COMMANDS) would
+	// make App's type wait on COMMANDS, whose procedures take an ^App
+	commands:    []ui.Command,
 	jobs_view:   Jobs_View,         // the jobs' window (jobs_view.odin)
 	tab_drag:    Tab_Drag,          // a tab dragged (tab_drag.odin)
 	columns:      ui.Table_Layout,  // the details' columns: their order, the ones shown, their widths (view.columns)
@@ -234,7 +237,9 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 		if outcome == .Forwarded { return .Done }
 	}
 	// (a window's process only: a second start forwarded above writes nothing)
-	logger := tk_log.install({program = APP_NAME, echo = true})
+	// (the folders under the old name moved once into the vendor's, before anything reads them: the log's included)
+	_, moved_why := platform.user_dirs_move(APP_NAME, APP_FOLDER)
+	logger := tk_log.install({program = APP_NAME, dir = tk_log.default_dir(APP_FOLDER, context.temp_allocator), echo = true})
 	program_logger = logger
 	context.logger = logger
 	defer {
@@ -242,7 +247,8 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 		program_logger = {}
 		tk_log.close(logger)
 	}
-	crash.install({program = APP_NAME, version = APP_VERSION, log_tail = {tk_log.tail, logger.data}})
+	if moved_why != "" { log.warnf("classeur: the settings' folder stays under its old name: %s", moved_why) }
+	crash.install({program = APP_NAME, version = APP_VERSION, report_dir = crash.default_report_dir(APP_FOLDER, context.temp_allocator), log_tail = {tk_log.tail, logger.data}})
 	// (the session's mark: the main window's alone, a torn-off one's process ends with its tab)
 	report := ""
 	if !standalone {
@@ -375,13 +381,18 @@ app_open :: proc(o: Open_Options) -> ^App {
 
 	platform.set_app_id(APP_NAME)
 	size := o.size != {} ? o.size : WINDOW_SIZE
-	if !host.host_open(&app.main, &app.shared, {title = "classeur", size = size, integrated_title = !o.headless, headless = o.headless}, view_build, app) {
+	if !host.host_open(&app.main, &app.shared, {title = APP_TITLE, size = size, integrated_title = !o.headless, headless = o.headless}, view_build, app) {
 		log.error("classeur: no window")
 		free(app)
 		return nil
 	}
 	h := &app.main
 	win := h.win
+	// (the commands' ids known before the preferences read the person's keys, and before the first command_pressed)
+	app.commands = make([]ui.Command, len(COMMANDS))
+	commands_make(app.commands)
+	ui.keymap_known(&app.keymap, app.commands)
+	ui.keymap_use(&h.state, &app.keymap)
 	// (its mode: general.messages, settings_apply; its toasts this window's, also for a message said between builds)
 	app.announcer.state = &h.state
 	if !o.headless { app.announcer.window = win }
@@ -394,6 +405,8 @@ app_open :: proc(o: Open_Options) -> ^App {
 	ui.table_layout_init(&app.columns, detail_columns(app))   // (before the preferences: they say its columns)
 	prefs_open(app, o.pref_args)   // (and h.partial_redraw: rendering.partial_redraw)
 	prefs_page.install_init(&app.install, &app.prefs, setup_options())
+	// (the vendor signs the install's dialog and page: "By <mark> Froment Software"; a texture of this window's renderer)
+	if mark, ok := setup.logo_make(&app.shared.r, #load("../assets/froment-software-64.png"), {16, 16}); ok { app.install.vendor_mark = mark }
 	h.params = app_params
 	h.input = app_input
 	app.devtools = devtools.start_from_env(win, APP_NAME)
@@ -528,6 +541,7 @@ app_close :: proc(app: ^App) {
 	devtools.stop(app.devtools)
 	if global_app == app { global_app = nil }
 	prefs_page.install_end(&app.install)   // (again for a window app_run did not end: it does nothing the second time)
+	setup.logo_destroy(&app.shared.r, &app.install.vendor_mark)   // (before the renderer goes, with the window)
 	crash_bar.destroy(&app.crash_bar)
 	// (before its window: a question still out finds no palette, the usage memory is written)
 	ui.palette_destroy(&app.palette.pal)
@@ -554,7 +568,6 @@ app_free :: proc(app: ^App) {
 	batch_free(&app.batch)
 	band_free(&app.band)
 	layouts_free(&app.layouts)
-	keymap_free(&app.keymap)
 	delete(app.launch_after)
 	delete(app.exe)
 	tab_image_free(app)
@@ -569,6 +582,8 @@ app_free :: proc(app: ^App) {
 	options_free(&app.options)
 	licence_close(app)
 	prefs_close(app)
+	ui.keymap_destroy(&app.keymap)   // (after prefs_close: the standard watch writes its changes until then)
+	delete(app.commands)
 	delete(app.home)
 	delete(app.session_path)
 	delete(app.status)

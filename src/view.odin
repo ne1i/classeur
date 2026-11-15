@@ -62,17 +62,16 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	if ui.parent(page) {
 		// (the top row the whole width, over the sidebar too: the views' frame is the room under it)
 		build_top(app, em)
-		crash_bar.bar(&app.crash_bar, {name = "classeur", version = APP_VERSION, repository = "sachahjkl/classeur"})
+		crash_bar.bar(&app.crash_bar, {name = APP_TITLE, version = APP_VERSION, repository = "sachahjkl/classeur"})
 		ui.next({width = ui.fill(), height = ui.fill()})
 		if ui.views_frame(&app.views) {
 			app.content_rect = ui.parent_box().rect
 			// the program's keys, after the views' (built first in the frame: a view with the focus reads its keys
 			// first; the toolkit's F6 comes last, only when nothing took it). The window's commands first, over a
-			// dialog too (the settings are one); not while the recorder is open: it records any chord, Ctrl+K too,
-			// and has no field to claim them with (keys_claim)
+			// dialog too (the settings are one); the toolkit's recorder claims every chord while it records
 			// (the palette first: its keys are the toolkit's, and its choice runs a command as a key does)
 			palette_build(app)
-			if !ui.view_is_open(&app.views, RECORDER_VIEW) { window_keys(app) }
+			window_keys(app)
 			if app.no_dialog {
 				gesture_escape(app)
 				// (the sidebar, the inspector or another view has the keyboard: its moves are its own, the commands
@@ -154,19 +153,16 @@ vrule :: proc(em: f32, height: f32 = 1.3) {
 	ui.spacer(ui.px(em * 0.35))
 }
 
-// The tooltip of a command: its title and its keys, the person's own when they set some.
+// The tooltip of a command: its title and its keys in effect, the person's own when they set some.
 command_tip :: proc(app: ^App, id: string) -> string {
 	c := command_find(id)
 	if c == nil { return id }
-	keys := command_keys(app, c)
-	if keys == "" { return i18n.tr(c.title) }
-	return fmt.tprintf("%s (%s)", i18n.tr(c.title), keys)
+	return ui.command_tip(app.commands[command_index(c)])
 }
 
-// A command's first keys as text ("Ctrl+M, T"), the person's own binding when there is one; "" none.
+// A command's first keys in effect as text ("Ctrl+M, T"), the person's own binding when there is one; "" none.
 command_keys :: proc(app: ^App, c: ^Command) -> string {
-	b := command_bindings(app, c)
-	return len(b) > 0 ? binding_text(b[0]) : ""
+	return ui.command_shortcut(app.commands[command_index(c)])
 }
 
 ////////////////////////////////

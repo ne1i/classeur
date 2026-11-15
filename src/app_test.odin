@@ -1333,22 +1333,24 @@ test_own_keys :: proc(t: ^testing.T) {
 		testing.expect(t, palette_first(app) >= 0 && COMMANDS[palette_first(app)].id == "tab_new", "New tab first")
 		session.key(s, .Return, {.Ctrl})
 		// (the palette's answer is read in the build after its Enter; the recorder shows once its layout settles)
-		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording >= 0 }, "recording")
-		session.wait_box(s, "rec_keep")
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return palette_recording((^App)(s.user)) }, "recording")
+		session.wait_box(s, "keymap_rec_keep")
 		session.key(s, .M, {.Ctrl})
 		session.key(s, .T)
 		session.key(s, .Return)
-		session.wait_until(s, proc(s: ^session.Session) -> bool { return (^App)(s.user).palette.recording < 0 }, "recorded")
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return !palette_recording((^App)(s.user)) }, "recorded")
 		session.frames(s, 1)
-		testing.expect_value(t, binding_text(app.keymap.custom["tab_new"]), "Ctrl+M, T")
+		bound, has := app.keymap.bindings["tab_new"]
+		testing.expect(t, has, "a key of one's own for New tab")
+		testing.expect_value(t, ui.binding_text(bound), "Ctrl+M, T")
 		testing.expect_value(t, ui.line_edit_string(&app.palette.pal.field), "new tab")
 		// an alias: "ntab" for it (the letters of its words: "nt" alone is in "Font size", a whole match first)
 		ui.line_edit_set(&app.palette.pal.field, "ntab")
 		palette_ranked(s)
 		session.key(s, .Return, {.Alt})
-		session.wait_until(s, proc(s: ^session.Session) -> bool { return alias_command((^App)(s.user), "ntab") != nil }, "the alias made")
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return ui.keymap_alias_command(&(^App)(s.user).keymap, "ntab") != "" }, "the alias made")
 		session.key(s, .Escape)
-		testing.expect(t, alias_command(app, "ntab") != nil && alias_command(app, "ntab").id == "tab_new")
+		testing.expect_value(t, ui.keymap_alias_command(&app.keymap, "ntab"), "tab_new")
 		// the sequence opens a tab; Ctrl+T alone no longer does (its own keys gave way)
 		before := len(current_panel(app).tabs)
 		session.key(s, .M, {.Ctrl})
@@ -1360,8 +1362,9 @@ test_own_keys :: proc(t: ^testing.T) {
 		testing.expect_value(t, len(current_panel(app).tabs), before + 1)
 		// the preference holds them, read again as they were
 		testing.expect_value(t, config.string_of(&app.prefs, "keys.custom"), "tab_new=Ctrl+M, T")
-		b, ok := binding_parse("Ctrl+M, T")
-		testing.expect(t, ok && b == app.keymap.custom["tab_new"])
+		testing.expect_value(t, config.string_of(&app.prefs, "keys.aliases"), "ntab=tab_new")
+		b, ok := ui.binding_parse("Ctrl+M, T")
+		testing.expect(t, ok && b == app.keymap.bindings["tab_new"])
 	})
 }
 
@@ -2637,12 +2640,12 @@ test_keypad_binding :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		_ = s
 		for text in ([]string{"Ctrl+Num +", "Ctrl+Shift+Num -", "Alt+Page Down", "Ctrl+,", "Menu", "Ctrl+M, T"}) {
-			b, ok := binding_parse(text)
+			b, ok := ui.binding_parse(text)
 			testing.expectf(t, ok, "%q is read", text)
-			testing.expectf(t, binding_text(b) == text, "%q comes back: %q", text, binding_text(b))
+			testing.expectf(t, ui.binding_store_text(b) == text, "%q comes back: %q", text, ui.binding_store_text(b))
 		}
-		b, _ := binding_parse("Ctrl+Num +")
-		keymap_bind(app, "zoom_in", b)
+		b, _ := ui.binding_parse("Ctrl+Num +")
+		ui.keymap_bind(&app.keymap, "zoom_in", b)
 		testing.expect_value(t, command_tip(app, "zoom_in"), fmt.tprintf("%s (Ctrl+Num +)", command_find("zoom_in").title))
 		testing.expect_value(t, command_keys(app, command_find("zoom_in")), "Ctrl+Num +")
 		saved := config.string_of(&app.prefs, "keys.custom")
@@ -2701,7 +2704,7 @@ test_palette_settings :: proc(t: ^testing.T) {
 		session.frames(s, 3)
 		testing.expect(t, !ui.palette_is_open(&app.palette.pal) && ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings open")
 		testing.expect(t, strings.contains(ui.line_edit_string(&app.options.page.query), "appearance.rounding"), "on the rounding")
-		testing.expect(t, session.find_text(s, fmt.tprintf("classeur %s", APP_VERSION)) != nil, "the version at their foot")
+		testing.expect(t, session.find_text(s, fmt.tprintf("Classeur %s", APP_VERSION)) != nil, "the version at their foot")
 		when SHOTS { session.save_png(s, "palette_settings.png") }
 	})
 }

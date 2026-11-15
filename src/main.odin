@@ -7,6 +7,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import cli "gt:cli"
+import "gt:platform"
 import "gt:process"
 import setup "gt:setup"
 
@@ -14,6 +15,11 @@ APP_VERSION :: "0.28.0"
 // What changed, version by version: the settings' What's new page (in the program, beside its site's changelog).
 CHANGELOG :: #load("../CHANGELOG.md", string)
 APP_NAME    :: "classeur"
+// The name a person reads: the window's title, the menus, the dialogs. APP_NAME stays the technical one (the binary,
+// the package, the slug, the instance).
+APP_TITLE   :: "Classeur"
+// Where the program keeps its settings, its state and its caches: in the vendor's folder (platform.user_dir).
+APP_FOLDER  :: "FromentSoftware" + platform.USER_DIR_SEPARATOR + APP_TITLE
 
 USAGE :: `classeur: a file manager
 

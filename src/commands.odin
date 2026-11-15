@@ -12,6 +12,8 @@ import "gt:ui"
 Shortcut :: ui.Chord
 
 Command :: struct {
+	// its name for good (ui.Command.id): the person's key and alias for it (keys.custom, keys.aliases) and the palette's
+	// memory of it are stored by it. Never changed with its title
 	id:      string,
 	title:   string,
 	icon:    string,
@@ -130,7 +132,7 @@ COMMANDS := [?]Command{
 
 	// The program itself (program_actions.odin): the palette's Program group
 	{id = "app_quit", title = i18n.later("Quit"), icon = lucide.POWER, tags = {"exit", "close", "leave"}, keys = {{.Q, {.Ctrl}}}, in_text = true, scope = .Window, run = act_app_quit},
-	{id = "app_restart", title = i18n.later("Restart classeur"), icon = lucide.ZAP, tags = {"relaunch", "reload", "reboot", "start again"}, keys = {{.Q, {.Ctrl, .Shift}}}, in_text = true, run = act_app_restart, enabled = can_restart},
+	{id = "app_restart", title = i18n.later("Restart Classeur"), icon = lucide.ZAP, tags = {"relaunch", "reload", "reboot", "start again"}, keys = {{.Q, {.Ctrl, .Shift}}}, in_text = true, run = act_app_restart, enabled = can_restart},
 	{id = "app_new_window", title = i18n.later("New window"), icon = lucide.APP_WINDOW, tags = {"another window", "open"}, keys = {{.N, {.Ctrl}}}, in_text = true, run = act_app_new_window},
 	{id = "app_minimize", title = i18n.later("Minimize window"), icon = lucide.ARROW_DOWN, tags = {"hide", "iconify", "taskbar"}, keys = {{.F9, {.Alt}}}, in_text = true, run = act_app_minimize},
 	{id = "app_maximize", title = i18n.later("Maximize window"), icon = lucide.MONITOR, tags = {"restore", "whole screen", "zoom window"}, keys = {{.F10, {.Alt}}}, in_text = true, run = act_app_maximize},
@@ -138,7 +140,7 @@ COMMANDS := [?]Command{
 	{id = "app_update_check", title = i18n.later("Check for updates"), icon = lucide.DOWNLOAD, tags = {"upgrade", "new version", "release"}, keys = {{.U, {.Ctrl, .Alt}}}, in_text = true, run = act_app_update_check, enabled = has_updater},
 	{id = "app_update_install", title = i18n.later("Install the update"), icon = lucide.HARD_DRIVE_DOWNLOAD, tags = {"upgrade", "download", "new version"}, keys = {{.U, {.Ctrl, .Shift, .Alt}}}, in_text = true, run = act_app_update_install, enabled = update_available},
 	{id = "app_update_restart", title = i18n.later("Restart to update"), icon = lucide.FILE_DOWN, tags = {"relaunch", "upgrade", "new version"}, keys = {{.Q, {.Ctrl, .Shift, .Alt}}}, in_text = true, run = act_app_restart, enabled = update_installed},
-	{id = "app_about", title = i18n.later("About classeur"), icon = lucide.LIGHTBULB, tags = {"version", "credits", "info"}, keys = {{.F1, {.Shift}}}, in_text = true, run = act_app_about},
+	{id = "app_about", title = i18n.later("About Classeur"), icon = lucide.LIGHTBULB, tags = {"version", "credits", "info"}, keys = {{.F1, {.Shift}}}, in_text = true, run = act_app_about},
 	{id = "app_website", title = i18n.later("Open the website"), icon = lucide.GLOBE, tags = {"site", "home page", "web"}, keys = {{.F1, {.Ctrl}}}, in_text = true, run = act_app_website},
 	{id = "app_report", title = i18n.later("Report a problem"), icon = lucide.BUG, tags = {"bug", "issue", "feedback", "help"}, keys = {{.F1, {.Ctrl, .Shift}}}, in_text = true, run = act_app_report},
 	{id = "app_changelog", title = i18n.later("Release notes"), icon = lucide.SCROLL_TEXT, tags = {"changelog", "what is new", "changes", "releases"}, keys = {{.F2, {.Shift}}}, in_text = true, run = act_app_changelog},
@@ -156,26 +158,35 @@ COMMANDS := [?]Command{
 	{id = "app_thumbs_clear", title = i18n.later("Clear thumbnails"), icon = lucide.IMAGE, tags = {"pictures", "cache", "previews"}, keys = {{.I, {.Ctrl, .Shift, .Alt}}}, in_text = true, run = act_app_thumbs_clear},
 }
 
+// The table as the toolkit reads it (app.commands, by COMMANDS' index): the keymap, the palette, the sheet, the menus'
+// keys and the tooltips. Made once at the start: the labels are translated where they show, and the keys in effect are
+// the keymap's (the person's keys over the own ones).
+commands_make :: proc(out: []ui.Command) {
+	for c, i in COMMANDS {
+		out[i] = ui.Command{
+			id = c.id, label = c.title, group = COMMAND_GROUPS[command_group(c.id)], keys = c.keys, icon = c.icon,
+			tags = c.tags, scope = c.scope,
+		}
+	}
+}
+
 // The keys of the window's commands (scope .Window), before the interface sees them: in every page and mode, whatever
-// has the keyboard, over a dialog too (the settings are one). The toolkit takes their keys from wherever the focus is.
+// has the keyboard, over a dialog too (the settings are one). The toolkit takes their keys from wherever the focus is,
+// the person's keys first (ui.command_pressed reads the window's keymap).
 window_keys :: proc(app: ^App) {
-	// (a sequence's first chord waits for its second a moment: SEQUENCE_MS)
-	if app.keymap.pending.key != .None && ui.now_ms() > app.keymap.pending_until { app.keymap.pending = {} }
-	for &c in COMMANDS {
+	for &c, i in COMMANDS {
 		if c.scope != .Window { continue }
-		if c.enabled != nil && !c.enabled(app) { continue }
-		if bindings_pressed(app, &c) { c.run(app) }
+		if ui.command_pressed(app.commands[i], c.enabled != nil && !c.enabled(app)) { c.run(app) }
 	}
 }
 
 // The keys of the page's commands, before the interface sees them (window_keys read the window's). `typing`: a text
 // field has the keyboard, and only the commands marked `in_text` run.
 commands_keys :: proc(app: ^App, typing: bool) {
-	for &c in COMMANDS {
+	for &c, i in COMMANDS {
 		if c.scope == .Window { continue }
 		if typing && !c.in_text { continue }
-		if c.enabled != nil && !c.enabled(app) { continue }
-		if bindings_pressed(app, &c) { c.run(app) }
+		if ui.command_pressed(app.commands[i], c.enabled != nil && !c.enabled(app)) { c.run(app) }
 	}
 }
 

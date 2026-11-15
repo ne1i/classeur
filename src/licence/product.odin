@@ -11,7 +11,7 @@ import licence "gt:licence"
 // tests and the shop's sandbox, and only a debug build accepts it.
 PRODUCT :: licence.Product{
 	name           = "classeur",
-	title          = "classeur",
+	title          = "Classeur",
 	version_tag    = "CLASSEUR1",
 	sign_context   = "classeur-licence-v1\n",
 	file_extension = ".classeurlicence",
