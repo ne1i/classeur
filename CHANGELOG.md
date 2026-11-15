@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.28.0] - 2026-11-15 17:40
+
+### Added
+- **classeur --quit.** An installer (atelier, a script) asks the running classeur to end before it replaces it: `classeur --quit` closes it as its Quit does and waits for it; `classeur --status` says `quit: yes`.
+
 ## [0.27.0] - 2026-11-15 16:49
 
 ### Added
@@ -533,6 +538,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.28.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.28.0
 [0.27.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.27.0
 [0.26.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.26.0
 [0.25.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.25.0
