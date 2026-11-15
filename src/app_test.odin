@@ -2564,7 +2564,8 @@ test_session_writes_in_order :: proc(t: ^testing.T) {
 		data, err := os.read_entire_file(file, context.temp_allocator)
 		testing.expect(t, err == nil, "written")
 		testing.expect(t, strings.contains(string(data), "bookmark /mark/199\n"), "the last text")
-		testing.expect_value(t, strings.count(string(data), "\nfocus "), 1)
+		// (one text, not two run together: its focus line once, the first line or not)
+		testing.expect_value(t, strings.count(strings.concatenate({"\n", string(data)}, context.temp_allocator), "\nfocus "), 1)
 	})
 }
 

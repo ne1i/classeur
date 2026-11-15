@@ -1315,12 +1315,6 @@ fr Musique
 en Videos
 fr Vidéos
 
-en Alternating rows
-fr Lignes alternées
-
-en Paints every other row a shade lighter, to tell the rows apart.
-fr Éclaircit une ligne sur deux, pour distinguer les lignes.
-
 en Inactive opacity
 fr Opacité des panneaux inactifs
 
