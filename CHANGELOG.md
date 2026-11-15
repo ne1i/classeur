@@ -3,6 +3,17 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.22.2] - 2026-11-15
+
+### Fixed
+- **The palette puts the whole word first**: a search for a name ranks the item whose word ends there above a longer one that only starts with it. A panel moved to a window of its own closes again with its close button on Wayland.
+- **Undo after the Recycle Bin always undoes that step (Windows)**: a move to the Recycle Bin now always records where the item went. Before, it was lost now and then, and Ctrl+Z then undid an older step instead.
+
+## [0.22.1] - 2026-11-15
+
+### Fixed
+- **Two copies open at once no longer hide each other's crash**: when two copies of Classeur ran at the same time, a crash or a forced end of one could go unreported, and its report could be hidden by the clean end of the other. Each copy now keeps its own trace, and the next start shows what it did not see.
+
 ## [0.22.0] - 2026-11-14
 
 ### Changed
@@ -490,6 +501,8 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.22.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.2
+[0.22.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.1
 [0.22.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.0
 [0.21.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.21.0
 [0.20.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.20.2

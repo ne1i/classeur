@@ -9,7 +9,7 @@ import "core:strings"
 import "gt:process"
 import setup "gt:setup"
 
-APP_VERSION :: "0.22.0"
+APP_VERSION :: "0.22.2"
 APP_NAME    :: "classeur"
 
 USAGE :: `classeur: a file manager

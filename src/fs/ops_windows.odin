@@ -1,8 +1,8 @@
 package fs
 
 // Windows: what changes files. CopyFileExW copies (attributes and times included) and reports its progress; a rename
-// never replaces (MoveFileExW without MOVEFILE_REPLACE_EXISTING); the trash is the Recycle Bin (SHFileOperationW with
-// FOF_ALLOWUNDO, which the shell's Restore reads).
+// never replaces (MoveFileExW without MOVEFILE_REPLACE_EXISTING); the trash is the Recycle Bin (IFileOperation, whose
+// records the shell's Restore reads, and which says where each item went).
 
 import "base:runtime"
 import "core:os"
@@ -11,7 +11,6 @@ import "core:time"
 import win "core:sys/windows"
 
 foreign import kernel32 "system:Kernel32.lib"
-foreign import shell32 "system:Shell32.lib"
 
 @(private = "file")
 COPY_FILE_FAIL_IF_EXISTS :: 0x1
@@ -156,47 +155,114 @@ exists_native :: proc(path: string) -> bool {
 	return win.GetFileAttributesW(wide(path)) != win.INVALID_FILE_ATTRIBUTES
 }
 
+// IFileOperation (shobjidl_core.h), which core:sys/windows does not declare: only the methods trash_native calls are
+// typed, the others keep their places in the table.
 @(private = "file")
-SHFILEOPSTRUCTW :: struct {
-	hwnd:                  win.HWND,
-	wFunc:                 win.UINT,
-	pFrom:                 [^]u16,
-	pTo:                   [^]u16,
-	fFlags:                u16,
-	fAnyOperationsAborted: win.BOOL,
-	hNameMappings:         rawptr,
-	lpszProgressTitle:     win.LPCWSTR,
+IFileOperation :: struct #raw_union {
+	#subtype IUnknown: win.IUnknown,
+	using Vtbl: ^IFileOperationVtbl,
+}
+@(private = "file")
+IFileOperationVtbl :: struct {
+	using IUnknownVtbl: win.IUnknownVtbl,
+	Advise:                 rawptr,
+	Unadvise:               rawptr,
+	SetOperationFlags:      proc "system" (this: ^IFileOperation, flags: win.DWORD) -> win.HRESULT,
+	SetProgressMessage:     rawptr,
+	SetProgressDialog:      rawptr,
+	SetProperties:          rawptr,
+	SetOwnerWindow:         rawptr,
+	ApplyPropertiesToItem:  rawptr,
+	ApplyPropertiesToItems: rawptr,
+	RenameItem:             rawptr,
+	RenameItems:            rawptr,
+	MoveItem:               rawptr,
+	MoveItems:              rawptr,
+	CopyItem:               rawptr,
+	CopyItems:              rawptr,
+	DeleteItem:             proc "system" (this: ^IFileOperation, item: ^win.IShellItem, sink: ^win.IFileOperationProgressSink) -> win.HRESULT,
+	DeleteItems:            rawptr,
+	NewItem:                rawptr,
+	PerformOperations:      proc "system" (this: ^IFileOperation) -> win.HRESULT,
+	GetAnyOperationsAborted: proc "system" (this: ^IFileOperation, aborted: ^win.BOOL) -> win.HRESULT,
 }
 
-@(default_calling_convention = "system", private = "file")
-foreign shell32 {
-	@(link_name = "SHFileOperationW") sh_file_operation :: proc(op: ^SHFILEOPSTRUCTW) -> i32 ---
+@(private = "file")
+CLSID_FileOperation := &win.GUID{0x3ad05575, 0x8857, 0x4850, {0x92, 0x77, 0x11, 0xb8, 0x5b, 0xdb, 0x8e, 0x09}}
+@(private = "file")
+IID_IFileOperation := &win.GUID{0x947aab5f, 0x0a5c, 0x4c13, {0xb4, 0xd6, 0x4b, 0xf7, 0x83, 0x6f, 0xc9, 0xf8}}
+@(private = "file")
+IID_IFileOperationProgressSink := &win.GUID{0x04b0f1a7, 0x9490, 0x44bc, {0x96, 0xe1, 0x42, 0x96, 0xa3, 0x12, 0x52, 0xe2}}
+
+// No UI at all, to the Recycle Bin (FOFX_RECYCLEONDELETE: FOF_ALLOWUNDO alone is not enough for IFileOperation).
+@(private = "file")
+TRASH_FLAGS :: win.FOF_NO_UI | win.FOF_ALLOWUNDO | 0x00080000
+
+// The sink of one delete: it keeps the path of the item the Recycle Bin made (CoTaskMem, the caller frees it). It lives
+// on the caller's stack for the length of PerformOperations, so its counts are not kept.
+@(private = "file")
+Trash_Sink :: struct {
+	using sink: win.IFileOperationProgressSink,
+	created:    win.LPWSTR,
+	result:     win.HRESULT,
 }
 
 @(private = "file")
-FO_DELETE :: 3
-@(private = "file")
-FOF_SILENT :: 0x4
-@(private = "file")
-FOF_NOCONFIRMATION :: 0x10
-@(private = "file")
-FOF_ALLOWUNDO :: 0x40
-@(private = "file")
-FOF_NOERRORUI :: 0x400
+trash_sink_vtbl := win.IFileOperationProgressSinkVtbl{
+	QueryInterface = proc "system" (this: ^win.IUnknown, riid: win.REFIID, out: ^rawptr) -> win.HRESULT {
+		if riid^ == win.IUnknown_UUID^ || riid^ == IID_IFileOperationProgressSink^ { out^ = this; return win.S_OK }
+		out^ = nil
+		return transmute(win.HRESULT)u32(win.E_NOINTERFACE)
+	},
+	AddRef  = proc "system" (this: ^win.IUnknown) -> win.ULONG { return 1 },
+	Release = proc "system" (this: ^win.IUnknown) -> win.ULONG { return 1 },
+	StartOperations  = proc "system" (this: ^win.IFileOperationProgressSink) -> win.HRESULT { return win.S_OK },
+	FinishOperations = proc "system" (this: ^win.IFileOperationProgressSink, hr: win.HRESULT) -> win.HRESULT { return win.S_OK },
+	PreRenameItem    = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item: ^win.IShellItem, name: win.LPCWSTR) -> win.HRESULT { return win.S_OK },
+	PostRenameItem   = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item: ^win.IShellItem, name: win.LPCWSTR, hr: win.HRESULT, created: ^win.IShellItem) -> win.HRESULT { return win.S_OK },
+	PreMoveItem      = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item, to: ^win.IShellItem, name: win.LPCWSTR) -> win.HRESULT { return win.S_OK },
+	PostMoveItem     = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item, to: ^win.IShellItem, name: win.LPCWSTR, hr: win.HRESULT, created: ^win.IShellItem) -> win.HRESULT { return win.S_OK },
+	PreCopyItem      = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item, to: ^win.IShellItem, name: win.LPCWSTR) -> win.HRESULT { return win.S_OK },
+	PostCopyItem     = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item, to: ^win.IShellItem, name: win.LPCWSTR, hr: win.HRESULT, created: ^win.IShellItem) -> win.HRESULT { return win.S_OK },
+	PreDeleteItem    = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item: ^win.IShellItem) -> win.HRESULT { return win.S_OK },
+	PostDeleteItem   = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, item: ^win.IShellItem, hr: win.HRESULT, created: ^win.IShellItem) -> win.HRESULT {
+		s := (^Trash_Sink)(this)
+		s.result = hr
+		// (no new item: deleted for good, the drive has no Recycle Bin)
+		if win.SUCCEEDED(hr) && created != nil && s.created == nil { _ = created->GetDisplayName(.FILESYSPATH, &s.created) }
+		return win.S_OK
+	},
+	PreNewItem     = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, to: ^win.IShellItem, name: win.LPCWSTR) -> win.HRESULT { return win.S_OK },
+	PostNewItem    = proc "system" (this: ^win.IFileOperationProgressSink, flags: win.DWORD, to: ^win.IShellItem, name, template: win.LPCWSTR, attributes: win.DWORD, hr: win.HRESULT, item: ^win.IShellItem) -> win.HRESULT { return win.S_OK },
+	UpdateProgress = proc "system" (this: ^win.IFileOperationProgressSink, total, done: win.UINT) -> win.HRESULT { return win.S_OK },
+	ResetTimer     = proc "system" (this: ^win.IFileOperationProgressSink) -> win.HRESULT { return win.S_OK },
+	PauseTimer     = proc "system" (this: ^win.IFileOperationProgressSink) -> win.HRESULT { return win.S_OK },
+	ResumeTimer    = proc "system" (this: ^win.IFileOperationProgressSink) -> win.HRESULT { return win.S_OK },
+}
 
-// To the Recycle Bin. `in_trash`: where the Recycle Bin put it (its $R file, found by its $I record: recycle_find), for
-// untrash; "" when it cannot be found (a drive without a Recycle Bin: the item is still there for Explorer's Restore).
+// To the Recycle Bin. `in_trash`: where the Recycle Bin put it (its $R file), for untrash, as the shell's operation
+// says it; "" when it made none (a drive without a Recycle Bin deletes for good).
 trash_native :: proc(path: string, allocator := context.allocator) -> (in_trash: string, e: Error) {
 	if !exists(path) { return "", .Not_Found }
-	since := time.time_to_unix_nano(time.now()) - 2_000_000_000   // (its record is dated from now: two seconds of slack)
-	long := long_path(path)   // (while it is there: the record says its long form)
-	// (a list of paths, each ended by a zero, the list by another)
-	w := win.utf8_to_utf16(path, context.temp_allocator)
-	from := make([]u16, len(w) + 2, context.temp_allocator)
-	copy(from, w)
-	op := SHFILEOPSTRUCTW{wFunc = FO_DELETE, pFrom = raw_data(from), fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI}
-	if sh_file_operation(&op) != 0 || op.fAnyOperationsAborted { return "", .Other }
-	return recycle_find(long, since, allocator), .None
+	// (an apartment of this thread for the operation; one already there in another mode is fine)
+	joined := win.CoInitializeEx(nil, .APARTMENTTHREADED)
+	defer if win.SUCCEEDED(joined) { win.CoUninitialize() }
+	op: ^IFileOperation
+	if !win.SUCCEEDED(win.CoCreateInstance(CLSID_FileOperation, nil, win.CLSCTX_ALL, IID_IFileOperation, (^rawptr)(&op))) { return "", .Other }
+	defer op->Release()
+	item: ^win.IShellItem
+	if !win.SUCCEEDED(win.SHCreateItemFromParsingName(wide(path), nil, win.IID_IShellItem, (^rawptr)(&item))) { return "", .Not_Found }
+	defer item->Release()
+	sink := Trash_Sink{sink = {Vtbl = &trash_sink_vtbl}}
+	defer if sink.created != nil { win.CoTaskMemFree(sink.created) }
+	if !win.SUCCEEDED(op->SetOperationFlags(TRASH_FLAGS)) || !win.SUCCEEDED(op->DeleteItem(item, &sink)) { return "", .Other }
+	hr := op->PerformOperations()
+	aborted: win.BOOL
+	_ = op->GetAnyOperationsAborted(&aborted)
+	if !win.SUCCEEDED(hr) || !win.SUCCEEDED(sink.result) || bool(aborted) { return "", .Other }
+	if sink.created == nil { return "", .None }
+	s, err := win.wstring_to_utf8(cstring16(sink.created), -1, allocator)
+	return err == nil ? s : "", .None
 }
 
 // Puts back an item of the Recycle Bin (its $R path, as trash gave it): renamed to where its $I record says it was (or
@@ -228,44 +294,6 @@ trash_record :: proc(in_trash: string, allocator := context.temp_allocator) -> s
 	name := base(in_trash)
 	if !strings.has_prefix(name, "$R") { return "" }
 	return join(parent(in_trash), strings.concatenate({"$I", name[2:]}, context.temp_allocator), allocator)
-}
-
-// The full form of a path (its 8.3 parts made long: C:\Users\RUNNER~1 is C:\Users\runneradmin): what a $I record says.
-@(private = "file")
-long_path :: proc(path: string) -> string {
-	w := win.utf8_to_wstring(path, context.temp_allocator)
-	buf := make([]u16, 1024, context.temp_allocator)
-	n := win.GetLongPathNameW(w, cstring16(raw_data(buf)), u32(len(buf)))
-	if n == 0 || int(n) >= len(buf) { return path }
-	long, _ := win.utf16_to_utf8(buf[:n], context.temp_allocator)
-	return long
-}
-
-// The $R file of the Recycle Bin that holds `path` (trashed since `since`, ns), by the $I records of its drive's
-// Recycle Bin: each user's folder there is named by its SID, and only the person's own can be read. "": none.
-@(private = "file")
-recycle_find :: proc(path: string, since: i64, allocator := context.allocator) -> string {
-	root := path[:root_length(path)]
-	bin := join(root, "$Recycle.Bin", context.temp_allocator)
-	users: Listing
-	defer listing_destroy(&users)
-	if list_native(&users, bin) != .None { return "" }
-	best, best_at := "", i64(0)
-	for u in users.entries {
-		if u.kind != .Directory { continue }
-		dir := join(bin, u.name, context.temp_allocator)
-		items: Listing
-		defer listing_destroy(&items)
-		if list_native(&items, dir) != .None { continue }
-		for it in items.entries {
-			// (a record written before the trash began is not read: the bin may hold thousands)
-			if !strings.has_prefix(it.name, "$I") || it.mtime < since { continue }
-			from, at, ok := recycle_record(join(dir, it.name, context.temp_allocator))
-			if !ok || at < since || at < best_at || !strings.equal_fold(from, path) { continue }
-			best, best_at = join(dir, strings.concatenate({"$R", it.name[2:]}, context.temp_allocator), context.temp_allocator), at
-		}
-	}
-	return best == "" ? "" : strings.clone(best, allocator)
 }
 
 // What a $I record of the Recycle Bin says (recycle.odin): the item's path before, and when it was trashed (ns since
