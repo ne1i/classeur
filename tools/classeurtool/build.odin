@@ -58,9 +58,11 @@ run_check :: proc(args: []string) -> int {
 	// (a text of the interface without its French fails here, not in front of a person)
 	if e := toolbox.i18n_catalogue(I18N.dirs, fmt.tprintf("%s/fr.txt", I18N.folder), "fr", true); e != "" { fmt.eprintln(e); return 1 }
 	if !toolbox.run(toolbox.odin_command(p, "check"), {echo = true}) { return 1 }
-	// (the whole program for Windows too, from any system: Windows code that does not compile fails the Linux job)
+	// (the whole program for Windows and macOS too, from any system: code of another system that does not compile fails
+	// the Linux job)
 	when ODIN_OS != .Windows {
 		if !toolbox.check_windows(p) { return 1 }
+		if !toolbox.check_darwin(p) { return 1 }
 	} else {
 		// (the file system's code of the other system: the program is written for both)
 		if !toolbox.run({"odin", "check", "src/fs", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", "-no-entry-point", "-target:linux_amd64"}, {echo = true}) { return 1 }
