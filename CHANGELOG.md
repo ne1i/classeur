@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.26.0] - 2026-11-15 14:20
+
+### Added
+- **What's new in the settings.** The settings have a What's new page: each version on a timeline with its day and time, its changes under pills of their kind. After an update, classeur says what changed and opens it on request.
+
 ## [0.25.0] - 2026-11-15 12:55
 
 ### Added
@@ -518,6 +523,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.26.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.26.0
 [0.25.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.25.0
 [0.24.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.24.0
 [0.23.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.23.0
