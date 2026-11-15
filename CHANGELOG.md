@@ -3,6 +3,23 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.29.0] - 2026-11-15 21:09
+
+### Added
+- **By Froment Software in the install**: the install's dialog and the settings' Installation page show the vendor's mark
+and name, a link to its site.
+
+### Changed
+- **Your keys and aliases work as in the other Froment Software programs**: Ctrl+Enter on a command of the palette still
+sets a key of your own, Alt+Enter still makes the letters typed its alias. A sequence's first key shows at the bottom of
+the window until its second. The recorder says when a key types text in a field, and refuses the palette's keys. The
+settings show "Your keys" and "Your aliases" (advanced): edit or reset them there. Your keys are now written in English
+whatever the language: a key set before in French with Shift ("Maj") must be set again.
+- **Classeur, capitalised, and its settings in the vendor's folder**: the window, the menus, the dialogs and the site say
+"Classeur". The settings, the session, the layouts, the logs and the palette's memory move once, at the first start, from
+the `classeur` folders to `FromentSoftware/Classeur` (`~/.config/FromentSoftware/Classeur` on Linux,
+`%APPDATA%\FromentSoftware\Classeur` on Windows). The command `classeur` and its file names do not change.
+
 ## [0.28.0] - 2026-11-15 17:40
 
 ### Added
@@ -538,6 +555,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.29.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.29.0
 [0.28.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.28.0
 [0.27.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.27.0
 [0.26.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.26.0
