@@ -2,8 +2,9 @@ package classeur
 
 // classeur on the user's desktop (gui_toolkit's desktop and setup, through prefs_page.Install): the copy installed in a
 // folder of its own with a launcher in the application menu and its icons, classeur on the PATH, "Open folders with
-// classeur" in the menus that offer it. Everything in the user's profile. The settings' Installation page shows the
-// install and acts on it.
+// classeur" in the menus that offer it, and on request classeur in place of the system's file manager (Windows: the
+// folders, the drives and Win+E). Everything in the user's profile. The settings' Installation page shows the install
+// and acts on it.
 //
 //   classeur --install     this copy installed for the user (no window)
 //   classeur --uninstall   the install taken away; the settings stay (no window)
@@ -75,16 +76,28 @@ setup_options :: proc() -> setup.Setup_Options {
 		choices = SETUP_CHOICES[:], square = true, running = app_running,
 		prepare = proc(o: ^desktop.Integration_Options, choices: []bool, user: rawptr) {
 			classeur_parts(o)
-			if len(choices) == len(SETUP_CHOICES) { o.add_to_path = choices[0] }
+			if len(choices) == len(SETUP_CHOICES) { o.add_to_path, o.default_file_manager = choices[0], choices[1] }
 			desktop.roots_from_env(o, env_lookup)   // (a test's places: nothing of the person's)
 		},
 	}
 }
 
 // (not rodata: i18n.later marks the labels for the catalogue; tr where they are shown)
-@(private = "file")
-SETUP_CHOICES := [?]setup.Choice{
-	{label = i18n.later("classeur in the terminal (on the PATH)"), on = true},
+// Each box is tied to its part: with an install there, it shows what the system has (a default file manager another
+// program took back shows unticked), and what is ticked is what Install writes. The second box names the system's own
+// file manager: Windows has one by name, and Win+E is its key.
+when ODIN_OS == .Windows {
+	@(private = "file")
+	SETUP_CHOICES := [?]setup.Choice{
+		{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
+		{label = i18n.later("Open folders and Win+E with classeur (in place of File Explorer)"), on = false, parts = {.File_Manager}},
+	}
+} else {
+	@(private = "file")
+	SETUP_CHOICES := [?]setup.Choice{
+		{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
+		{label = i18n.later("classeur as the default file manager"), on = false, parts = {.File_Manager}},
+	}
 }
 
 // Once the start's reading of the install came (prefs_page.install_offer): whether this copy is the installed one (the
@@ -130,7 +143,9 @@ desktop_follow_run :: proc(data: rawptr) {
 	st := desktop.status(&o, context.temp_allocator)
 	job.integrated = st.state != .Absent && st.error == .None && st.stale_exe == ""
 	if job.integrated {
+		// (the parts of the install's boxes stay as the install left them: only Install changes those)
 		o.add_to_path = st.parts[.Path].present
+		o.default_file_manager = st.parts[.File_Manager].present
 		o.start_menu, o.autostart = job.menu, job.autostart
 		if r := desktop.apply(&o); r.error != .None {
 			job.failed = fmt.aprintf("%s %s", desktop.error_text(r.error), r.detail)

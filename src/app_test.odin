@@ -1116,12 +1116,13 @@ test_install :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
 		when ODIN_OS != .Linux { return }
 		root := testkit.temp_folder(t, "classeur_install")
-		for name in ([]string{"APPLICATIONS_DIR", "ICONS_DIR", "BIN_DIR", "AUTOSTART_DIR", "MENU_DIR", "INSTALL_DIR", "DESKTOP_DIR"}) {
+		// (CONFIG_DIR: the default file manager's mimeapps.list; the person's own is never read nor written)
+		for name in ([]string{"APPLICATIONS_DIR", "ICONS_DIR", "BIN_DIR", "AUTOSTART_DIR", "MENU_DIR", "INSTALL_DIR", "DESKTOP_DIR", "CONFIG_DIR"}) {
 			dir := fs.join(root, name, context.temp_allocator)
 			_ = os.make_directory_all(dir)
 			os.set_env(fmt.tprintf("CLASSEUR_DESKTOP_%s", name), dir)
 		}
-		defer for name in ([]string{"APPLICATIONS_DIR", "ICONS_DIR", "BIN_DIR", "AUTOSTART_DIR", "MENU_DIR", "INSTALL_DIR", "DESKTOP_DIR"}) { os.unset_env(fmt.tprintf("CLASSEUR_DESKTOP_%s", name)) }
+		defer for name in ([]string{"APPLICATIONS_DIR", "ICONS_DIR", "BIN_DIR", "AUTOSTART_DIR", "MENU_DIR", "INSTALL_DIR", "DESKTOP_DIR", "CONFIG_DIR"}) { os.unset_env(fmt.tprintf("CLASSEUR_DESKTOP_%s", name)) }
 		quiet :: proc(text: string) {}
 		entry := fs.join(root, "APPLICATIONS_DIR/classeur.desktop", context.temp_allocator)
 		testing.expect_value(t, setup.command_run(.Install, setup_options(), quiet), setup.COMMAND_DONE)
@@ -1130,8 +1131,20 @@ test_install :: proc(t: ^testing.T) {
 		text, _ := os.read_entire_file(entry, context.temp_allocator)
 		testing.expect(t, strings.contains(string(text), "FileManager"), "a file manager for the menus")
 		testing.expect(t, fs.exists(fs.join(root, "INSTALL_DIR/classeur", context.temp_allocator)), "the copy installed")
+		testing.expect(t, !fs.exists(fs.join(root, "CONFIG_DIR/mimeapps.list", context.temp_allocator)), "not the default file manager unless asked")
 		testing.expect_value(t, setup.command_run(.Uninstall, setup_options(), quiet), setup.COMMAND_DONE)
 		testing.expect(t, !fs.exists(entry), "taken away")
+
+		// the second box: classeur the default of folders, then nothing of it once uninstalled
+		list := fs.join(root, "CONFIG_DIR/mimeapps.list", context.temp_allocator)
+		ok, why := setup.install(setup_options(), false, []bool{true, true})
+		testing.expectf(t, ok, "installed: %s", why)
+		text, _ = os.read_entire_file(list, context.temp_allocator)
+		testing.expectf(t, strings.contains(string(text), "inode/directory=classeur.desktop;"), "the default of folders: %q", string(text))
+		testing.expect(t, .File_Manager in setup.facts(setup_options()).parts, "the install says it")
+		testing.expect_value(t, setup.command_run(.Uninstall, setup_options(), quiet), setup.COMMAND_DONE)
+		text, _ = os.read_entire_file(list, context.temp_allocator)
+		testing.expect(t, !strings.contains(string(text), "classeur.desktop"), "taken away")
 	})
 }
 

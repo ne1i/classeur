@@ -56,6 +56,9 @@ Its site: [classeur.froment.software](https://classeur.froment.software/).
   classeur remembers where each one was, its size, and whether the sidebar and the inspector were open.
 - **The system's icons**: the desktop's icon theme on Linux, the shell's on Windows.
 - **Watched folders**: a change made by any program shows at once.
+- **The default file manager, if you want**: a box of the install (and of the settings' Installation page) makes
+  classeur open the folders other programs open. On Windows, folders, drives and Win+E open in classeur in place of
+  File Explorer. The box shows what the system does, and unticked, it gives the former file manager back.
 
 | | |
 |---|---|
