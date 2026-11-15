@@ -3,6 +3,12 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.23.0] - 2026-11-15
+
+### Changed
+- **Too many tabs scroll with arrows.** When a panel's tabs do not fit, an arrow shows on each side that hides tabs, as in every program on the toolkit; a click brings the next tab fully into view, and the wheel still scrolls them.
+- **The line under each row can be turned off.** Appearance › Rows of tables has the toolkit's two settings, the same in every program: alternating rows (off) and rules (on). A choice of alternating rows made before goes back to off once.
+
 ## [0.22.2] - 2026-11-15
 
 ### Fixed
@@ -501,6 +507,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.23.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.23.0
 [0.22.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.2
 [0.22.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.1
 [0.22.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.22.0
