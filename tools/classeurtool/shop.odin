@@ -15,11 +15,11 @@ shop :: proc() -> tk_site.Shop {
 		product_title  = "Classeur User License",
 		price          = "29&nbsp;&euro;",
 		price_note     = "",
-		environment    = "sandbox",
-		client_token   = "",   // Paddle's client-side token: "" keeps the shop shut ("Coming soon")
+		environment    = "production",
+		client_token   = "live_44c43ca90843b67eeccfd8275fc",   // Paddle's client-side token (public: it is in the page)
 		edition        = "supporter",
-		price_id       = "",   // what `classeurtool paddle -apply` prints ("": not made yet)
-		worker         = "",   // the licence Worker's address (licence-worker/README.md of gui_toolkit)
+		price_id       = "pri_01m7fyaky9wrzkd5zk9h6xsz3e",   // what `classeurtool paddle -apply` printed
+		worker         = "https://classeur-licence.sacha-42a.workers.dev",
 		thanks         = "https://classeur.froment.software/thanks/",
 		help           = REPOSITORY + "/issues/new",
 		register       = "Open the file with classeur, or paste the key in <strong>Settings &gt; General &gt; Licence</strong>.",
