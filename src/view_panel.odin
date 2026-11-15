@@ -1401,7 +1401,7 @@ tree_lead :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, em: f32) {
 	if e.kind == .Directory {
 		open := tab_tree_is_open(t, e.name)
 		if ui.tags("weak") {
-			if icon_action(app, fmt.tprintf("tree_%s", e.name), open ? lucide.CHEVRON_DOWN : lucide.CHEVRON_RIGHT, open ? i18n.tr("Close it here (Left)") : i18n.tr("Open it here (Right)"), em * 0.8) {
+			if icon_action(app, fmt.tprintf("tree_%s", e.name), open ? lucide.CHEVRON_DOWN : lucide.CHEVRON_RIGHT, open ? i18n.tr("Collapse here (Left)") : i18n.tr("Expand here (Right)"), em * 0.8) {
 				tab_tree_toggle(app, t, strings.clone(e.name, context.temp_allocator))
 			}
 		}

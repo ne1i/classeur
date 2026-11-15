@@ -2,7 +2,7 @@
 language fr
 
 en %s cannot be taken out of its archive.
-fr %s ne peut pas être extrait de son archive.
+fr Impossible d'extraire %s de son archive.
 
 en No application opens %s.
 fr Aucune application n'ouvre %s.
@@ -11,10 +11,10 @@ en %s cannot start.
 fr %s ne peut pas démarrer.
 
 en No terminal was found: set $TERMINAL.
-fr Aucun terminal trouvé : définissez $TERMINAL.
+fr Aucun terminal trouvé : définissez la variable $TERMINAL.
 
 en Rename from the item's own folder: the search lists items of several folders.
-fr Renommez depuis le dossier de l'élément : la recherche liste des éléments de plusieurs dossiers.
+fr Renommez l'élément depuis son dossier : la recherche affiche des éléments de plusieurs dossiers.
 
 en A name cannot hold %s.
 fr Un nom ne peut pas contenir %s.
@@ -45,11 +45,11 @@ fr Impossible de créer le fichier ici : %s.
 
 en %d path copied.
 en+ %d paths copied.
-fr %d chemin copié.
-fr+ %d chemins copiés.
+fr %d chemin d'accès copié.
+fr+ %d chemins d'accès copiés.
 
 en The path is copied.
-fr Chemin copié.
+fr Chemin d'accès copié.
 
 en Hidden files are shown.
 fr Fichiers cachés affichés.
@@ -74,7 +74,7 @@ en There is no other panel.
 fr Il n'y a pas d'autre panneau.
 
 en Put back works in the trash (trash:///).
-fr Restaurer fonctionne dans la corbeille (trash:///).
+fr La restauration n'est possible que dans la corbeille (trash:///).
 
 en Open the trash (trash:///) to empty it.
 fr Ouvrez la corbeille (trash:///) pour la vider.
@@ -83,10 +83,10 @@ en The trash is empty.
 fr La corbeille est vide.
 
 en Bookmark removed.
-fr Favori retiré.
+fr Retiré des favoris.
 
 en %s is bookmarked.
-fr %s est dans les favoris.
+fr %s a été ajouté aux favoris.
 
 en %d name copied.
 en+ %d names copied.
@@ -103,16 +103,16 @@ en empty
 fr vide
 
 en not a name
-fr nom invalide
+fr nom non valide
 
 en twice
 fr en double
 
 en taken
-fr déjà pris
+fr déjà utilisé
 
 en The names could not all be given: nothing was renamed.
-fr Tous les noms n'ont pas pu être donnés : rien n'a été renommé.
+fr Certains noms ne peuvent pas être attribués : aucun élément n'a été renommé.
 
 en %d item renamed.
 en+ %d items renamed.
@@ -149,7 +149,7 @@ en UPPER
 fr MAJUSCULES
 
 en The case of each name kept
-fr La casse de chaque nom gardée
+fr Casse de chaque nom conservée
 
 en Every letter in lower case
 fr Toutes les lettres en minuscules
@@ -166,10 +166,10 @@ fr Noms du presse-papiers
 en {name} the name without its extension · {ext} the extension · {n} a number from 1 ({n:3}: 001) · {date} the date modified · {time} its time · {id} a short id of its own
 fr {name} : le nom sans son extension · {ext} : l'extension · {n} : un numéro à partir de 1 ({n:3} : 001) · {date} : la date de modification · {time} : son heure · {id} : un identifiant court, propre à chaque élément
 
-en %d name cannot be had.
-en+ %d names cannot be had.
-fr %d nom est impossible.
-fr+ %d noms sont impossibles.
+en %d name cannot be given.
+en+ %d names cannot be given.
+fr %d nom ne peut pas être attribué.
+fr+ %d noms ne peuvent pas être attribués.
 
 en Esc: close
 fr Échap : fermer
@@ -190,7 +190,7 @@ en Open in other panel
 fr Ouvrir dans l'autre panneau
 
 en Go up
-fr Dossier parent
+fr Aller au dossier parent
 
 en Go back
 fr Précédent
@@ -199,7 +199,7 @@ en Go forward
 fr Suivant
 
 en Go home
-fr Dossier personnel
+fr Aller au dossier personnel
 
 en Refresh
 fr Actualiser
@@ -208,7 +208,7 @@ en Go to folder
 fr Aller au dossier
 
 en Type the path
-fr Saisir le chemin
+fr Saisir le chemin d'accès
 
 en Filter this folder
 fr Filtrer ce dossier
@@ -221,6 +221,9 @@ fr Réglages
 
 en Inspector
 fr Inspecteur
+
+en Properties
+fr Propriétés
 
 en Keyboard shortcuts
 fr Raccourcis clavier
@@ -244,10 +247,10 @@ en Duplicate tab
 fr Dupliquer l'onglet
 
 en Split right
-fr Diviser à droite
+fr Diviser vers la droite
 
 en Split down
-fr Diviser en bas
+fr Diviser vers le bas
 
 en Close panel
 fr Fermer le panneau
@@ -313,10 +316,10 @@ en New file
 fr Nouveau fichier
 
 en Open terminal here
-fr Ouvrir un terminal ici
+fr Ouvrir dans un terminal
 
 en Open terminal in folder
-fr Ouvrir un terminal dans le dossier
+fr Ouvrir le dossier dans un terminal
 
 en Move section up
 fr Monter la section
@@ -325,10 +328,10 @@ en Move section down
 fr Descendre la section
 
 en Find network devices
-fr Rechercher les appareils du réseau
+fr Rechercher des appareils réseau
 
 en Move tab to window
-fr Déplacer l'onglet dans une fenêtre
+fr Déplacer l'onglet dans une nouvelle fenêtre
 
 en Close other tabs
 fr Fermer les autres onglets
@@ -340,7 +343,7 @@ en Close tabs to right
 fr Fermer les onglets à droite
 
 en Copy path
-fr Copier le chemin
+fr Copier le chemin d'accès
 
 en Open with default app
 fr Ouvrir avec l'application par défaut
@@ -349,10 +352,10 @@ en Bookmark this folder
 fr Ajouter ce dossier aux favoris
 
 en Bookmark folder at cursor
-fr Ajouter le dossier du curseur aux favoris
+fr Ajouter le dossier sélectionné aux favoris
 
 en Clear recents
-fr Effacer les récents
+fr Effacer les emplacements récents
 
 en Lock tab
 fr Verrouiller l'onglet
@@ -397,7 +400,7 @@ en Open layout
 fr Ouvrir une disposition
 
 en Tree view
-fr Vue en arborescence
+fr Vue arborescente
 
 en Group by date
 fr Grouper par date
@@ -409,28 +412,28 @@ en Group by size
 fr Grouper par taille
 
 en Names view
-fr Vue des noms
+fr Vue en liste
 
 en Names in columns
-fr Noms en colonnes
+fr Liste en colonnes
 
 en Types shown
 fr Types affichés
 
 en Show files only
-fr Afficher les fichiers seulement
+fr Afficher uniquement les fichiers
 
 en Show folders only
-fr Afficher les dossiers seulement
+fr Afficher uniquement les dossiers
 
 en Show every type
 fr Afficher tous les types
 
-en Copy names
-fr Copier les noms
+en Copy name
+fr Copier le nom
 
 en Go to its folder
-fr Aller à son dossier
+fr Ouvrir l'emplacement
 
 en Tab 1
 fr Onglet 1
@@ -478,7 +481,7 @@ en Full screen
 fr Plein écran
 
 en Check for updates
-fr Rechercher des mises à jour
+fr Rechercher les mises à jour
 
 en Install the update
 fr Installer la mise à jour
@@ -502,7 +505,7 @@ en Open settings folder
 fr Ouvrir le dossier des réglages
 
 en Copy the version
-fr Copier la version
+fr Copier le numéro de version
 
 en Next theme
 fr Thème suivant
@@ -543,10 +546,10 @@ fr Supprimer définitivement %d élément ?
 fr+ Supprimer définitivement %d éléments ?
 
 en It does not go to the trash: this cannot be undone.
-fr Il ne va pas à la corbeille : impossible d'annuler.
+fr Il ne passe pas par la corbeille : cette action est irréversible.
 
 en They do not go to the trash: this cannot be undone.
-fr Ils ne vont pas à la corbeille : impossible d'annuler.
+fr Ils ne passent pas par la corbeille : cette action est irréversible.
 
 en Delete
 fr Supprimer
@@ -558,15 +561,15 @@ en Empty the trash
 fr Vider la corbeille
 
 en Its item is deleted for good: this cannot be undone.
-fr Son élément est supprimé définitivement : impossible d'annuler.
+fr L'élément qu'elle contient sera supprimé définitivement : cette action est irréversible.
 
 en Its %d item is deleted for good: this cannot be undone.
 en+ Its %d items are deleted for good: this cannot be undone.
-fr Son %d élément est supprimé définitivement : impossible d'annuler.
-fr+ Ses %d éléments sont supprimés définitivement : impossible d'annuler.
+fr %d élément sera supprimé définitivement : cette action est irréversible.
+fr+ %d éléments seront supprimés définitivement : cette action est irréversible.
 
 en A name is taken
-fr Un nom est déjà pris
+fr Un nom est déjà utilisé
 
 en %s is already in %s
 fr %s est déjà dans %s
@@ -585,10 +588,10 @@ en Copied
 fr Copié
 
 en Replace it, keep both (the new one numbered), or skip it.
-fr Remplacez-le, gardez les deux (le nouveau numéroté) ou ignorez-le.
+fr Remplacez-le, conservez les deux (le nouveau sera numéroté) ou ignorez-le.
 
 en Do the same for the next ones
-fr Faire de même pour les suivants
+fr Faire de même pour les conflits suivants
 
 en Cancel the job
 fr Annuler la tâche
@@ -597,7 +600,7 @@ en Skip
 fr Ignorer
 
 en Keep both (Enter)
-fr Garder les deux (Entrée)
+fr Conserver les deux (Entrée)
 
 en Folder
 fr Dossier
@@ -656,7 +659,7 @@ en This year
 fr Cette année
 
 en Older
-fr Plus ancien
+fr Plus anciens
 
 en KB
 fr Ko
@@ -746,7 +749,7 @@ en Broken link
 fr Lien cassé
 
 en Special
-fr Spécial
+fr Fichier spécial
 
 en Program
 fr Programme
@@ -767,25 +770,25 @@ en This is not a folder.
 fr Ce n'est pas un dossier.
 
 en The name is taken.
-fr Ce nom est déjà pris.
+fr Ce nom est déjà utilisé.
 
 en This is on another volume.
-fr C'est sur un autre volume.
+fr Cet élément se trouve sur un autre volume.
 
 en The volume is full.
 fr Le volume est plein.
 
 en Cancelled.
-fr Annulé.
+fr Opération annulée.
 
 en An archive is read only: copy what is in it out of it.
-fr Une archive est en lecture seule : copiez son contenu hors de l'archive.
+fr Une archive est en lecture seule : copiez son contenu ailleurs.
 
 en This folder cannot be read.
 fr Ce dossier ne peut pas être lu.
 
 en it is not there
-fr il n'est pas là
+fr introuvable
 
 en permission denied
 fr permission refusée
@@ -794,10 +797,10 @@ en it is not a folder
 fr ce n'est pas un dossier
 
 en the name is taken
-fr le nom est déjà pris
+fr le nom est déjà utilisé
 
 en it is on another volume
-fr il est sur un autre volume
+fr il se trouve sur un autre volume
 
 en the volume is full
 fr le volume est plein
@@ -809,7 +812,7 @@ en an archive is read only
 fr une archive est en lecture seule
 
 en the system refused
-fr le système a refusé
+fr refusé par le système
 
 en Read only
 fr Lecture seule
@@ -830,10 +833,13 @@ en Encrypted
 fr Chiffré
 
 en gio is not there: gvfs mounts the shares
-fr gio est absent : gvfs monte les partages
+fr gio est introuvable : gvfs en a besoin pour monter les partages
 
 en gio mount failed
-fr gio mount a échoué
+fr échec de gio mount
+
+en shares are not supported on this system yet
+fr les partages ne sont pas encore pris en charge sur ce système
 
 en Computer
 fr Ordinateur
@@ -869,13 +875,13 @@ en Place
 fr Emplacement
 
 en No folder there has these letters. Enter goes to the path typed.
-fr Aucun dossier ici ne contient ces lettres. Entrée va au chemin saisi.
+fr Aucun dossier ici ne contient ces lettres. Appuyez sur Entrée pour ouvrir le chemin saisi.
 
 en No folder has these letters.
 fr Aucun dossier ne contient ces lettres.
 
 en Up, Down: choose   Tab: complete the path   Enter: go   Esc: close
-fr Haut, Bas : choisir   Tab : compléter le chemin   Entrée : aller   Échap : fermer
+fr Haut, Bas : choisir   Tab : compléter le chemin   Entrée : ouvrir   Échap : fermer
 
 en First page
 fr Première page
@@ -887,7 +893,7 @@ en This folder is empty.
 fr Ce dossier est vide.
 
 en Nothing selected.
-fr Aucune sélection.
+fr Aucun élément sélectionné.
 
 en %d folders
 en+ %d folders
@@ -903,7 +909,7 @@ en Reading…
 fr Lecture…
 
 en The first %s are shown.
-fr Les %s premiers sont affichés.
+fr Seuls les %s premiers sont affichés.
 
 en and %d more
 en+ and %d more
@@ -911,7 +917,7 @@ fr et %d autre
 fr+ et %d autres
 
 en No preview for this kind of file.
-fr Pas d'aperçu pour ce genre de fichier.
+fr Aucun aperçu disponible pour ce type de fichier.
 
 en %d folder
 en+ %d folders
@@ -933,7 +939,7 @@ en Created
 fr Créé
 
 en Accessed
-fr Consulté
+fr Dernier accès
 
 en Owner
 fr Propriétaire
@@ -1019,7 +1025,7 @@ fr %d élément restauré.
 fr+ %d éléments restaurés.
 
 en %s again.
-fr %s : nouvel essai.
+fr %s : nouvelle tentative.
 
 en Copying %s and %d more to %s
 en+ Copying %s and %d more to %s
@@ -1078,13 +1084,13 @@ en Putting back %s
 fr Restauration de %s
 
 en No job yet
-fr Aucune tâche pour l'instant
+fr Aucune tâche
 
 en Jobs: %d
 fr Tâches : %d
 
 en Background
-fr Arrière-plan
+fr En arrière-plan
 
 en waiting
 fr en attente
@@ -1125,7 +1131,7 @@ en They run on in the background   Esc: hide
 fr Elles continuent en arrière-plan   Échap : masquer
 
 en Layout %s saved again.
-fr Disposition %s enregistrée à nouveau.
+fr Disposition %s mise à jour.
 
 en Layout %s saved.
 fr Disposition %s enregistrée.
@@ -1137,10 +1143,10 @@ en Layout %d
 fr Disposition %d
 
 en Save the panels shown as a layout
-fr Enregistrer les panneaux affichés comme disposition
+fr Enregistrer les panneaux affichés comme une disposition
 
 en Its name: Ctrl+Alt+L lists the layouts to open one again in place of the panels.
-fr Son nom : Ctrl+Alt+L liste les dispositions pour en rouvrir une à la place des panneaux.
+fr Donnez-lui un nom. Ctrl+Alt+L affiche les dispositions pour en rouvrir une à la place des panneaux.
 
 en The layout's name
 fr Nom de la disposition
@@ -1155,7 +1161,7 @@ en Delete a layout
 fr Supprimer une disposition
 
 en %s: this system reaches no such place by a path.
-fr %s : ce système n'atteint pas ce genre d'emplacement par un chemin.
+fr %s : ce système ne permet pas d'accéder à ce type d'emplacement par un chemin d'accès.
 
 en %s: not a place classeur knows.
 fr %s : emplacement inconnu de classeur.
@@ -1187,10 +1193,10 @@ en Files and folders
 fr Fichiers et dossiers
 
 en Files only
-fr Fichiers seulement
+fr Fichiers uniquement
 
 en Folders only
-fr Dossiers seulement
+fr Dossiers uniquement
 
 en Every type
 fr Tous les types
@@ -1256,31 +1262,31 @@ en View
 fr Affichage
 
 en Set a key
-fr Choisir une touche
+fr Définir un raccourci
 
 en Make the letters its alias
-fr En faire un alias
+fr Utiliser ces lettres comme alias
 
 en %s: an alias of %s.
 fr %s : un alias de %s.
 
 en Keys of a command
-fr Touches d'une commande
+fr Raccourcis d'une commande
 
 en Keys for %s
 fr Raccourcis de %s
 
 en %s: its own keys again.
-fr %s : ses raccourcis d'origine.
+fr %s : raccourcis par défaut rétablis.
 
 en Press them: two for a sequence. Backspace first gives it its own keys again.
-fr Appuyez sur les touches : deux pour une séquence. Retour arrière d'abord lui rend ses raccourcis d'origine.
+fr Appuyez sur les touches (deux combinaisons pour une séquence). Appuyez d'abord sur Retour arrière pour rétablir les raccourcis par défaut.
 
 en Press the keys…
 fr Appuyez sur les touches…
 
 en Keep (Enter)
-fr Garder (Entrée)
+fr Conserver (Entrée)
 
 en Tabs
 fr Onglets
@@ -1319,7 +1325,7 @@ en Inactive opacity
 fr Opacité des panneaux inactifs
 
 en Dims the contents of the panels that do not have the keyboard, so that the one that has it stands out.
-fr Atténue le contenu des panneaux qui n'ont pas le clavier, pour que celui qui l'a ressorte.
+fr Atténue le contenu des panneaux inactifs pour faire ressortir le panneau actif.
 
 en Show extensions
 fr Afficher les extensions
@@ -1331,43 +1337,43 @@ en Show hidden
 fr Afficher les fichiers cachés
 
 en Shows the hidden files (their names start with a dot; on Windows, their attribute).
-fr Affiche les fichiers cachés (leur nom commence par un point ; sous Windows, leur attribut).
+fr Affiche les fichiers cachés (nom commençant par un point ; sous Windows, attribut Caché).
 
 en Lists the folders before the files, whatever the sort.
-fr Liste les dossiers avant les fichiers, quel que soit le tri.
+fr Affiche les dossiers avant les fichiers, quel que soit le tri.
 
 en Date format
 fr Format des dates
 
 en How the dates read: 2026-11-09 21:40; Today 21:40, Yesterday, the weekday for the last week, then 9 Nov 2026; or 9 Nov 2026 21:40.
-fr L'écriture des dates : 2026-11-09 21:40 ; Aujourd'hui 21:40, Hier, le jour de la semaine pour la dernière semaine, puis 9 nov. 2026 ; ou 9 nov. 2026 21:40.
+fr Affichage des dates : 2026-11-09 21:40 ; Aujourd'hui 21:40, Hier, le jour de la semaine pour la dernière semaine, puis 9 nov. 2026 ; ou 9 nov. 2026 21:40.
 
 en ISO
 fr ISO
 
 en Relative
-fr Relative
+fr Relatif
 
 en Day month year
 fr Jour mois année
 
 en Measure folders
-fr Mesurer les dossiers
+fr Calculer la taille des dossiers
 
 en Measures the folders shown: what they hold all the way down, in the Folders, Files and Size columns.
-fr Mesure les dossiers affichés : tout ce qu'ils contiennent, jusqu'en bas, dans les colonnes Dossiers, Fichiers et Taille.
+fr Calcule le contenu complet des dossiers affichés, sous-dossiers compris, dans les colonnes Dossiers, Fichiers et Taille.
 
 en Single click
-fr Un seul clic
+fr Ouverture en un clic
 
 en Opens an item with one click instead of two.
 fr Ouvre un élément en un clic au lieu de deux.
 
 en The settings cannot be written to %s
-fr Les réglages ne peuvent pas être enregistrés dans %s
+fr Impossible d'enregistrer les réglages dans %s
 
 en No window could be started.
-fr Aucune fenêtre n'a pu être ouverte.
+fr Impossible d'ouvrir une fenêtre.
 
 en classeur %s, on gui_toolkit %s. %s
 fr classeur %s, sur gui_toolkit %s. %s
@@ -1418,25 +1424,25 @@ en Filter…
 fr Filtrer…
 
 en Drag it, or right-click it, to move the section
-fr Faites-la glisser, ou cliquez-droit dessus, pour déplacer la section
+fr Faites-la glisser ou cliquez dessus avec le bouton droit pour déplacer la section
 
 en Move to the top
-fr Placer en haut
+fr Déplacer tout en haut
 
 en Move to the bottom
-fr Placer en bas
+fr Déplacer tout en bas
 
 en Close the section
-fr Fermer la section
+fr Replier la section
 
 en Open the section
-fr Ouvrir la section
+fr Déplier la section
 
 en %s free of %s
-fr %s libres sur %s
+fr %s disponibles sur %s
 
 en Click a section's heading first: its keys move that one.
-fr Cliquez d'abord sur le titre d'une section : ses raccourcis déplacent celle-là.
+fr Cliquez d'abord sur le titre d'une section : les raccourcis déplacent cette section.
 
 en Searching…
 fr Recherche…
@@ -1463,7 +1469,7 @@ en Attributes
 fr Attributs
 
 en Open folders and Win+E with classeur (in place of File Explorer)
-fr Ouvrir les dossiers et Win+E avec classeur (à la place de l'Explorateur de fichiers)
+fr Ouvrir les dossiers et Win+E avec classeur (au lieu de l'Explorateur de fichiers)
 
 en Start menu
 fr menu Démarrer
@@ -1481,7 +1487,7 @@ en A new panel below
 fr Un nouveau panneau en bas
 
 en To a window's edge: a window of its own
-fr Au bord de la fenêtre : une fenêtre à part
+fr Au bord de la fenêtre : dans une nouvelle fenêtre
 
 en Undone: the rename.
 fr Annulé : le renommage.
@@ -1493,7 +1499,7 @@ en Undone: the new folder.
 fr Annulé : le nouveau dossier.
 
 en Undone: the new folder of several items.
-fr Annulé : le nouveau dossier de plusieurs éléments.
+fr Annulé : le nouveau dossier contenant plusieurs éléments.
 
 en Undone: the new file.
 fr Annulé : le nouveau fichier.
@@ -1529,7 +1535,7 @@ en Done again: the new folder.
 fr Rétabli : le nouveau dossier.
 
 en Done again: the new folder of several items.
-fr Rétabli : le nouveau dossier de plusieurs éléments.
+fr Rétabli : le nouveau dossier contenant plusieurs éléments.
 
 en Done again: the new file.
 fr Rétabli : le nouveau fichier.
@@ -1583,7 +1589,7 @@ en The rename cannot be undone.
 fr Le renommage ne peut pas être annulé.
 
 en %s is not empty now: it stays.
-fr %s n'est plus vide : il reste.
+fr %s n'est plus vide : il est conservé.
 
 en Locked: folders open in a new tab
 fr Verrouillé : les dossiers s'ouvrent dans un nouvel onglet
@@ -1601,7 +1607,7 @@ en Size
 fr Taille
 
 en The folders before
-fr Les dossiers précédents
+fr Dossiers précédents
 
 en Unlock the tab: folders open in it
 fr Déverrouiller l'onglet : les dossiers s'y ouvrent
@@ -1610,7 +1616,7 @@ en Lock the tab: folders open in a new tab
 fr Verrouiller l'onglet : les dossiers s'ouvrent dans un nouvel onglet
 
 en The panel's menu
-fr Le menu du panneau
+fr Menu du panneau
 
 en A middle click opens it in a new tab
 fr Un clic du milieu l'ouvre dans un nouvel onglet
@@ -1639,7 +1645,7 @@ en Clear the filter
 fr Effacer le filtre
 
 en No row fits the filters
-fr Aucune ligne ne passe les filtres
+fr Aucune ligne ne correspond aux filtres
 
 en The types or the columns' funnels leave every row out.
 fr Les types ou les filtres des colonnes excluent toutes les lignes.
@@ -1648,7 +1654,7 @@ en Show every row
 fr Afficher toutes les lignes
 
 en Only hidden files are here
-fr Il n'y a ici que des fichiers cachés
+fr Ce dossier ne contient que des fichiers cachés
 
 en Show hidden files
 fr Afficher les fichiers cachés
@@ -1661,23 +1667,23 @@ fr Replier le groupe
 
 en The jobs: %d failed (%s)
 en+ The jobs: %d failed (%s)
-fr Les tâches : %d en échec (%s)
-fr+ Les tâches : %d en échec (%s)
+fr Tâches : %d en échec (%s)
+fr+ Tâches : %d en échec (%s)
 
 en Entries read so far
-fr Entrées lues jusqu'ici
+fr Éléments lus jusqu'à présent
 
 en Selected, and the size of their files
-fr Sélectionnés, et la taille de leurs fichiers
+fr Éléments sélectionnés et taille de leurs fichiers
 
 en Folders shown, of all: a filter leaves some out
-fr Dossiers affichés, sur le total : un filtre en exclut
+fr Dossiers affichés sur le total : un filtre en masque certains
 
 en Files shown, of all: a filter leaves some out
-fr Fichiers affichés, sur le total : un filtre en exclut
+fr Fichiers affichés sur le total : un filtre en masque certains
 
 en The view: a click shows the slider (Ctrl+wheel, Ctrl+= and Ctrl+- too)
-fr La vue : un clic affiche le curseur (Ctrl+molette, Ctrl+= et Ctrl+- aussi)
+fr Affichage : cliquez pour afficher le curseur (ou Ctrl+molette, Ctrl+= et Ctrl+-)
 
 en Details
 fr Détails
@@ -1701,7 +1707,7 @@ en Huge cards
 fr Très grandes cartes
 
 en The types shown: files, folders, extensions
-fr Les types affichés : fichiers, dossiers, extensions
+fr Types affichés : fichiers, dossiers, extensions
 
 en Clear the filter, leave the search (Escape)
 fr Effacer le filtre, quitter la recherche (Échap)
@@ -1712,8 +1718,8 @@ fr Dans %s
 en Deleted from %s
 fr Supprimé de %s
 
-en Close it here (Left)
-fr Le fermer ici (Gauche)
+en Collapse here (Left)
+fr Replier ici (Gauche)
 
-en Open it here (Right)
-fr L'ouvrir ici (Droite)
+en Expand here (Right)
+fr Déplier ici (Droite)
