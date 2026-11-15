@@ -4,8 +4,8 @@ package fs
 // A root keeps its separator ("/", "C:\"); no other path ends with one.
 
 import "core:fmt"
-import "core:os"
 import "core:strings"
+import "gt:platform"
 
 when ODIN_OS == .Windows {
 	SEPARATOR :: '\\'
@@ -132,14 +132,11 @@ crumbs :: proc(path: string, allocator := context.temp_allocator) -> []Crumb {
 	return out[:]
 }
 
+// The person's home folder, as the toolkit's platform names it (Linux $HOME; Windows the profile's known folder), else the
+// system's root.
 home :: proc(allocator := context.allocator) -> string {
-	when ODIN_OS == .Windows {
-		if v := os.get_env("USERPROFILE", allocator); v != "" { return v }
-		return strings.clone("C:\\", allocator)
-	} else {
-		if v := os.get_env("HOME", allocator); v != "" { return v }
-		return strings.clone("/", allocator)
-	}
+	if v := platform.known_folder_path(.Home, allocator); v != "" { return v }
+	when ODIN_OS == .Windows { return strings.clone("C:\\", allocator) } else { return strings.clone("/", allocator) }
 }
 
 // "name.ext" -> "name 2.ext"; "folder" -> "folder 2".

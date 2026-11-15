@@ -9,7 +9,8 @@ import "core:strings"
 import "core:sys/linux"
 import "gt:i18n"
 
-// The folder gvfs mounts its shares under ("" when there is no runtime folder).
+// The folder gvfs mounts its shares under: its runtime folder, $XDG_RUNTIME_DIR, else the one systemd makes. (Not the
+// toolkit's platform.user_dir(.Runtime): without the variable it gives the temporary folder, where gvfs never mounts.)
 gvfs_dir :: proc(allocator := context.temp_allocator) -> string {
 	run := os.get_env("XDG_RUNTIME_DIR", context.temp_allocator)
 	if run == "" { run = strings.concatenate({"/run/user/", uid_text()}, context.temp_allocator) }

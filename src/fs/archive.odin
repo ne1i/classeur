@@ -11,6 +11,7 @@ import "core:os"
 import "core:strings"
 import "core:sync"
 import archive "gt:archive"
+import "gt:platform"
 
 ARCHIVES_KEPT :: 8
 
@@ -174,21 +175,15 @@ archive_copy :: proc(file, inner, to: string) -> Error {
 	}, &ask)
 }
 
-// Where the files opened out of archives go: a folder of the person's alone (Linux: XDG_RUNTIME_DIR, else a folder made
-// for them only in the temporary place; Windows: the person's TEMP). The tests set it to a folder of theirs.
+// Where the files opened out of archives go: the person's runtime folder (the toolkit's platform.user_dir(.Runtime):
+// Linux $XDG_RUNTIME_DIR, else the system's temporary folder; Windows %TEMP%), a folder of classeur's in it. The tests
+// set it to a folder of theirs.
 take_out_root: string
 
 @(private = "file")
 take_out_folder :: proc() -> string {
 	if take_out_root != "" { return take_out_root }
-	when ODIN_OS == .Windows {
-		return join(os.get_env("TEMP", context.temp_allocator), "classeur-archives", context.temp_allocator)
-	} else {
-		if run := os.get_env("XDG_RUNTIME_DIR", context.temp_allocator); run != "" { return join(run, "classeur-archives", context.temp_allocator) }
-		tmp := os.get_env("TMPDIR", context.temp_allocator)
-		if tmp == "" { tmp = "/tmp" }
-		return join(tmp, strings.concatenate({"classeur-archives-", os.get_env("USER", context.temp_allocator)}, context.temp_allocator), context.temp_allocator)
-	}
+	return join(platform.user_dir(.Runtime, "", context.temp_allocator), "classeur-archives", context.temp_allocator)
 }
 
 // A file of an archive taken out (to be opened by another program): in a folder of its own, named after the archive's
