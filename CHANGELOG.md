@@ -3,6 +3,16 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.27.0] - 2026-11-15 16:49
+
+### Added
+- **A license to buy.** The pricing page sells a license of classeur: a payment once through Paddle, the license by mail and on the thank-you page at once, its key or its file to give the program.
+- **Properties in an item's menu.** A right click on a file or a folder ends with Properties (Alt+Shift+Enter), as in every file manager: it opens the inspector on the item, with its size, its dates and what the system says of it.
+
+### Fixed
+- **Zoom in with Ctrl++ on a French keyboard.** On an AZERTY keyboard + is Shift+=: Ctrl++ now zooms in, as Ctrl+= and the keypad's Ctrl++ do.
+- **French that reads like a file manager's.** The French words of classeur were written again in the vocabulary of the French file managers: "Copier le nom", "Copier le chemin d'accès", "Ouvrir l'emplacement", "Vue en liste", "Replier ici", clear messages ("Cette action est irréversible."), one word for one thing ("utilisé", "Conserver").
+
 ## [0.26.0] - 2026-11-15 14:20
 
 ### Added
@@ -523,6 +533,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.27.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.27.0
 [0.26.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.26.0
 [0.25.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.25.0
 [0.24.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.24.0
