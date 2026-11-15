@@ -7,6 +7,7 @@ import "base:runtime"
 import "core:strings"
 import "core:testing"
 import config "gt:config"
+import "gt:instance"
 import "gt:platform"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
@@ -176,6 +177,27 @@ test_quit :: proc(t: ^testing.T) {
 		session.key(s, .Q, {.Ctrl})
 		session.frames(s, 1)
 		testing.expect(t, platform.is_closed(app.main.win), "Ctrl+Q: closed")
+		testing.expect_value(t, app.launch_after, "")
+	})
+}
+
+// An installer's --quit (instance.MESSAGE_QUIT) ends classeur as Quit does, once the interface's thread runs the post;
+// --status's MESSAGE_PING changes nothing.
+@(test)
+test_quit_message :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {dir}, home = dir)
+		context.allocator = runtime.heap_allocator()
+		tabs := len(current_panel(app).tabs)
+		app_message(app, transmute([]u8)string(instance.MESSAGE_PING))
+		session.frames(s, 2)
+		testing.expect(t, !platform.is_closed(app.main.win), "ping: still open")
+		testing.expect_value(t, len(current_panel(app).tabs), tabs)
+		app_message(app, transmute([]u8)string(instance.MESSAGE_QUIT))
+		session.wait_until(s, proc(s: ^session.Session) -> bool { return platform.is_closed((^App)(s.user).main.win) }, "closed by --quit")
+		testing.expect_value(t, len(current_panel(app).tabs), tabs)
 		testing.expect_value(t, app.launch_after, "")
 	})
 }

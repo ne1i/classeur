@@ -290,8 +290,6 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 // What a second start hands the first: its launcher's activation token on a line of its own (marked by a byte no path
 // has), then its folders, one a line.
 APP_MESSAGE_TOKEN :: "\x01"
-// What `classeur --status` hands it: only whether it answers; the running classeur does nothing with it.
-APP_MESSAGE_PING :: "\x02ping"
 
 // The single instance's name: the person's (a debug build has its own).
 @(private = "file")
@@ -301,7 +299,12 @@ app_instance_name :: proc() -> string {
 
 // Whether a classeur runs and answers (--status: setup.Setup_Options.running).
 app_running :: proc() -> bool {
-	return instance.send({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)string(APP_MESSAGE_PING)) == .Forwarded
+	return instance.send({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)string(instance.MESSAGE_PING)) == .Forwarded
+}
+
+// Asks the classeur that runs to end as its Quit does (--quit: setup.Setup_Options.quit); true when it took the request.
+app_quit :: proc() -> bool {
+	return instance.send({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)string(instance.MESSAGE_QUIT)) == .Forwarded
 }
 
 app_message_make :: proc(token: string, folders: []string) -> string {
@@ -323,14 +326,24 @@ app_message_read :: proc(text: string) -> (token: string, folders: []string) {
 	return token, list[:]
 }
 
-// A second start's folders (on the instance's thread): copied, handed to the interface's.
-@(private = "file")
+// A second start's folders, or the toolkit's messages (--status, --quit), on the instance's thread: what acts is handed
+// to the interface's. (Not private: the tests deliver messages to it.)
 app_message :: proc(user: rawptr, message: []byte) {
 	app := (^App)(user)
-	if string(message) == APP_MESSAGE_PING { return }
+	switch string(message) {
+	case instance.MESSAGE_PING: return   // (the answer alone tells --status that classeur runs)
+	case instance.MESSAGE_QUIT:
+		// The window belongs to the interface's thread: Quit runs there, so the end saves the session as Ctrl+Q does.
+		ui.post(&app.main.state, app_message_quit, app)
+		return
+	}
 	text := strings.clone(string(message))
 	if !ui.post(&app.main.state, app_message_open, rawptr(raw_data(text)), u64(len(text))) { delete(text) }
 }
+
+// An installer's --quit: the same end as the Quit command (app_run's loop ends, the session saved, the workers stopped).
+@(private = "file")
+app_message_quit :: proc(data: rawptr, word: u64) { act_app_quit((^App)(data)) }
 
 // The folders of a second start, each in a new tab of the panel with the keyboard (none: the home folder); the window
 // comes to the front.

@@ -73,7 +73,7 @@ env_lookup :: proc(name: string) -> string { return os.get_env(name, context.tem
 setup_options :: proc() -> setup.Setup_Options {
 	return setup.Setup_Options{
 		identity = classeur_identity(), version = APP_VERSION, install_folder = APP_NAME, icons = ICON_PNGS[:],
-		choices = SETUP_CHOICES[:], square = true, running = app_running,
+		choices = SETUP_CHOICES[:], square = true, running = app_running, quit = app_quit,
 		prepare = proc(o: ^desktop.Integration_Options, choices: []bool, user: rawptr) {
 			classeur_parts(o)
 			if len(choices) == len(SETUP_CHOICES) { o.add_to_path, o.default_file_manager = choices[0], choices[1] }
