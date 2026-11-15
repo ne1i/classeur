@@ -3,40 +3,40 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
-## [0.25.0] - 2026-11-15
+## [0.25.0] - 2026-11-15 12:55
 
 ### Added
 - **Frame rate in Settings.** Settings › Rendering › Frame rate caps how many pictures a second classeur draws when something moves: the screen's rate, 30 to 240, or no limit.
 - **WebP on Windows.** The Windows version ships its own libwebp beside the program, so WebP pictures show there; the setup installs it with classeur.
 
-## [0.24.0] - 2026-11-15
+## [0.24.0] - 2026-11-15 10:42
 
 ### Added
 - **classeur as the default file manager**: the install (and the settings' Installation page) has a box that makes classeur open the folders other programs open. On Windows, folders, drives and Win+E open in classeur in place of File Explorer; on Linux, classeur becomes the default application of folders. The box shows what the system does, and unticked, it gives the former file manager back. The box of the PATH also shows what the install has now.
 
-## [0.23.0] - 2026-11-15
+## [0.23.0] - 2026-11-15 08:23
 
 ### Changed
 - **Too many tabs scroll with arrows.** When a panel's tabs do not fit, an arrow shows on each side that hides tabs, as in every program on the toolkit; a click brings the next tab fully into view, and the wheel still scrolls them.
 - **The line under each row can be turned off.** Appearance › Rows of tables has the toolkit's two settings, the same in every program: alternating rows (off) and rules (on). A choice of alternating rows made before goes back to off once.
 
-## [0.22.2] - 2026-11-15
+## [0.22.2] - 2026-11-15 07:05
 
 ### Fixed
 - **The palette puts the whole word first**: a search for a name ranks the item whose word ends there above a longer one that only starts with it. A panel moved to a window of its own closes again with its close button on Wayland.
 - **Undo after the Recycle Bin always undoes that step (Windows)**: a move to the Recycle Bin now always records where the item went. Before, it was lost now and then, and Ctrl+Z then undid an older step instead.
 
-## [0.22.1] - 2026-11-15
+## [0.22.1] - 2026-11-15 01:04
 
 ### Fixed
 - **Two copies open at once no longer hide each other's crash**: when two copies of Classeur ran at the same time, a crash or a forced end of one could go unreported, and its report could be hidden by the clean end of the other. Each copy now keeps its own trace, and the next start shows what it did not see.
 
-## [0.22.0] - 2026-11-14
+## [0.22.0] - 2026-11-14 23:45
 
 ### Changed
 - **One command palette, with tabs and folders in it**: the palette is the one of the other programs of the family, with the same look and keys. `>` lists the commands and the moves of the panes and dialogs, `:` the settings (a switch flips and the palette stays open), `@` the tabs of every panel (Enter shows one), and `/` the folders: type a path and its folders come as you type, with the recent folders, the bookmarks and the places; Tab completes the path, Enter goes there, Ctrl+Enter opens it in a new tab. The foot of the palette names the prefixes and what Enter, Ctrl+Enter and Alt+Enter do. A command that cannot act now is listed greyed, last, instead of hidden. "Tab 1" to "Last tab" are no longer in the palette: `@` lists the tabs themselves (Alt+1 to Alt+9 still pick them). The palette's memory of what you chose starts afresh.
 
-## [0.21.0] - 2026-11-14
+## [0.21.0] - 2026-11-14 19:21
 
 ### Added
 - **Select several items with Ctrl and Shift, as in every file manager**: a second Shift+click nearer the first item makes the range smaller; Ctrl+Shift+click adds a range to what is selected; Ctrl and the arrows move the cursor alone, and Ctrl+Space then adds or removes the item under it; Escape on several items keeps the one under the cursor. The rectangle and the keys share these rules. A Shift range no longer keeps the items that Ctrl selected before it (Ctrl+Shift keeps them).
@@ -48,17 +48,17 @@ and the versions follow [semantic versioning](https://semver.org/).
 - **The update is shown once**: the button of the title bar alone says that a new version is on offer, downloading or ready to restart; the status line no longer repeats it. A failed update is said there.
 - **The font settings apply at once.** The interface and monospace fonts took effect only at the next start, and the reading font never; a family chosen in the settings now shows at once, in every window, and Default brings classeur's own back.
 
-## [0.20.2] - 2026-11-14
+## [0.20.2] - 2026-11-14 01:55
 
 ### Fixed
 - **classeur starts on Windows**: 0.20.0 and 0.20.1 had no Windows download, because Windows refused to start the program (its manifest was broken). This version has it, and it starts.
 
-## [0.20.1] - 2026-11-14
+## [0.20.1] - 2026-11-14 00:52
 
 ### Fixed
 - **classeur starts on Windows again**: 0.20.0 had no Windows download, because Windows refused to start it. Dialogs also open at their final size, without a jump.
 
-## [0.20.0] - 2026-11-13
+## [0.20.0] - 2026-11-13 23:50
 
 ### Added
 - **A Diagnostics page in the settings, with a Copy button.** It shows the versions, the system, the graphics adapter (and whether a software rasterizer draws), the window's size and scale, the last frames' times and how much partial redraw drew. If classeur is slow, copy it and send it.
@@ -77,17 +77,17 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **Dialogs and buttons never cut their text.** If a dialog's buttons do not fit on one line, they go on a second line. The bookmarks hint and the batch rename's help wrap, and the batch rename's case choices widen for longer words. Cancel buttons are neutral, no longer red.
 - **French done right.** Keys have the names that a French keyboard prints ("Ctrl+Maj+N"), and numbers use the French decimal mark and spacing. The filter fields say "Filtrer…". The batch rename explains each of its fields ({name}, {ext}, {n}, {date}, {time}, {id}) in the language in use. A delete for good asks « Supprimer définitivement « nom » ? ». The palette's foot is shorter, and the window's title writes the name "classeur".
 
-## [0.19.2] - 2026-11-13
+## [0.19.2] - 2026-11-13 18:55
 
 ### Changed
 - **One licence at one price, and a new pricing page**: the classeur licence is one edition at 29 €, paid once, taxes included. The pricing page shows classeur's icon and name, one card with the price, what the licence gives as a list, one button, then "Before you buy". The licence is named "classeur licence" on the site, at checkout and in the licence file.
 
-## [0.19.1] - 2026-11-13
+## [0.19.1] - 2026-11-13 18:04
 
 ### Fixed
 - **The Windows download is there again**: 0.19.0 had no Windows archive (its build stopped on a check that read the files with Windows line endings). This version has it.
 
-## [0.19.0] - 2026-11-13
+## [0.19.0] - 2026-11-13 17:02
 
 ### Added
 - **A crash is reported at the next start**: if classeur's last session ended without closing, the next start says so and offers its report, written on this computer. You can open the report or copy its path. Nothing is sent anywhere. classeur also keeps a log of its messages in its state folder.
@@ -107,7 +107,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 ### Fixed
 - **The check mark and the zoom's percent stay readable in every theme**: on a light accent they are drawn dark, instead of white.
 
-## [0.18.0] - 2026-11-13
+## [0.18.0] - 2026-11-13 00:38
 
 ### Added
 - **A long copy says when it ends, even behind other windows**: a copy, move or delete that lasted long enough to show in the jobs' view, ended while classeur is not the window in front, is told by a notification of the system.
@@ -116,17 +116,17 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **Every context menu has a search field**: typing in an open menu keeps the items with those letters.
 - **The buttons of an empty folder have their icons**: New folder, Paste, Go up, Try again and the others, under an empty folder or a filter that hides every row, show an icon, the first one highlighted.
 
-## [0.17.2] - 2026-11-12
+## [0.17.2] - 2026-11-12 14:03
 
 ### Fixed
 - **Space in an empty filter no longer shows a space**: the inspector opens and the filter stays empty, with no space shown for a moment.
 
-## [0.17.1] - 2026-11-12
+## [0.17.1] - 2026-11-12 13:31
 
 ### Fixed
 - **A picture in the inspector takes the pane's whole height**: its preview fills the room under the properties, fitted in it, with its zoom buttons at the pane's foot instead of over the picture's edge.
 
-## [0.17.0] - 2026-11-12
+## [0.17.0] - 2026-11-12 12:26
 
 ### Added
 - **The sidebar finds the network's file servers**: its Network section is always there and lists, after the shares mounted, the devices that announce a file service on the local network (SMB, SFTP, WebDAV, NFS, AFP, FTP), and on Windows the computers of the network neighbourhood. A click opens the device's first service in the tab, its menu lists each one, and Find network devices (Ctrl+Shift+F5) searches again.
@@ -143,12 +143,12 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **Relative dates turn at midnight**: with relative dates on, "Today" becomes "Yesterday" just after midnight, even when the window is idle.
 - **Escape cancels a bookmark's drag**: the bookmarks keep their order, and letting go of the button afterwards opens nothing, as with the other drags.
 
-## [0.16.3] - 2026-11-12
+## [0.16.3] - 2026-11-12 10:46
 
 ### Fixed
 - **A paste in a text field no longer freezes the window**: Ctrl+V in the filter, the address, the rename, the batch rename's fields and Go to asks the clipboard without waiting, and the text appears as soon as the program that copied it answers. A slow or hung program no longer stops the window.
 
-## [0.16.2] - 2026-11-12
+## [0.16.2] - 2026-11-12 09:55
 
 ### Fixed
 - **A tab torn off no longer holds the window**: its new window starts in the background, and the tab leaves once that window has started; if it cannot start, this is said and the tab stays. The Setup's check at the start no longer delays the first frame.
@@ -156,7 +156,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **A paste no longer freezes the window**: Paste, Paste into folder and the batch rename's "Names from the clipboard" ask for the clipboard and go on; the copy, the move or the names start when the other program answers. A program that holds the clipboard and does not answer is given up after 2 seconds, and the window never stops meanwhile.
 - **The window no longer waits for a slow desktop or disk** when it opens a file with its application or with Open with, opens a terminal, or saves the settings, the layouts and the Setup's answer: these run in the background, and a program that cannot start is still reported.
 
-## [0.16.1] - 2026-11-12
+## [0.16.1] - 2026-11-12 07:57
 
 ### Fixed
 - **Large folders no longer hold the window**: a folder of tens of thousands of items is sorted and filtered on a worker as it is read, so the window does not stop when it comes or when a change in it makes it read again. A filter typed in it answers faster, the footer and the list do no work per item at each frame, and a paste of many items selects them at once.
@@ -168,7 +168,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **A search of a large tree stays smooth**: while the flat search reads, each batch of results goes among the rows already shown, without filtering and sorting all of them again. A search of a tree of many thousands of files no longer slows down as it goes.
 - **A slow disk or share no longer holds the window**: a rename, a new folder or file, a batch rename, an undo or redo of them, opening a share's address and reading the sidebar's places are done in the background. While a rename is being done, its field stays open; a name refused is said and kept in the field, as before. The sidebar keeps its list until the new one is read. The name of a tab on a share and the share's address in the path are read with the folder, no longer at every frame.
 
-## [0.16.0] - 2026-11-12
+## [0.16.0] - 2026-11-12 02:58
 
 ### Added
 - **The name-taken question compares the two files**: it shows the size and the date of the file there and of the one copied or moved, and marks the newer one.
@@ -209,17 +209,17 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **A menu's search edits as a field and the menu holds still**: in the right-click menu and the layouts' menu, what is typed takes Ctrl+A, Backspace on a selection, Ctrl+Backspace for a word, the arrows and a paste; while it filters, the menu keeps its corner and its width (gui_toolkit at 59f97b3).
 - **The questions are clear and fit their dialog**: Delete for good is the toolkit's question, as inspecteur asks it: its title, a note, each item it deletes by name, Cancel (Enter: nothing is deleted) and Delete; the note no longer runs under the buttons. The question of a name already taken has the same look, its four choices fit on one line, and Enter keeps both files.
 
-## [0.15.2] - 2026-11-11
+## [0.15.2] - 2026-11-11 23:03
 
 ### Added
 - **The details header's menu resets a column**: a right click on a column's title offers to give it back its own width and to leave its sort, the rows can go back to no sort, and Default columns shows every column again at its width and place (gui_toolkit 0.195.0).
 
-## [0.15.1] - 2026-11-11
+## [0.15.1] - 2026-11-11 22:42
 
 ### Changed
 - **The palette forgives a slip**: a word typed with a letter missing, one too many, one for another or two swapped still finds its command or setting ("new foldr" finds New folder), after every exact match. The palette's field has the darker background of a field, and its edge runs all along it (gui_toolkit 0.194.0).
 
-## [0.15.0] - 2026-11-11
+## [0.15.0] - 2026-11-11 21:13
 
 ### Added
 - **The system's title bar, by choice**: a setting puts the window under the system's title bar (Windows, X11, a Wayland compositor that draws them), the tabs under it; off, they are in the title bar as before.
@@ -240,7 +240,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - **Escape ends a gesture**: files or a tab dragged, a rectangle drawn, a section of the sidebar dragged; the rectangle gives back the selection there was, a drag moves nothing. It cleared the selection instead.
 - **The keys of an open dialog stay in it**: Escape or a shortcut pressed in the palette, GoTo or the settings no longer reaches the window behind them.
 
-## [0.14.5] - 2026-11-11
+## [0.14.5] - 2026-11-11 11:25
 
 ### Fixed
 - The session (the panels, the tabs, the bookmarks, the recent folders) is written as soon as it changes, not only when
@@ -254,13 +254,13 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - Each tab's sort is part of the session.
 - `classeurtool test <names>`: those tests of the program alone; the tests' log says each one as it starts.
 
-## [0.14.4] - 2026-11-11
+## [0.14.4] - 2026-11-11 02:27
 
 ### Changed
 - A column's title clicked a third time goes back to the order there was (the names going up): its first way, the other
   way, then the names'. The sort commands (Ctrl+Alt+1 to 4) go the same way round.
 
-## [0.14.3] - 2026-11-11
+## [0.14.3] - 2026-11-11 01:32
 
 ### Fixed
 - The rectangle selection in the Grid and Columns views (it was the Details and List views' only): from the empty part,
@@ -270,7 +270,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - A test goes through the pointer's gestures in every view: the rectangle, the empty part's menu, Ctrl and a drag, a
   file dragged onto a folder.
 
-## [0.14.2] - 2026-11-11
+## [0.14.2] - 2026-11-11 01:14
 
 ### Fixed
 - Files dragged in the window are classeur's own drag (File Pilot's): the folder under the pointer (a row, a tab, a place
@@ -282,7 +282,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - A tab dragged from another classeur window shows its ghost where it lands in this one's row, and lands there.
 - 0.14.1 was not published (its Windows build failed a test that assumed the tabs' widths).
 
-## [0.14.1] - 2026-11-11
+## [0.14.1] - 2026-11-11 00:35
 
 ### Added
 - A tab dragged shows its ghost where it lands in a row, the tabs after it moved along (nothing then follows the pointer
@@ -310,7 +310,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - The themes are the toolkit's, as in its other programs (inspecteur's Graphite): classeur's own Graphite is gone; the
   surfaces, the selection, the cursor and the volumes' bars take the theme's colours.
 
-## [0.14.0] - 2026-11-10
+## [0.14.0] - 2026-11-10 23:17
 
 ### Added
 - The inspector: its edge dragged (the toolkit's pane: folded to a strip, the arrows, kept between starts); a file's
@@ -337,13 +337,13 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - Wayland: a second start brings the window up with its launcher's activation token (the toolkit's
   raise_window_token), which the compositor honours where it may refuse the window's own.
 
-## [0.13.1] - 2026-11-10
+## [0.13.1] - 2026-11-10 21:57
 
 ### Fixed
 - Where the system has no picture for an icon (no icon theme, a type it does not know), Lucide's folder or file stands
   in: no empty icon. (The 0.13.0 release stopped on this: the CI's machines have no icon theme.)
 
-## [0.13.0] - 2026-11-10
+## [0.13.0] - 2026-11-10 21:50
 
 ### Added
 - Updates: the installed classeur checks its latest release once a day, downloads it, checks its signed manifest and puts
@@ -380,14 +380,14 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 ### Removed
 - The Round corners switch: the rounding slider replaces it.
 
-## [0.12.0] - 2026-11-10
+## [0.12.0] - 2026-11-10 11:55
 
 ### Added
 - Windows: classeur.exe has its icon (Explorer, the taskbar, the window), from `res/classeur.rc`.
 - Windows: `classeur` typed in cmd or PowerShell gives its output and exit code: `install` writes classeur.com (the
   toolkit's console launcher) beside classeur.exe with the PATH entry; a folder opens a window and gives the prompt back.
 
-## [0.11.0] - 2026-11-10
+## [0.11.0] - 2026-11-10 11:44
 
 ### Changed
 - The Setup is classeur's own screen over the toolkit's controller: a head with the state in its colour, sections as the
@@ -399,7 +399,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   the default folder for no record).
 - The Setup's test wrote its answer in the person's config: a headless run keeps no answer.
 
-## [0.10.0] - 2026-11-10
+## [0.10.0] - 2026-11-10 11:26
 
 ### Added
 - The settings (Ctrl+,): the toolkit's settings page, a page per subject (Appearance, Files, Opening), a search, the
@@ -414,7 +414,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 ### Fixed
 - The path suggestions' test waits for the folder's listing (it failed on Windows).
 
-## [0.9.0] - 2026-11-10
+## [0.9.0] - 2026-11-10 11:13
 
 ### Added
 - The path field suggests the folders of the path typed: Up and Down choose, Tab completes, Enter or a click goes.
@@ -422,14 +422,14 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - The palette: with nothing typed, the commands run last under Recent, then every command under its group's title; the
   wheel scrolls it, a bar shows where; each row shows its aliases, and its group while searching.
 
-## [0.8.0] - 2026-11-10
+## [0.8.0] - 2026-11-10 09:57
 
 ### Changed
 - The jobs run in the background with their view beside the window, not over it: a panel over the footer that leaves
   the window working, opened by itself once for a job that runs on, sent away by Background or Escape, brought back by
   the footer's button (with the jobs' progress) or Ctrl+Alt+J.
 
-## [0.7.0] - 2026-11-10
+## [0.7.0] - 2026-11-10 09:53
 
 ### Added
 - The columns view filled column by column, scrolled sideways (the wheel too); Up and Down along a column, Left and
@@ -440,13 +440,13 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 ### Fixed
 - The errors of the jobs' window and of batch rename in the theme's red, not a magenta.
 
-## [0.6.0] - 2026-11-10
+## [0.6.0] - 2026-11-10 08:18
 
 ### Added
 - Groups folded and unfolded by a click on their title.
 - The tree in the names and the columns views too.
 
-## [0.5.0] - 2026-11-10
+## [0.5.0] - 2026-11-10 08:09
 
 ### Added
 - Keys of one's own from the palette: Ctrl+Enter (or a row's +) records the keys of the chosen command, one key or a
@@ -455,7 +455,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - The tree view (Ctrl+Shift+E): folders opened in place with a chevron, Right and Left.
 - Group by date, type or size (Ctrl+Alt+5, 6, 7, or the menus' Group by): a title above each group.
 
-## [0.4.0] - 2026-11-10
+## [0.4.0] - 2026-11-10 07:52
 
 ### Added
 - Panels split below (Ctrl+Shift+J, or a tab dragged to a panel's bottom quarter): columns of panels, each lower panel
@@ -465,7 +465,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - Tabs torn off: a tab dragged out of the window becomes a window of its own (`classeur --window <folder>`); dragged onto
   another classeur window, it joins its tabs there.
 
-## [0.3.0] - 2026-11-10
+## [0.3.0] - 2026-11-10 07:35
 
 ### Added
 - File Pilot's zoom slider: a click on the footer's percent shows a vertical slider; dragged, the view goes step by step
@@ -475,7 +475,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
 - Windows: names that start with a dot are hidden files; names joined with the system's separators; a rename tried again
   while the shell reads the file; the batch's folder read after its renames. The tests and the checks run on Windows in CI.
 
-## [0.2.0] - 2026-11-10
+## [0.2.0] - 2026-11-10 07:08
 
 ### Added
 - A key for every action: tabs by number (Alt+1 to Alt+9), the views (Ctrl+1 to Ctrl+4), the sorts (Ctrl+Alt+1 to

@@ -164,6 +164,7 @@ App :: struct {
 	spring_done:   bool,            // ... and it was opened: not again till the target changes
 	drag_out:    bool,              // ... or left it: the system's drag takes them after this frame (drag_run)
 	install:     prefs_page.Install,   // the install: its offer, its dialog, the settings' page (integration.odin)
+	changelog:   prefs_page.Changelog, // What's new: CHANGELOG.md on a page of the settings, said once after an update
 	launch_after: string,           // owned: this program again after an update (Restart), started once this one has ended ("": none)
 	updater:        ^update.Updater,   // checks, downloads and puts in place a new classeur (updates.odin; nil headless)
 	measures_sorted_at: f64,           // when measures_resort last sorted (ui.now_ms)
@@ -259,6 +260,9 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	platform.show_window(app.main.win)
 	// (the install read on a task; offered at the start on Windows. The tests read nothing of the person's)
 	if !app.headless { prefs_page.install_offer(&app.install, &app.main.state, offer = SETUP_AT_START && !setup_asked) }
+	// (after an update, once: a message that stays opens the settings at What's new)
+	app.changelog.english = CHANGELOG
+	if !app.headless { prefs_page.changelog_after_update(&app.changelog, &app.prefs, APP_VERSION, &app.announcer, proc(user: rawptr) { options_show((^App)(user), prefs_page.CHANGELOG_PAGE) }, app) }
 	if setup_asked && !app.headless { prefs_page.install_open(&app.install) }
 	if !standalone { updates_start(app) }   // (one updater: the main window's; a torn-off one leaves the file alone)
 	for !platform.is_closed(app.main.win) {
@@ -270,6 +274,7 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	launch := strings.clone(app.launch_after, context.temp_allocator)
 	// (the window is closed and the instance let go: the installed copy the install opened may start now)
 	prefs_page.install_end(&app.install)
+	prefs_page.changelog_destroy(&app.changelog)
 	prefs_page.install_launch(&app.install)
 	app_close(app)
 	if !standalone {

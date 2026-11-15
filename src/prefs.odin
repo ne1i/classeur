@@ -99,6 +99,7 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 		if r := config.ref_of(&app.prefs, name); r != config.NO_REF { config.entry(&app.prefs, r).def.hidden = true }
 	}
 	config.register(&app.prefs, PREF_DEFS[:])
+	prefs_page.changelog_register(&app.prefs)   // (the version last started: What's new after an update)
 	if !app.headless { config.load_file(&app.prefs, prefs_file(), .User) }
 	// (the command line's over the file, for this run: its layer is not written back)
 	_, pref_problems := config.apply_args(&app.prefs, pref_args, context.temp_allocator)
