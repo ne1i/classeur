@@ -15,7 +15,7 @@ PRODUCT :: licence.Product{
 	version_tag    = "CLASSEUR1",
 	sign_context   = "classeur-licence-v1\n",
 	file_extension = ".classeurlicence",
-	public_key     = "",
+	public_key     = "3q6lBp_XhL7hHNdoBfy5zgwmwqaI-xtls_M9DImZnSw",
 	dev_public_key = "E2W_yH5ujOtduTE-7wHGjNJbbf7XVqi5MGi20IJA5nQ",
 	editions       = {0 = {id = "supporter", title = "Supporter"}},
 }
