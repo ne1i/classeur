@@ -117,7 +117,7 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 	// (the toolkit's settings to the toolkit, now and at each change: the feel, the zoom, the density, the corners, the
 	// motion, the scrolling, the text's rendering, the font families, live; classeur's own monospace face is the
 	// monospace setting's Default)
-	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw, faces = #partial [ui.Text_Face]font.Font_Id{.Mono = app.mono}})
+	prefs_page.standard_watch(&app.standard, &app.prefs, &app.main.state, {renderer = &app.shared.r, fonts = &app.shared.fonts, partial_redraw = &app.main.partial_redraw, pacer = &app.main.pacer, faces = #partial [ui.Text_Face]font.Font_Id{.Mono = app.mono}})
 	if path := prefs_path(app); path != "" { config.user_writer_start(&app.prefs_writer, &app.prefs, path) }
 }
 
