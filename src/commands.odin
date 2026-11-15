@@ -41,7 +41,7 @@ COMMANDS := [?]Command{
 	{id = "flat", title = i18n.later("Search subfolders"), icon = lucide.SEARCH, tags = {"every folder below", "flatten"}, keys = {{.F, {.Ctrl, .Shift}}}, in_text = true, run = act_flat},
 	{id = "options", title = i18n.later("Settings"), icon = lucide.SETTINGS, tags = {"options", "preferences"}, keys = {{.Comma, {.Ctrl}}}, in_text = true, scope = .Window, run = act_options},
 	{id = "inspector", title = i18n.later("Inspector"), icon = lucide.INFO, tags = {"what the cursor is on", "beside the list", "preview"}, keys = {{.Space, {}}, {.I, {.Ctrl, .Shift}}}, run = act_inspector},
-	{id = "properties", title = i18n.later("Properties"), icon = lucide.FILE_TEXT, tags = {"size", "dates", "owner", "permissions", "details", "inspector"}, run = act_properties},
+	{id = "properties", title = i18n.later("Properties"), icon = lucide.FILE_SLIDERS, tags = {"size", "dates", "owner", "permissions", "details", "inspector"}, keys = {{.Return, {.Alt, .Shift}}}, run = act_properties},
 	{id = "shortcuts", title = i18n.later("Keyboard shortcuts"), icon = lucide.KEYBOARD, tags = {"keys", "help"}, keys = {{.F1, {}}}, in_text = true, scope = .Window, run = act_shortcuts},
 
 	{id = "tab_new", title = i18n.later("New tab"), icon = lucide.PLUS, keys = {{.T, {.Ctrl}}}, in_text = true, run = act_tab_new},
