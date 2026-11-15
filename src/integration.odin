@@ -84,20 +84,12 @@ setup_options :: proc() -> setup.Setup_Options {
 
 // (not rodata: i18n.later marks the labels for the catalogue; tr where they are shown)
 // Each box is tied to its part: with an install there, it shows what the system has (a default file manager another
-// program took back shows unticked), and what is ticked is what Install writes. The second box names the system's own
-// file manager: Windows has one by name, and Win+E is its key.
-when ODIN_OS == .Windows {
-	@(private = "file")
-	SETUP_CHOICES := [?]setup.Choice{
-		{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
-		{label = i18n.later("Open folders and Win+E with classeur (in place of File Explorer)"), on = false, parts = {.File_Manager}},
-	}
-} else {
-	@(private = "file")
-	SETUP_CHOICES := [?]setup.Choice{
-		{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
-		{label = i18n.later("classeur as the default file manager"), on = false, parts = {.File_Manager}},
-	}
+// program took back shows unticked), and what is ticked is what Install writes. The second box's words are the system's
+// (SETUP_FILE_MANAGER_WORDS, system_<os>.odin).
+@(private = "file")
+SETUP_CHOICES := [?]setup.Choice{
+	{label = i18n.later("classeur in the terminal (on the PATH)"), on = true, parts = {.Path}},
+	{label = SETUP_FILE_MANAGER_WORDS, on = false, parts = {.File_Manager}},
 }
 
 // Once the start's reading of the install came (prefs_page.install_offer): whether this copy is the installed one (the

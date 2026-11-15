@@ -941,12 +941,6 @@ fr Propriétaire
 en classeur in the terminal (on the PATH)
 fr classeur dans le terminal (dans le PATH)
 
-en Open folders and Win+E with classeur (in place of File Explorer)
-fr Ouvrir les dossiers et Win+E avec classeur (à la place de l'Explorateur de fichiers)
-
-en classeur as the default file manager
-fr classeur comme gestionnaire de fichiers par défaut
-
 en The desktop's launcher cannot be changed: %s
 fr Le lanceur du bureau ne peut pas être modifié : %s
 
@@ -1456,6 +1450,9 @@ fr Ouvrir %s
 en Permissions
 fr Permissions
 
+en classeur as the default file manager
+fr classeur comme gestionnaire de fichiers par défaut
+
 en applications menu
 fr menu des applications
 
@@ -1464,6 +1461,9 @@ fr icônes
 
 en Attributes
 fr Attributs
+
+en Open folders and Win+E with classeur (in place of File Explorer)
+fr Ouvrir les dossiers et Win+E avec classeur (à la place de l'Explorateur de fichiers)
 
 en Start menu
 fr menu Démarrer
