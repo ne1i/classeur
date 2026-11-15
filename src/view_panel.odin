@@ -788,12 +788,12 @@ row_look :: proc(app: ^App, focused: bool, em: f32) -> ^Row_Look {
 	sel := selection_color(app)
 	look^ = {
 		inset = em * ROW_INSET_EM, radius = max(1, ui.scale()) * 2 * corner_k(),
-		line = ui.color("border") * {1, 1, 1, 0.7},
+		line = app.settings.rows.rules ? ui.color("border") * {1, 1, 1, 0.7} : {},
 		fill = focused ? sel : sel * {1, 1, 1, 0.35},
 		edge = focused ? ui.color("accent") : ui.color("accent") * {1, 1, 1, 0.45},
 		ring = ui.color("accent"),
 		focused = focused,
-		stripes = app.settings.alternating_rows,
+		stripes = app.settings.rows.zebra,
 		// (opaque, mixed in sRGB: a few levels off the list; a tint of the text, blended in linear light, stood out)
 		stripe = draw.hex(srgb_mix(surfaces(app).list, surfaces(app).head, STRIPE_SHARE)),
 	}

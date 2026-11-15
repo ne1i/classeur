@@ -2194,12 +2194,12 @@ test_stripes :: proc(t: ^testing.T) {
 		dir := make_fixture(t, files[:])
 		s, app := start(t, {dir}, size = {1100, 500})
 		context.allocator = runtime.heap_allocator()
-		_ = config.set_from_string(&app.prefs, "appearance.alternating_rows", "true", .User)
+		_ = config.set_from_string(&app.prefs, prefs_page.ROWS_ZEBRA_PREF, "true", .User)
 		settings_apply(app)
 		current_tab(app).zoom = 0
 		wait_read(s)
 		session.frames(s, 3)
-		testing.expect(t, app.settings.alternating_rows)
+		testing.expect(t, app.settings.rows.zebra)
 		when SHOTS { session.save_png(s, "stripes.png") }
 	})
 }

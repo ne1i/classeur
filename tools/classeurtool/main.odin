@@ -75,7 +75,7 @@ commands :: proc() -> []toolbox.Command {
 		changelog.command(p),
 		toolbox.i18n_command(I18N),
 		l[0], l[1],
-		tk_site.command({meta = site_meta(), pages = {version_mark = VERSION_MARK, downloads = SITE_DOWNLOADS[:]}, extra = site_downloads}),
+		tk_site.command({meta = site_meta(), pages = {version_mark = VERSION_MARK, downloads = SITE_DOWNLOADS[:]}, extra = site_downloads, images = tk_site.images_default()}),
 		toolbox.Command{name = "timed", usage = ": the tests that measure time (opt-in: a loaded machine fails them for nothing)", run = run_timed},
 		toolbox.Command{name = "shots", usage = "[--out folder]: the pictures of the README, the program's own frames with no window of the system", run = run_shots},
 	)

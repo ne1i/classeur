@@ -1,12 +1,12 @@
 package classeur
 
-// The session: what the window shows comes back at the next start (File Pilot's): its place and size, the panels and
-// their tabs (the folder, the view's zoom, the lock), the panel with the keyboard; and the bookmarks and the recent
-// folders. (The sidebar and the inspector are views: the toolkit's memory of the views keeps them, views.odin.) A text
-// file, a line per thing, written when the window closes and, on a worker, as soon as any of it but the window's place
-// changes (session_autosave: a program killed, a session of the system ended, loses nothing):
+// The session: what the window shows comes back at the next start (File Pilot's): the panels and their tabs (the
+// folder, the view's zoom, the lock), the panel with the keyboard; and the bookmarks and the recent folders. (The
+// window's place and size are the toolkit's window.placement, prefs.odin; the sidebar and the inspector are views: the
+// toolkit's memory of the views keeps them, views.odin.) A text file, a line per thing, written when the window closes
+// and, on a worker, as soon as any of it changes (session_autosave: a program killed, a session of the system ended,
+// loses nothing):
 //
-//   window <left> <top> <width> <height> [maximized]      (platform.placement_text)
 //   focus <panel>
 //   panel <active tab>
 //   tab <zoom> <locked 0|1> <sort key> <descending 0|1> <path>
@@ -38,8 +38,6 @@ session_save :: proc(app: ^App, later := false) {
 	path := session_file(app)
 	if path == "" { return }
 	b := strings.builder_make(context.temp_allocator)
-	pl := platform.get_placement(app.main.win)
-	fmt.sbprintf(&b, "window %s\n", platform.placement_text(pl))
 	session_rest(app, &b)
 	store.writer_put(&app.session_writer, transmute([]u8)strings.to_string(b))
 	if !later { store.writer_flush(&app.session_writer) }
@@ -149,13 +147,9 @@ session_load :: proc(app: ^App) -> (opened: bool) {
 	if err != nil { return }
 	text := string(data)
 	panel_lines := strings.builder_make(context.temp_allocator)
-	place: platform.Placement
-	has_place := false
 	for line in strings.split_lines_iterator(&text) {
 		word, _, rest := strings.partition(line, " ")
 		switch word {
-		case "window":
-			if p, ok := platform.placement_parse(rest); ok && p.rect[2] > 200 && p.rect[3] > 150 { place, has_place = p, true }
 		case "focus", "panel", "tab":
 			fmt.sbprintf(&panel_lines, "%s\n", line)
 		case "bookmark":
@@ -165,6 +159,5 @@ session_load :: proc(app: ^App) -> (opened: bool) {
 		}
 	}
 	opened = panels_open(app, strings.to_string(panel_lines))
-	if has_place && !app.headless { platform.set_placement(app.main.win, place) }
 	return
 }

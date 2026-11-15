@@ -184,6 +184,7 @@ App :: struct {
 	tab_coming_path: string,        // owned: ... its folder, "" until the system gives it (Linux: at the drop)
 	session_writer: store.Writer,   // the files written as the window runs, each by a thread of its own: the window
 	prefs_writer:   config.User_Writer,   // never waits for a disk, the latest text wins
+	placement:      prefs_page.Placement_Keeper,   // the window's place, the toolkit's window.placement
 	layouts_writer: store.Writer,
 	prefs_words:    vmem.Arena,     // the standard preferences' descriptions (the registry keeps them: prefs.odin)
 	crash_bar:      crash_bar.Bar,  // the report of the last session, which did not end cleanly: a bar at the top
@@ -391,6 +392,8 @@ app_open :: proc(o: Open_Options) -> ^App {
 	// (the files written as the window runs: their paths known now, a test's included)
 	if path := session_file(app); path != "" { store.writer_open(&app.session_writer, path) }
 	if path := layouts_file(app); path != "" { store.writer_open(&app.layouts_writer, path) }
+	// (the window where it was: the toolkit's window.placement)
+	if !app.headless { prefs_page.placement_restore(&app.placement, &app.prefs, app.main.win) }
 	// (the session's tabs come back; folders given open beside them, as the second start's do)
 	if session_load(app) {
 		folders_show(app, o.folders)
@@ -492,6 +495,7 @@ app_close :: proc(app: ^App) {
 	until := time.tick_add(time.tick_now(), QUIT_WAIT_MS * time.Millisecond)
 	reads_ended := pool_stop_until(&app.pool, until)
 	edits_ended := pool_stop_until(&app.edit_pool, until)
+	if !app.headless { prefs_page.placement_keep(&app.placement, &app.prefs, app.main.win) }
 	session_save(app)   // (after the workers: a bookmark asked of one of them is in it)
 	// (what is pending written now: the process may end before their threads would)
 	store.writer_flush(&app.layouts_writer)
@@ -563,6 +567,7 @@ app_free :: proc(app: ^App) {
 	delete(app.session_written)
 	delete(app.session_seen)
 	store.writer_close(&app.session_writer)
+	prefs_page.placement_keeper_destroy(&app.placement)
 	_ = config.user_writer_stop(&app.prefs_writer, &app.prefs)
 	store.writer_close(&app.layouts_writer)
 	for u in app.mounting { delete(u) }

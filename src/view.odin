@@ -269,7 +269,8 @@ tab_radius :: proc(em: f32) -> f32 { return em * TAB_RADIUS_EM * ui.rounding(ui.
 
 // A panel's tabs, at the top of the window over it: as wide as TAB_EM, narrower when they do not fit; the shown one
 // in the list's colour, with a line of the accent along its top when its panel has the keyboard. More tabs than the row
-// holds at TAB_MIN_EM: they scroll sideways (the wheel), the shown one is brought into view, and a chevron lists them.
+// holds at TAB_MIN_EM: they scroll on the toolkit's strip (its arrows, the wheel), the shown one brought into view, and a
+// chevron lists them.
 tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, em: f32) {
 	focused := index == app.focus
 	id := fmt.tprintf("###tabs%d", index)
@@ -288,24 +289,14 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 		if over { avail -= em * TAB_LIST_EM }
 		tab_w := em * TAB_EM
 		if room > 0 && n > 0 { tab_w = clamp(avail / f32(n), em * TAB_MIN_EM, em * TAB_EM) }
-		// the tabs in a view that scrolls sideways, as wide as they are up to their room: the buttons after it stay
+		// the tabs on the toolkit's strip, as wide as they are up to their room: past it they scroll with its arrows and
+		// the wheel, the shown one brought into view when it changes; the buttons after it stay
 		view_w := f32(n) * tab_w
 		if avail > 0 { view_w = min(view_w, avail) }
-		view_flags := ui.Box_Flags{.Clip, .View_Scroll_X, .View_Clamp_X, .Allow_Overflow_X, .Scrollbar_None}
-		if over { view_flags += {.Scroll_Self} }   // (a mouse's wheel turns one way only: over the tabs, it scrolls them)
 		ui.next({width = ui.px(view_w), height = ui.pct(1), axis = .X, cross = .End})
-		view := ui.build_box(view_flags, "###tab_view")
-		if sig := ui.signal(view); over && sig.scrolled.y != 0 && sig.scrolled.x == 0 {
-			view.view_target.x = clamp(view.view_target.x + sig.scrolled.y * ui.wheel_step(view, .X), 0, ui.view_limit(view, .X))
-		}
-		// a tab shown anew (opened, picked) comes into view, once the view has its width
-		if shown := panel_tab(p); shown != nil && shown.id != p.tab_seen && view.size.x > 0 {
-			slot := p.active + (ghost_at >= 0 && ghost_at <= p.active ? 1 : 0)
-			ui.view_reveal(view, f32(slot) * tab_w, f32(slot + 1) * tab_w, .X)
-			p.tab_seen = shown.id
-		}
 		close := -1
-		if ui.parent(view) {
+		if ui.strip("###tab_view") {
+			view := ui.parent_box()
 			for t, i in p.tabs {
 				if i == ghost_at { tab_ghost(app, tab_w, em) }
 				on := i == p.active
@@ -315,6 +306,7 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 				flags := ui.Box_Flags{.Clickable, .Hot_Within, .Middle_Click}
 				if !on { flags += {.Draw_Hot_Effects} }
 				tab := ui.build_box(flags, fmt.tprintf("###tab%d", t.id))
+				if on { ui.strip_reveal(tab) }
 				// (the line of the accent along the top says, with several panels, which one has the keyboard)
 				line := on && focused && len(app.panels) > 1 ? ui.color("accent") : ui.Color{}
 				if on { tab_paint(tab, draw.hex(surfaces(app).list), draw.hex(surfaces(app).edge), line, tab_radius(em)) }

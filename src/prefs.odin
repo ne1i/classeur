@@ -19,7 +19,6 @@ import "gt:ui"
 // titles and descriptions shown are marked by i18n.later for the catalogue (a hidden one is never shown); a title is
 // the one its name gave, written out: one made from the name is in no catalogue.
 PREF_DEFS := [?]config.Def{
-	{name = "appearance.alternating_rows", title = i18n.later("Alternating rows"), tags = {"zebra", "stripes"}, description = i18n.later("Paints every other row a shade lighter, to tell the rows apart."), kind = .Bool, default = {b = false}},
 	{name = "appearance.inactive_opacity", title = i18n.later("Inactive opacity"), tags = {"dim", "panels", "focus"}, description = i18n.later("Dims the contents of the panels that do not have the keyboard, so that the one that has it stands out."), kind = .Float, default = {f = 0.8}, min = 0.3, max = 1, bounded = true},
 	{name = "files.show_extensions", title = i18n.later("Show extensions"), tags = {"suffix", "names"}, description = i18n.later("Shows the extensions of the files' names."), kind = .Bool, default = {b = true}},
 	{name = "files.show_hidden", title = i18n.later("Show hidden"), tags = {"dotfiles", "hidden"}, description = i18n.later("Shows the hidden files (their names start with a dot; on Windows, their attribute)."), kind = .Bool, default = {b = false}},
@@ -43,8 +42,13 @@ CATALOGUES :: []i18n.Catalog{{"fr", #load("../i18n/fr.txt", string)}}
 standard_defaults :: proc() -> prefs_page.Standard_Defaults {
 	d := prefs_page.STANDARD_DEFAULTS
 	d.theme, d.app_name = "Graphite", APP_NAME
+	// (File Pilot's rows: a line under each, no stripes)
+	d.values = ROWS_DEFAULTS[:]
 	return d
 }
+
+@(rodata)
+ROWS_DEFAULTS := [?]prefs_page.Standard_Value{{prefs_page.ROWS_RULES_PREF, "true"}}
 
 // The values the program reads, copied out of the registry.
 Settings :: struct {
@@ -55,7 +59,7 @@ Settings :: struct {
 	mode:             ui.Theme_Mode,
 	finish:           ui.Finish,
 	glow:             f32,
-	alternating_rows: bool,
+	rows:             prefs_page.Rows_Look,   // appearance.rows.zebra, rules (the toolkit's)
 	inactive_opacity: f32,
 	font_size:        f32,
 	show_extensions:  bool,
@@ -81,7 +85,7 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 	app.prefs = config.prefs_make()
 	// (the toolkit's standard preferences first: their descriptions live in prefs_words, as long as the registry)
 	_ = vmem.arena_init_growing(&app.prefs_words)
-	prefs_page.standard_register(&app.prefs, prefs_page.STANDARD_ALL, standard_defaults(), vmem.arena_allocator(&app.prefs_words))
+	prefs_page.standard_register(&app.prefs, prefs_page.STANDARD_ALL + {.Rows}, standard_defaults(), vmem.arena_allocator(&app.prefs_words))
 	if r := config.ref_of(&app.prefs, prefs_page.SYSTEM_TITLE_PREF); r != config.NO_REF {
 		e := config.entry(&app.prefs, r)
 		// (offered where the system can draw a title bar: Windows, X11, a Wayland compositor with server-side ones;
@@ -139,6 +143,8 @@ emoji_apply :: proc(app: ^App) {
 // Each round of the loop: the user's changes since the last text handed to the writer's thread, which writes them (config.User_Writer:
 // the interface's thread never waits for the disk; many changes, one write).
 prefs_tidy :: proc(app: ^App) {
+	// (the window's place, the toolkit's window.placement, kept as it moves: a crash or an update's restart finds it)
+	if !app.headless { prefs_page.placement_track(&app.placement, &app.prefs, app.main.win, ui.now_ms()) }
 	config.user_writer_save(&app.prefs_writer, &app.prefs)
 	if config.user_writer_failed(&app.prefs_writer) { say(app, i18n.tr("The settings cannot be written to %s"), prefs_path(app)) }
 }
@@ -154,7 +160,7 @@ settings_apply :: proc(app: ^App) {
 	look := prefs_page.appearance_read(p, context.temp_allocator)
 	s.theme = config.string_of(p, prefs_page.THEME_PREF)   // (the registry's: valid until the next change)
 	s.mode, s.finish, s.glow, s.font_size = look.mode, look.finish, look.glow, look.font_size
-	s.alternating_rows = config.bool_of(p, "appearance.alternating_rows")
+	s.rows = prefs_page.rows_look(p)
 	s.inactive_opacity = f32(config.float_of(p, "appearance.inactive_opacity"))
 	s.show_extensions = config.bool_of(p, "files.show_extensions")
 	switch config.string_of(p, "files.date_format") {

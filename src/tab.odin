@@ -120,7 +120,6 @@ Panel :: struct {
 	tabs:     [dynamic]^Tab,
 	active:   int,
 	below:    bool,   // under the panel before it, in its column (File Pilot's split below); else a column of its own
-	tab_seen: u64,    // the shown tab the row of tabs last brought into view (another one shown: brought into view too)
 }
 
 tab_new :: proc(app: ^App, path: string) -> ^Tab {

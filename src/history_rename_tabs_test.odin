@@ -115,8 +115,8 @@ test_rename_refused_and_tab :: proc(t: ^testing.T) {
 	})
 }
 
-// More tabs than a narrow panel holds: the row scrolls, the shown tab in view, the new tab's button in the panel, and
-// a chevron lists every tab.
+// More tabs than a narrow panel holds: the row scrolls on the toolkit's strip (its arrow shows), the shown tab in view,
+// the new tab's button in the panel, and a chevron lists every tab.
 @(test)
 test_tabs_overflow :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -129,7 +129,7 @@ test_tabs_overflow :: proc(t: ^testing.T) {
 		session.advance(s, 600)
 		testing.expect_value(t, p.active, len(p.tabs) - 1)
 
-		view := session.get(s, "tab_view")
+		view := session.get(s, "strip_view")
 		panel := session.get(s, "panel0").rect
 		last := session.get(s, fmt.tprintf("tab%d", p.tabs[p.active].id)).rect
 		testing.expectf(t, last.min.x >= view.rect.min.x - 1 && last.max.x <= view.rect.max.x + 1, "the shown tab in view: %v in %v", last, view.rect)
@@ -137,6 +137,7 @@ test_tabs_overflow :: proc(t: ^testing.T) {
 		testing.expectf(t, plus.min.x >= panel.min.x && plus.max.x <= panel.max.x + 1, "the new tab's button in the panel: %v in %v", plus, panel)
 		first := session.get(s, fmt.tprintf("tab%d", p.tabs[0].id)).rect
 		testing.expect(t, first.max.x <= view.rect.min.x + 1, "the first tab scrolled out")
+		testing.expect(t, session.find(s, "strip_left") != nil, "the toolkit's arrow at the start: tabs hidden there")
 
 		// the chevron's menu: every tab; a click shows it
 		session.click(s, "tablist0")
@@ -150,13 +151,13 @@ test_tabs_overflow :: proc(t: ^testing.T) {
 		session.advance(s, 600)
 		testing.expect_value(t, p.active, 0)
 		first = session.get(s, fmt.tprintf("tab%d", p.tabs[0].id)).rect
-		view = session.get(s, "tab_view")
+		view = session.get(s, "strip_view")
 		testing.expectf(t, first.min.x >= view.rect.min.x - 1, "the first tab back in view: %v in %v", first, view.rect)
 
 		// the wheel over the tabs scrolls them
 		before := view.view_target.x
 		session.wheel(s, session.center(view), {0, 3})
 		session.frames(s, 2)
-		testing.expect(t, session.get(s, "tab_view").view_target.x > before, "the wheel scrolls the tabs")
+		testing.expect(t, session.get(s, "strip_view").view_target.x > before, "the wheel scrolls the tabs")
 	})
 }
