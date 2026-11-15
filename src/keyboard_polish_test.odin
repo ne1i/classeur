@@ -39,6 +39,33 @@ test_keys_stops :: proc(t: ^testing.T) {
 	})
 }
 
+// An item's menu ends with Properties, which opens the inspector on it; a second Properties keeps it open.
+@(test)
+test_properties_in_the_item_menu :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {dir})
+		testing.expect(t, !inspector_shown(app), "no inspector at first")
+		context.allocator = runtime.heap_allocator()
+		point_at(t, current_tab(app), "notes.txt")
+		session.frames(s, 1)
+		entry_menu_open(app, current_tab(app), {300, 200})
+		session.frames(s, 3)
+		item := session.find_text(s, "Properties")
+		if !testing.expect(t, item != nil, "Properties in the item's menu") { return }
+		// (the menu is taller than the test's window: typed, as a person picks a line of a long menu)
+		session.type_text(s, "Proper")
+		session.frames(s, 2)
+		session.key(s, .Return)
+		session.frames(s, 3)
+		testing.expect(t, inspector_shown(app), "Properties opens the inspector")
+		act_properties(app)
+		session.frames(s, 2)
+		testing.expect(t, inspector_shown(app), "a second Properties keeps it")
+	})
+}
+
 @(test)
 test_keys_sidebar :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {

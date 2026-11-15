@@ -41,6 +41,7 @@ COMMANDS := [?]Command{
 	{id = "flat", title = i18n.later("Search subfolders"), icon = lucide.SEARCH, tags = {"every folder below", "flatten"}, keys = {{.F, {.Ctrl, .Shift}}}, in_text = true, run = act_flat},
 	{id = "options", title = i18n.later("Settings"), icon = lucide.SETTINGS, tags = {"options", "preferences"}, keys = {{.Comma, {.Ctrl}}}, in_text = true, scope = .Window, run = act_options},
 	{id = "inspector", title = i18n.later("Inspector"), icon = lucide.INFO, tags = {"what the cursor is on", "beside the list", "preview"}, keys = {{.Space, {}}, {.I, {.Ctrl, .Shift}}}, run = act_inspector},
+	{id = "properties", title = i18n.later("Properties"), icon = lucide.FILE_TEXT, tags = {"size", "dates", "owner", "permissions", "details", "inspector"}, run = act_properties},
 	{id = "shortcuts", title = i18n.later("Keyboard shortcuts"), icon = lucide.KEYBOARD, tags = {"keys", "help"}, keys = {{.F1, {}}}, in_text = true, scope = .Window, run = act_shortcuts},
 
 	{id = "tab_new", title = i18n.later("New tab"), icon = lucide.PLUS, keys = {{.T, {.Ctrl}}}, in_text = true, run = act_tab_new},
@@ -115,7 +116,7 @@ COMMANDS := [?]Command{
 	{id = "files_only", title = i18n.later("Show files only"), icon = lucide.FILE, keys = {{.F, {.Ctrl, .Alt}}}, in_text = true, run = act_files_only},
 	{id = "folders_only", title = i18n.later("Show folders only"), icon = lucide.FOLDER, keys = {{.D, {.Ctrl, .Alt}}}, in_text = true, run = act_folders_only},
 	{id = "every_type", title = i18n.later("Show every type"), icon = lucide.FILES, tags = {"again"}, keys = {{.A, {.Ctrl, .Alt}}}, in_text = true, run = act_every_type},
-	{id = "copy_name", title = i18n.later("Copy names"), icon = lucide.TEXT_QUOTE, keys = {{.C, {.Ctrl, .Alt}}}, in_text = true, run = act_copy_name},
+	{id = "copy_name", title = i18n.later("Copy name"), icon = lucide.TEXT_QUOTE, keys = {{.C, {.Ctrl, .Alt}}}, in_text = true, run = act_copy_name},
 	{id = "open_folder", title = i18n.later("Go to its folder"), icon = lucide.CORNER_LEFT_UP, tags = {"item's own folder", "in a search"}, keys = {{.O, {.Alt}}}, in_text = true, run = act_open_folder},
 	{id = "tab_1", title = i18n.later("Tab 1"), icon = lucide.HASH, keys = {{.N1, {.Alt}}}, in_text = true, run = proc(app: ^App) { tab_pick(app, 0) }},
 	{id = "tab_2", title = i18n.later("Tab 2"), icon = lucide.HASH, keys = {{.N2, {.Alt}}}, in_text = true, run = proc(app: ^App) { tab_pick(app, 1) }},

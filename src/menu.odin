@@ -175,6 +175,11 @@ entry_menu_items :: proc(app: ^App, m: ^Entry_Menu) {
 		menu_command(app, "folders_mixed", checked = !s.mixed)
 	}
 	menu_command(app, "hidden", checked = app.show_hidden)
+	// (on an item, Properties last, as in every file manager)
+	if m.on_entry {
+		ui.menu_separator()
+		menu_command(app, "properties", enabled = folder_cursor_entry(&t.folder) != nil)
+	}
 }
 
 ////////////////////////////////

@@ -122,6 +122,12 @@ props_free :: proc(p: ^fs.Properties) {
 
 act_inspector :: proc(app: ^App) { view_toggle(app, INSPECTOR_VIEW) }
 
+// The properties of the item at the cursor: the inspector, opened if it is not (never closed: a second Properties keeps
+// it), shows them.
+act_properties :: proc(app: ^App) {
+	if !inspector_shown(app) { ui.view_open(&app.views, INSPECTOR_VIEW, app) }
+}
+
 // Each frame: the inspector closed (its command, its close button, the view's own close) lets go of what it showed.
 inspector_follow :: proc(app: ^App) {
 	insp := &app.inspector
