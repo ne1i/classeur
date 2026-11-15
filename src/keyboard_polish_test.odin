@@ -39,6 +39,22 @@ test_keys_stops :: proc(t: ^testing.T) {
 	})
 }
 
+// On an AZERTY keyboard + is Shift+=: Ctrl+Shift+= must zoom in as Ctrl+= does.
+@(test)
+test_keys_zoom :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {dir})
+		before := current_tab(app).zoom
+		session.key(s, .Equal, {.Ctrl, .Shift})
+		testing.expectf(t, current_tab(app).zoom > before, "Ctrl++ zooms in: %d from %d", current_tab(app).zoom, before)
+		zoomed := current_tab(app).zoom
+		session.key(s, .Minus, {.Ctrl})
+		testing.expectf(t, current_tab(app).zoom < zoomed, "Ctrl+- zooms out: %d from %d", current_tab(app).zoom, zoomed)
+	})
+}
+
 // An item's menu ends with Properties, which opens the inspector on it; a second Properties keeps it open.
 @(test)
 test_properties_in_the_item_menu :: proc(t: ^testing.T) {

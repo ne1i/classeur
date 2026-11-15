@@ -6,6 +6,7 @@ import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
+import cli "gt:cli"
 import "gt:process"
 import setup "gt:setup"
 
@@ -31,10 +32,10 @@ USAGE :: `classeur: a file manager
 `
 
 main :: proc() {
-	os.exit(run(os.args[1:]))
+	cli.exit(run(os.args[1:]))
 }
 
-run :: proc(given: []string) -> int {
+run :: proc(given: []string) -> cli.Exit {
 	// (--install, --uninstall and --status: no window; --setup: the window, the install's dialog open)
 	cmd, args := setup.command_of(given)
 	if setup.command_alone(cmd) { return setup.command_run(cmd, setup_options(), process.console_write) }
@@ -60,10 +61,10 @@ run :: proc(given: []string) -> int {
 			continue
 		case "version", "--version":
 			fmt.printfln("classeur %s", APP_VERSION)
-			return 0
+			return .Done
 		case "help", "-h", "--help":
 			fmt.print(USAGE)
-			return 0
+			return .Done
 		}
 		// (absolute: a second start hands them to the first, which runs in another folder)
 		abs, err := filepath.abs(a, context.temp_allocator)

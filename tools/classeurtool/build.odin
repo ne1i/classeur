@@ -6,15 +6,16 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import changelog "gt:changelog"
+import cli "gt:cli"
 import toolbox "gt:toolbox"
 
 // The packages that have tests, and this tool.
 TEST_PACKAGES :: [?]string{"src", "src/fs", "tools/classeurtool"}
 
-run_build :: proc(args: []string) -> int {
+run_build :: proc(args: []string) -> cli.Exit {
 	p := project()
 	release := len(args) > 0 && args[0] == "release"
-	if !toolbox.build_native(p) { return 1 }
+	if !toolbox.build_native(p) { return .Failed }
 	_ = os.make_directory("build")
 	mode := release ? []string{"-o:speed"} : []string{"-debug"}
 	extra := make([dynamic]string, context.temp_allocator)
@@ -23,20 +24,20 @@ run_build :: proc(args: []string) -> int {
 	when ODIN_OS == .Windows {
 		if release { append(&extra, "-subsystem:windows") }
 	}
-	if !toolbox.run(toolbox.odin_command(p, "build", "", extra[:]), {echo = true}) { return 1 }
+	if !toolbox.run(toolbox.odin_command(p, "build", "", extra[:]), {echo = true}) { return .Failed }
 	fmt.printfln("built %s", PROGRAM)
-	return 0
+	return .Done
 }
 
-run_test :: proc(args: []string) -> int {
+run_test :: proc(args: []string) -> cli.Exit {
 	p := project()
-	if !toolbox.build_native(p) { return 1 }
+	if !toolbox.build_native(p) { return .Failed }
 	_ = os.make_directory("build")
 	// (names given, `classeur.test_watch,classeur.test_zoom_icons_stay`: those tests of the program alone, in that order)
 	if len(args) > 0 {
 		out := fmt.tprintf("-out:build/test_some%s", ODIN_OS == .Windows ? ".exe" : "")
 		names := fmt.tprintf("-define:ODIN_TEST_NAMES=%s", args[0])
-		return toolbox.run(toolbox.odin_command(p, "test", "src", {out, names, "-define:ODIN_TEST_THREADS=1", "-define:ODIN_TEST_LOG_STATE_CHANGES=true"}), {echo = true}) ? 0 : 1
+		return toolbox.ended(toolbox.run(toolbox.odin_command(p, "test", "src", {out, names, "-define:ODIN_TEST_THREADS=1", "-define:ODIN_TEST_LOG_STATE_CHANGES=true"}), {echo = true}))
 	}
 	for pkg in TEST_PACKAGES {
 		name, _ := strings.replace_all(pkg, "/", "_", context.temp_allocator)
@@ -45,32 +46,32 @@ run_test :: proc(args: []string) -> int {
 		extra := pkg == "src" ? []string{out, "-define:ODIN_TEST_THREADS=1", "-define:ODIN_TEST_LOG_STATE_CHANGES=true"} : []string{out}
 		// (the tool links no native library: no Linux link flag)
 		cmd := pkg == "tools/classeurtool" ? []string{"odin", "test", pkg, fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", out} : toolbox.odin_command(p, "test", pkg, extra)
-		if !toolbox.run(cmd, {echo = true}) { return 1 }
+		if !toolbox.run(cmd, {echo = true}) { return .Failed }
 	}
-	return 0
+	return .Done
 }
 
-run_check :: proc(args: []string) -> int {
+run_check :: proc(args: []string) -> cli.Exit {
 	p := project()
-	if !changelog_check(p) { return 1 }
-	if !toolbox.check_scopes("src") { return 1 }
-	if !check_systems() { return 1 }
+	if !changelog_check(p) { return .Failed }
+	if !toolbox.check_scopes("src") { return .Failed }
+	if !check_systems() { return .Failed }
 	// (a text of the interface without its French fails here, not in front of a person)
-	if e := toolbox.i18n_catalogue(I18N.dirs, fmt.tprintf("%s/fr.txt", I18N.folder), "fr", true); e != "" { fmt.eprintln(e); return 1 }
-	if !toolbox.run(toolbox.odin_command(p, "check"), {echo = true}) { return 1 }
+	if e := toolbox.i18n_catalogue(I18N.dirs, fmt.tprintf("%s/fr.txt", I18N.folder), "fr", true); e != "" { fmt.eprintln(e); return .Failed }
+	if !toolbox.run(toolbox.odin_command(p, "check"), {echo = true}) { return .Failed }
 	// (the whole program for Windows and macOS too, from any system: code of another system that does not compile fails
 	// the Linux job)
 	when ODIN_OS != .Windows {
-		if !toolbox.check_windows(p) { return 1 }
-		if !toolbox.check_darwin(p) { return 1 }
+		if !toolbox.check_windows(p) { return .Failed }
+		if !toolbox.check_darwin(p) { return .Failed }
 	} else {
 		// (the file system's code of the other system: the program is written for both)
-		if !toolbox.run({"odin", "check", "src/fs", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", "-no-entry-point", "-target:linux_amd64"}, {echo = true}) { return 1 }
+		if !toolbox.run({"odin", "check", "src/fs", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", "-no-entry-point", "-target:linux_amd64"}, {echo = true}) { return .Failed }
 	}
-	if !toolbox.run({"odin", "check", "tools/classeurtool", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet"}, {echo = true}) { return 1 }
-	if run_test(nil) != 0 { return 1 }
-	if run_build({"release"}) != 0 { return 1 }
-	return toolbox.check_launcher(p) ? 0 : 1
+	if !toolbox.run({"odin", "check", "tools/classeurtool", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet"}, {echo = true}) { return .Failed }
+	if run_test(nil) != .Done { return .Failed }
+	if run_build({"release"}) != .Done { return .Failed }
+	return toolbox.ended(toolbox.check_launcher(p))
 }
 
 // The fragments of changelog.d/, as `changelog check` says them.

@@ -8,6 +8,7 @@
 package classeurtool
 
 import changelog "gt:changelog"
+import cli "gt:cli"
 import release "gt:release"
 import tk_site "gt:site"
 import toolbox "gt:toolbox"
@@ -62,7 +63,7 @@ I18N :: toolbox.I18n_Catalogues{dirs = {"src"}, folder = "i18n"}
 // The commands (main_test checks them).
 commands :: proc() -> []toolbox.Command {
 	p := project()
-	r := release.commands({project = p, dist = "build/dist", files = RELEASE_FILES[:], check = proc() -> int { return run_check(nil) }, update = classeur_update.PRODUCT})
+	r := release.commands({project = p, dist = "build/dist", files = RELEASE_FILES[:], check = proc() -> cli.Exit { return run_check(nil) }, update = classeur_update.PRODUCT})
 	l := toolbox.licence_commands(LICENCE_TOOL)
 	list := make([dynamic]toolbox.Command, context.temp_allocator)
 	append(&list,
@@ -71,7 +72,7 @@ commands :: proc() -> []toolbox.Command {
 		toolbox.Command{name = "check", usage = ": the changelog, the scopes, odin check of the program for this system and for Windows (-vet), the tests, then a release build", run = run_check},
 		toolbox.logo_command(logo()),
 		r[0], r[1], r[2],
-		toolbox.Command{name = "update", usage = "keygen <file> | pubkey | manifest <program> <version> - <out> | verify <manifest> -: classeur's update key and manifests", run = proc(args: []string) -> int { return toolbox.update_command(classeur_update.PRODUCT, args) }},
+		toolbox.Command{name = "update", usage = "keygen <file> | pubkey | manifest <program> <version> - <out> | verify <manifest> -: classeur's update key and manifests", run = proc(args: []string) -> cli.Exit { return toolbox.update_command(classeur_update.PRODUCT, args) }},
 		changelog.command(p),
 		toolbox.i18n_command(I18N),
 		l[0], l[1],

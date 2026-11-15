@@ -13,6 +13,7 @@ import "core:thread"
 import "core:time"
 import "core:time/datetime"
 import "core:time/timezone"
+import cli "gt:cli"
 import config "gt:config"
 import crash "gt:crash"
 import "gt:devtools"
@@ -222,7 +223,7 @@ Open_Options :: struct {
 }
 
 // `standalone`: a window of a tab torn off another (classeur --window): it owns nothing (no instance, no session).
-app_run :: proc(folders: []string, setup_asked := false, standalone := false, pref_args: []string = nil) -> int {
+app_run :: proc(folders: []string, setup_asked := false, standalone := false, pref_args: []string = nil) -> cli.Exit {
 	// one window per person: a second start hands its folders to the first, which opens them in tabs, and ends
 	outcome := instance.Outcome.Other_Instance
 	owner: instance.Owner
@@ -230,7 +231,7 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 		// (its launcher's activation token first: the first start's window comes up with it on Wayland)
 		message := app_message_make(platform.activation_token_from_env(context.temp_allocator), folders)
 		outcome, owner = instance.acquire({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)message)
-		if outcome == .Forwarded { return 0 }
+		if outcome == .Forwarded { return .Done }
 	}
 	// (a window's process only: a second start forwarded above writes nothing)
 	logger := tk_log.install({program = APP_NAME, echo = true})
@@ -252,7 +253,7 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	if app == nil {
 		if outcome == .First { instance.owner_stop(&owner) }
 		if !standalone { crash.end_session() }
-		return 1
+		return .Failed
 	}
 	if report != "" { crash_bar.init(&app.crash_bar, report) }
 	server: ^instance.Server
@@ -283,7 +284,7 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	}
 	// (Restart after an update: it starts once this one let go of the instance)
 	if launch != "" { _ = setup.launch(launch) }
-	return 0
+	return .Done
 }
 
 // What a second start hands the first: its launcher's activation token on a line of its own (marked by a byte no path
