@@ -35,6 +35,11 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
   not answer never freezes the window.
 - **The trash.** Linux: the freedesktop.org specification (home trash on its volume, else `<top>/.Trash-<uid>`, a
   `.trashinfo` taken with `O_EXCL`). Windows: the Recycle Bin. Shift+Delete deletes for good after a confirmation.
+  - Undo needs the item's place in the Recycle Bin, its `$R` file. On Windows, `IFileOperation` gives it to the sink of
+    the delete (`PostDeleteItem`, its new item). Refused: the search of the `$I` records written since the trash began,
+    by path and date. A clock or a timestamp off by a moment, or a record not yet seen, lost it now and then. The
+    trash then left no undo step, and each Ctrl+Z after it undid a step older than the one the person meant.
+  - An item that the shell deletes for good (a drive without a Recycle Bin) has no new item: no undo step.
 - **Watching.** Changes close together come as one; a folder read again keeps its cursor and its selection.
 - **The look** is File Pilot's, faithfully. No status bar: messages are toasts. The zoom goes from the details (0 %) to
   names alone (10 %), names in columns (20 %), then cards ever larger (30 % to 100 %).
