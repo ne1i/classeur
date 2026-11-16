@@ -18,7 +18,12 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
 - The selection survives a sort, a filter and a refresh: it is a flag per entry, and a new listing gets it back by name.
 - Backspace and Alt+Up put the cursor on the folder we came from. A typed path that names a file opens its folder with the
   file at the cursor.
-- The crumbs start at Home under the home folder; the first crumbs go when the room is short.
+- The crumbs start at Home under the home folder; the first crumbs go when the room is short. The room is reckoned
+  with each crumb's button as the toolkit lays it out (`ui.button_width`) and its chevron, and a last name wider than
+  the row alone is cut with "…": the empty part at the end always stays, as it is what a click turns into the path
+  field. The text and 2 em ran short by half an em a crumb, and on a deep path the crumbs covered the empty part.
+  Refused: the width of the last layout. A crumb cut there measures short, the next build does not cut it, and the
+  name flickers between whole and cut at each frame.
 - The tests drive the whole program with no window of the system (`src/app_test.odin`); the README's pictures come from a
   test.
 

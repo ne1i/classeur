@@ -67,6 +67,30 @@ test_goto_deep :: proc(t: ^testing.T) {
 	})
 }
 
+// A folder with a name longer than the row: the crumbs keep an empty part at their end, and a click there opens the path
+// field (Windows' long temporary folders covered it with the last crumb).
+@(test)
+test_crumbs_keep_their_empty_part :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		LONG :: "a_folder_with_a_name_much_longer_than_the_bar_of_crumbs_can_ever_show_whole_in_one_row_of_a_window_that_is_not_wide_at_all/"
+		files := [?]string{LONG}
+		dir := make_fixture(t, files[:])
+		s, app := start(t, {fs.join(dir, LONG[:len(LONG) - 1], context.temp_allocator)}, size = {900, 600})
+		context.allocator = runtime.heap_allocator()
+		tab := current_tab(app)
+		session.frames(s, 3)
+		crumbs := session.get(s, "crumbs")
+		if !testing.expect(t, crumbs != nil, "the crumbs") { return }
+		// (the parts drawn end before the row does: the spacer after them, the empty part, keeps a width)
+		end: f32
+		for b := crumbs.first; b != nil; b = b.next { if b.rect.max.y > b.rect.min.y { end = max(end, b.rect.max.x) } }
+		testing.expectf(t, crumbs.rect.max.x - end > 8, "an empty part at the end: the parts end at %v in %v", end, crumbs.rect)
+		session.click_at(s, {crumbs.rect.max.x - 4, (crumbs.rect.min.y + crumbs.rect.max.y) * 0.5})
+		session.frames(s, 2)
+		testing.expect(t, tab.address_open, "the path field")
+	})
+}
+
 // A click on the empty part of the crumbs: the path field, its rows under it; no dialog. Letters find what is below.
 @(test)
 test_crumbs_click_types_the_path :: proc(t: ^testing.T) {

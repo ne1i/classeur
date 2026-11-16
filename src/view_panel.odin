@@ -241,6 +241,22 @@ toolbar :: proc(app: ^App, p: ^Panel, t: ^Tab, index: int, em: f32) {
 	}
 }
 
+// `text` cut at its end with "…" to `width` at size `size` in the style's font (whole when it fits). A binary search over
+// its characters: a few measures, whatever its length.
+@(private = "file")
+elided :: proc(text: string, width, size: f32) -> string {
+	f := ui.top_style().font
+	if ui.text_width(f, size, text) <= width { return text }
+	cuts := make([dynamic]int, 0, len(text), context.temp_allocator)
+	for _, i in text { append(&cuts, i) }
+	lo, hi := 0, len(cuts) - 1   // (the longest prefix that fits: cuts[lo], at least none)
+	for lo < hi {
+		mid := (lo + hi + 1) / 2
+		if ui.text_width(f, size, fmt.tprintf("%s…", text[:cuts[mid]])) <= width { lo = mid } else { hi = mid - 1 }
+	}
+	return fmt.tprintf("%s…", text[:cuts[lo]])
+}
+
 // The path as words, one per folder, the last one bright; a click on the empty part types the path instead.
 @(private = "file")
 crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
@@ -254,7 +270,10 @@ crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
 		widths := make([]f32, len(parts), context.temp_allocator)
 		total: f32
 		for c, i in parts {
-			widths[i] = ui.text_width(ui.top_style().font, em, c.name) + em * 2.0
+			// (a crumb's button as the toolkit lays it out, and its chevron. Its text and 2 em ran short of the padding by
+			// half an em a crumb: on a deep path (Windows' temporary folders) the crumbs covered the empty part. Not the
+			// last layout's width: a crumb cut there measures short, and the next build would not cut it)
+			widths[i] = ui.button_width(ui.text_shown(c.name)) + em * 1.1
 			total += widths[i]
 		}
 		for first < len(parts) - 1 && total > room && room > 0 {
@@ -270,11 +289,17 @@ crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
 				if ui.tags("weak") { glyph(app, lucide.CHEVRON_RIGHT, em * 1.1) }
 			}
 			last := at == len(parts) - 1
+			// (a name alone wider than the row: cut with "…", so that the empty part stays to click; a button's words are
+			// never cut, they wrap, and a name has no space to wrap at)
+			name := ui.text_shown(c.name)
+			if total > room && room > 0 && at == first {
+				name = elided(name, max(room - (first > 0 ? em * 2.4 : 0) - em * 2, em * 2), em)
+			}
 			ui.next({width = ui.text_size(em * 0.35), height = ui.px(ui.dense(em * 1.7))})
 			ui.next_merge(control_look(em))
 			sig: ui.Signal
 			if !last { ui.push_tags("weak") }
-			sig = ui.button(fmt.tprintf("crumb%d", at), ui.text_shown(c.name), o = {face = .Ghost})
+			sig = ui.button(fmt.tprintf("crumb%d", at), name, o = {face = .Ghost})
 			if !last { ui.pop_tags() }
 			// (files dropped on a crumb go into its folder, as on a row)
 			drop_zone(app, sig.box.rect, c.path)
