@@ -1,12 +1,14 @@
 package classeur
 
-// GoTo (Ctrl+G, a click on the empty part of the path), File Pilot's: one field, and under it where it can go.
+// GoTo (Ctrl+G), File Pilot's: one field, and under it where it can go (src/md/features/goto.md). The path field of a
+// panel shows the same rows (goto_rows).
 //   - Empty: the recent folders, the bookmarks, the places.
-//   - A path (it starts with / or ~, or a drive on Windows): the folders in the folder it names so far, found by the
+//   - A path (it starts with / or ~, or a drive on Windows): the entries in the folder it names so far, found by the
 //     letters after its last separator (fuzzy); Tab completes the path to the row chosen.
-//   - Words: the recent folders, the bookmarks, the places and the current folder's folders, found by their path.
+//   - Words, or a path from the current folder: the recent folders, the bookmarks and the places found by their path,
+//     then every entry below the current folder, at any depth (deep_find.odin).
 // Enter goes to the row chosen; a file's path goes to its folder with the file at the cursor. The folder a path names
-// is read on a worker; its folders are kept until the path names another.
+// is read on a worker; its entries are kept until the path names another.
 
 import "core:fmt"
 import "core:math"
@@ -49,10 +51,16 @@ act_goto_popup :: proc(app: ^App) {
 	ui.line_edit_clear(&g.field)
 	g.sel, g.scroll, g.moved = 0, 0, false
 	g.focus_due = true
-	// (read again at each opening: a folder made since, a listing that failed)
+	goto_fresh(app)
+	ui.view_open(&app.views, GOTO_VIEW, app)
+}
+
+// What GoTo and the path field read is read again at each opening: a file made since, a listing that failed.
+goto_fresh :: proc(app: ^App) {
+	g := &app.goto
 	delete(g.asked)
 	g.asked = ""
-	ui.view_open(&app.views, GOTO_VIEW, app)
+	deep_reset(app)
 }
 
 // Its width when it opens as a dialog (em), and its top in the window.
@@ -67,10 +75,18 @@ goto_register :: proc(app: ^App) {
 Goto_Row :: struct {
 	path:   string,
 	label:  string,     // what the row shows (the fuzzy ranges are on it)
-	kind:   string,     // "Recent", "Bookmark", "Place", "Folder" (in the person's language: only shown)
+	kind:   string,     // "Recent", "Bookmark", "Place", "Folder", "File" (in the person's language: only shown)
 	icon:   string,
 	score:  int,
 	ranges: []ui.Fuzzy_Range,
+	folder: bool,
+}
+
+// What goto_rows says besides its rows: the deep search reads on (`reading`), and the entries it has read.
+Goto_Rows :: struct {
+	rows:    []Goto_Row,
+	reading: bool,
+	read:    int,
 }
 
 // "~/x" with the home folder in full (GoTo's, the palette's folders).
@@ -138,9 +154,10 @@ goto_read_done :: proc(data: rawptr, word: u64) {
 	app_frames(app)
 }
 
-// The rows of GoTo for `text` (the path typed's folders, or the places found by its words); the path field's
-// suggestions too (view_panel.odin).
-goto_rows :: proc(app: ^App, text: string) -> []Goto_Row {
+// The rows of GoTo and of the path field for `text` below the folder `root` (view_panel.odin): the path typed's
+// entries, or the places its letters find, then the deep search's rows. A frame goes through the places (a few dozen)
+// and the rows of the last answers, never through a folder's entries.
+goto_rows :: proc(app: ^App, root, text: string) -> (out: Goto_Rows) {
 	g := &app.goto
 	rows := make([dynamic]Goto_Row, context.temp_allocator)
 	if fs.looks_like_path(text) {
@@ -152,14 +169,20 @@ goto_rows :: proc(app: ^App, text: string) -> []Goto_Row {
 		rest := full[cut:]
 		goto_ask(app, dir)
 		if g.dir == dir {
-			for n in g.names {
-				if !app.show_hidden && strings.has_prefix(n, ".") && !strings.has_prefix(rest, ".") { continue }
-				score, ranges, ok := ui.fuzzy_score(rest, n)
-				if ok { append(&rows, Goto_Row{fs.join(dir, n, context.temp_allocator), n, i18n.tr("Folder"), lucide.FOLDER, score, ranges}) }
+			add :: proc(rows: ^[dynamic]Goto_Row, app: ^App, dir, rest, name: string, folder: bool) {
+				if !app.show_hidden && strings.has_prefix(name, ".") && !strings.has_prefix(rest, ".") { return }
+				score, ranges, ok := ui.fuzzy_score(rest, name)
+				if !ok { return }
+				// (a folder before a file of the same letters: a path goes on through folders)
+				if folder { score += 1 }
+				append(rows, Goto_Row{fs.join(dir, name, context.temp_allocator), name, folder ? i18n.tr("Folder") : i18n.tr("File"), folder ? lucide.FOLDER : lucide.FILE, score, ranges, folder})
 			}
+			for n in g.names { add(&rows, app, dir, rest, n, true) }
+			for n in g.files { add(&rows, app, dir, rest, n, false) }
 		}
 		slice.stable_sort_by(rows[:], proc(a, b: Goto_Row) -> bool { return a.score > b.score })
-		return rows[:]
+		out.rows = rows[:]
+		return
 	}
 	seen := make(map[string]bool, context.temp_allocator)
 	add :: proc(rows: ^[dynamic]Goto_Row, seen: ^map[string]bool, app: ^App, text, path, kind, icon: string) {
@@ -168,18 +191,48 @@ goto_rows :: proc(app: ^App, text: string) -> []Goto_Row {
 		score, ranges, ok := ui.fuzzy_score(text, label)
 		if !ok { return }
 		seen[path] = true
-		append(rows, Goto_Row{path, label, kind, icon, score, ranges})
+		append(rows, Goto_Row{path, label, kind, icon, score, ranges, true})
 	}
 	for p in app.recents { add(&rows, &seen, app, text, p, i18n.tr("Recent"), lucide.HISTORY) }
 	for p in app.bookmarks { add(&rows, &seen, app, text, p, i18n.tr("Bookmark"), lucide.BOOKMARK) }
 	for p in app.places { add(&rows, &seen, app, text, p.path, i18n.tr("Place"), lucide.HOME) }
-	if t := current_tab(app); t != nil && text != "" {
-		for e in t.folder.listing.entries {
-			if e.kind == .Directory { add(&rows, &seen, app, text, fs.join(t.path, e.name, context.temp_allocator), i18n.tr("Folder"), lucide.FOLDER) }
+	query := strings.trim_space(text)
+	if root != "" && query != "" {
+		deep, reading, read := deep_rows(app, root, query)
+		out.reading, out.read = reading, read
+		for r in deep {
+			path := fs.join(root, r.path, context.temp_allocator)
+			if path in seen { continue }
+			seen[path] = true
+			folder := r.kind == .Directory
+			append(&rows, Goto_Row{path, r.path, folder ? i18n.tr("Folder") : i18n.tr("File"), folder ? lucide.FOLDER : lucide.FILE, r.score, r.ranges, folder})
 		}
 	}
-	if text != "" { slice.stable_sort_by(rows[:], proc(a, b: Goto_Row) -> bool { return a.score > b.score }) }
-	return rows[:]
+	// (one order for the places and what is below: a name that starts with the letters beats letters spread along a
+	// recent folder's long path. A few dozen places and DEEP_ROWS rows: no pass over a folder)
+	if query != "" { slice.stable_sort_by(rows[:], proc(a, b: Goto_Row) -> bool { return a.score > b.score }) }
+	out.rows = rows[:]
+	return
+}
+
+// What GoTo and the path field say when no row has the letters.
+goto_none_text :: proc(text: string, found: Goto_Rows) -> string {
+	switch {
+	case fs.looks_like_path(text): return i18n.tr("Nothing there has these letters. Enter goes to the path typed.")
+	case found.reading:            return i18n.tr("Searching below this folder…")
+	}
+	return i18n.tr("Nothing below this folder has these letters.")
+}
+
+// While the deep search reads: how far it went.
+goto_reading_text :: proc(read: int) -> string {
+	return fmt.tprintf(i18n.tr(read, "Searching: %d item read", "Searching: %d items read"), read)
+}
+
+// The folder GoTo searches below: the current tab's ("": none).
+goto_root :: proc(app: ^App) -> string {
+	t := current_tab(app)
+	return t != nil ? t.path : ""
 }
 
 // Goes to `path` in the current tab (a file's path, or one that is gone: the read, on a worker, goes to the folder that
@@ -217,7 +270,9 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 	em := ui.font_size()
 	pw := v.presentation == .Dialog ? min(em * GOTO_WIDTH_EM, app.room * ui.scale() * 0.92) : ui.view_room(v).x
 	text := ui.line_edit_string(&g.field)
-	rows := goto_rows(app, text)
+	root := goto_root(app)
+	found := goto_rows(app, root, text)
+	rows := found.rows
 	n := len(rows)
 	mouse := ui.mouse_pos()
 	moved := abs(mouse.x - g.mouse.x) + abs(mouse.y - g.mouse.y) > 0.5
@@ -249,15 +304,17 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 				input_key := ui.key_from_string(ui.parent_box().key, "###goto_input")
 				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.3))})
 				res: ui.Edit_Result
-				if ui.tags("bare") { res = ui.line_edit("###goto_input", &g.field, {placeholder = "Go to: a path, or a few letters of a folder", clearable = true}) }
+				if ui.tags("bare") { res = ui.line_edit("###goto_input", &g.field, {placeholder = i18n.tr("Go to: a path, or a few letters of a file or folder below"), clearable = true}) }
 				if res.changed { g.sel, g.scroll, g.moved = 0, 0, false }
 				if res.cancelled { ui.view_end(v, ui.VIEW_CANCELLED) }
 				if res.committed {
-					// (the path as typed when it is whole, else the row chosen, else the path typed as it is)
+					// (the path as typed when it is whole, else the row chosen, else the path typed as it is: from the
+					// current folder when it is not absolute)
 					switch {
 					case typed_is_whole(app, text) && !g.moved: go_to = expand_home(app, text)
 					case n > 0:                                 go_to = rows[g.sel].path
-					case fs.looks_like_path(text):                    go_to = expand_home(app, text)
+					case fs.looks_like_path(text):              go_to = expand_home(app, text)
+					case root != "" && text != "":              go_to = fs.join(root, text, context.temp_allocator)
 					}
 				}
 				// (in its first build, unseen: a dialog measured before it shows keeps the focus its builds gave, and the
@@ -280,7 +337,7 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 					if ui.row(.Center, flags, fmt.tprintf("###goto_row%d", vi)) {
 						sig = ui.signal(ui.parent_box())
 						ui.space(ui.SPACE_3)
-						path_icon(app, r.path, true, em * 1.7)
+						path_icon(app, r.path, r.folder, em * 1.7)
 						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1)})
 						ui.matched_label("###label", ui.text_shown(r.label), r.ranges)
@@ -295,10 +352,10 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 					if sig.hovering && moved { g.sel, g.moved = at, true }
 				}
 			}
-			if n == 0 {
+			if n == 0 && text != "" {
 				if ui.tags("weak") {
 					ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 3.5)), text_align = .Center})
-					ui.label(fmt.tprintf("%s###goto_none", fs.looks_like_path(text) ? i18n.tr("No folder there has these letters. Enter goes to the path typed.") : i18n.tr("No folder has these letters.")))
+					ui.label(fmt.tprintf("%s###goto_none", goto_none_text(text, found)))
 				}
 			}
 			ui.hline(ui.px(pw))
@@ -308,7 +365,12 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 				if ui.tags("weak") {
 					ui.next({width = ui.fill(), height = ui.pct(1), font_size = math.round(em * 0.85)})
 					ui.label(fmt.tprintf("%s###goto_help", i18n.tr("Up, Down: choose   Tab: complete the path   Enter: go   Esc: close")))
+					if found.reading {
+						ui.next({width = ui.text_size(em * 0.5), height = ui.pct(1), font_size = math.round(em * 0.85)})
+						ui.label(fmt.tprintf("%s###goto_reading", goto_reading_text(found.read)))
+					}
 				}
+				ui.space(ui.SPACE_4)
 			}
 		}
 	}

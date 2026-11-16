@@ -55,5 +55,7 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
   aliases (the toolkit's keymap, classeur's ids), who has the keyboard, why F6 stays classeur's
 - [features/palette.md](features/palette.md): the command palette's sources (commands, moves, settings, `@` tabs, `/`
   folders), what reads on the workers, what each choice does, the buttons go to reaches, the commands with arguments
+- [features/goto.md](features/goto.md): GoTo and the path field: one set of rows, the deep search below the current
+  folder (the index read on a worker, the matches on a worker, the serial), why a click on the toolbar opens no dialog
 - [data/folder.md](data/folder.md): a folder as a panel shows it: the selection as flags, the worker that prepares the
   order, the serial of a read, edits in order

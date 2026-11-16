@@ -284,18 +284,21 @@ crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
 			if sig.middle_clicked { tab_open(app, current_panel(app), c.path, current_panel(app).active + 1) }
 		}
 		ui.spacer(ui.fill())
-		// (its empty part opens GoTo for the panel with the keyboard)
-		if current_tab(app) == t { ui.act_command(frame, "goto_popup") }
-		if ui.signal(frame).clicked { act_goto_popup(app) }
+		// (its empty part types the path in place, its rows dropping down under it: no dialog over the panel)
+		if current_tab(app) == t { ui.act_command(frame, "goto") }
+		if ui.signal(frame).clicked { address_open(app, t) }
 	}
 }
 
 @(private = "file")
 address_field :: proc(app: ^App, t: ^Tab, em: f32) {
-	// the path's suggestions: the folders of the folder typed so far, found by the letters after it (GoTo's, read on a
-	// worker); Up and Down choose one, Tab completes the path to it, Enter goes there, a click too
+	// the path's suggestions, GoTo's (goto_rows): the entries of the folder typed so far, or the places and every entry
+	// below this folder that the letters find (read on workers); Up and Down choose one, Tab completes the path to it,
+	// Enter goes there, a click too. Until the text is changed, the path shown is the tab's: no suggestion.
 	text := strings.clone(ui.line_edit_string(&t.address), context.temp_allocator)
-	rows := fs.looks_like_path(text) ? goto_rows(app, text) : nil
+	found: Goto_Rows
+	if text != t.path { found = goto_rows(app, t.path, text) }
+	rows := found.rows
 	n := min(len(rows), ADDRESS_ROWS)
 	key: ui.Key
 	frame: ui.Rect
@@ -340,12 +343,26 @@ address_field :: proc(app: ^App, t: ^Tab, em: f32) {
 			// to the folder that holds it)
 			t.address_open = false
 			t.focus_due = .List
-			tab_go(app, t, t.address_moved && n > 0 ? rows[t.address_sel].path : ui.line_edit_string(&t.address))
+			// (the suggestion chosen; else an absolute path as typed; else the best row; else the text from this folder)
+			to := text
+			switch {
+			case t.address_moved && n > 0: to = rows[t.address_sel].path
+			case fs.looks_like_path(text):  to = expand_home(app, text)
+			case n > 0:                     to = rows[0].path
+			case text != "":                to = fs.join(t.path, text, context.temp_allocator)
+			}
+			tab_go(app, t, to)
 			t.address_moved = false
 		}
 	}
-	if !t.address_open || n == 0 { return }
+	if !t.address_open || (n == 0 && (text == "" || text == t.path)) { return }
 	if ui.popover(popover_id, frame, frame.max.x - frame.min.x, .Below, false) {
+		if n == 0 {
+			if ui.tags("weak") {
+				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.2)), font_size = em * 0.9, text_align = .Center})
+				ui.label(fmt.tprintf("%s###sugg_none", goto_none_text(text, found)))
+			}
+		}
 		for r, i in rows[:n] {
 			on := t.address_moved && i == t.address_sel
 			if on { ui.push_tags("selected") }
@@ -356,11 +373,16 @@ address_field :: proc(app: ^App, t: ^Tab, em: f32) {
 			if ui.row(.Center, flags, fmt.tprintf("###sugg%d", i)) {
 				sig = ui.signal(ui.parent_box())
 				ui.space(ui.SPACE_2)
-				path_icon(app, r.path, true, em * 1.6)
+				path_icon(app, r.path, r.folder, em * 1.6)
 				ui.space(ui.ICON_GAP)
 				ui.next({width = ui.fill(), height = ui.pct(1)})
-				// (the folder's name, the letters typed lit: the path before it is the field's)
+				// (the name or the path from this folder, the letters typed lit)
 				ui.matched_label("###label", ui.text_shown(r.label), r.ranges)
+				if ui.tags("weak") {
+					ui.next({width = ui.text_size(em * 0.5), height = ui.pct(1), font_size = math.round(em * 0.85)})
+					ui.label(fmt.tprintf("%s###kind", r.kind))
+				}
+				ui.space(ui.SPACE_2)
 			}
 			if on { ui.pop_tags() }
 			if sig.clicked {
@@ -375,11 +397,27 @@ address_field :: proc(app: ^App, t: ^Tab, em: f32) {
 				ui.label(fmt.tprintf("%s###sugg_more", fmt.tprintf(i18n.tr(len(rows) - n, "   and %d more: type a few more letters", "   and %d more: type a few more letters"), len(rows) - n)))
 			}
 		}
+		if found.reading {
+			if ui.tags("weak") {
+				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 1.7)), font_size = em * 0.85})
+				ui.label(fmt.tprintf("   %s###sugg_reading", goto_reading_text(found.read)))
+			}
+		}
 	}
 }
 
+// The path field opened in place of the crumbs (Ctrl+L, a click on the crumbs' empty part): the path selected, what
+// it searches read again.
+address_open :: proc(app: ^App, t: ^Tab) {
+	goto_fresh(app)
+	t.address_open = true
+	ui.line_edit_set(&t.address, t.path)
+	ui.line_edit_select_all(&t.address)
+	t.focus_due = .Address
+}
+
 // The suggestions shown under the path field, at most.
-ADDRESS_ROWS :: 8
+ADDRESS_ROWS :: 10
 
 @(private = "file")
 list_move :: proc(t: ^Tab, by: int) {

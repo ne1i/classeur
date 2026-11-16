@@ -886,11 +886,22 @@ fr Favori
 en Place
 fr Emplacement
 
-en No folder there has these letters. Enter goes to the path typed.
-fr Aucun dossier ici ne contient ces lettres. Appuyez sur Entrée pour ouvrir le chemin saisi.
+en Nothing there has these letters. Enter goes to the path typed.
+fr Rien ici ne contient ces lettres. Entrée ouvre le chemin saisi.
 
-en No folder has these letters.
-fr Aucun dossier ne contient ces lettres.
+en Searching below this folder…
+fr Recherche sous ce dossier…
+
+en Nothing below this folder has these letters.
+fr Rien sous ce dossier ne contient ces lettres.
+
+en Searching: %d item read
+en+ Searching: %d items read
+fr Recherche : %d élément lu
+fr+ Recherche : %d éléments lus
+
+en Go to: a path, or a few letters of a file or folder below
+fr Aller à : un chemin, ou quelques lettres d'un fichier ou d'un dossier en dessous
 
 en Up, Down: choose   Tab: complete the path   Enter: go   Esc: close
 fr Haut, Bas : choisir   Tab : compléter le chemin   Entrée : ouvrir   Échap : fermer

@@ -186,14 +186,7 @@ act_forward :: proc(app: ^App) { if t := current_tab(app); t != nil { tab_forwar
 act_home :: proc(app: ^App) { if t := current_tab(app); t != nil { tab_go(app, t, app.home) } }
 act_refresh :: proc(app: ^App) { if t := current_tab(app); t != nil { tab_load(app, t) } }
 
-act_goto :: proc(app: ^App) {
-	t := current_tab(app)
-	if t == nil { return }
-	t.address_open = true
-	ui.line_edit_set(&t.address, t.path)
-	ui.line_edit_select_all(&t.address)
-	t.focus_due = .Address
-}
+act_goto :: proc(app: ^App) { if t := current_tab(app); t != nil { address_open(app, t) } }
 
 act_filter :: proc(app: ^App) {
 	t := current_tab(app)

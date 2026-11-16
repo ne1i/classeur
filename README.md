@@ -32,7 +32,8 @@ Its site: [classeur.froment.software](https://classeur.froment.software/).
 - **Tabs and panels**: each panel's tabs at the top of the window, panels side by side; tabs dragged along their row, to
   another panel or to a new one. The session comes back at the next start; a second `classeur <folder>` opens a tab.
 - **Zoom** (Ctrl+wheel): the details, the names alone, the names in columns, then cards with thumbnails, ever larger.
-- **GoTo** (Ctrl+G): a path completed as you type, or a few letters of a recent folder, a bookmark, a place.
+- **GoTo** (Ctrl+G) and the path field (Ctrl+L, or a click on the path): a path completed as you type, or a few
+  letters of any file or folder below the current one, at any depth, of a recent folder, a bookmark, a place.
 - **Search** (Ctrl+Shift+F): every file under a folder, flattened, filtered by a few letters in order (fuzzy). The types'
   popup keeps files or folders alone, or some extensions.
 - **Batch rename** (F2 on several items): a pattern with numbers, dates and ids, find and replace, the case, the names

@@ -119,6 +119,7 @@ App :: struct {
 
 	palette:     Palette,           // the command palette (palette.odin)
 	goto:        Goto,              // GoTo (goto.odin)
+	deep:        Deep_Search,       // the deep search of GoTo and the path field (deep_find.odin)
 	batch:       Batch,             // batch rename (batch.odin)
 	band:        Band,              // the rectangle selection (band.odin)
 	layouts:     Layouts,           // the layouts saved by name (layouts.odin)
@@ -520,6 +521,7 @@ app_close :: proc(app: ^App) {
 		}
 	}
 	measures_cancel(app)
+	deep_reset(app)   // (the deep search's walk ends at its next folder)
 	// (from now a worker's result is refused, the worker frees it; a worker never waits for room in the queue)
 	ui.post_close(&app.main.state)
 	// A read of a share that hangs never ends, and a thread cannot be joined with a time limit: the workers get until
@@ -565,6 +567,7 @@ app_free :: proc(app: ^App) {
 	palette_free(&app.palette)
 	entry_menu_free(&app.menu)
 	goto_free(&app.goto)
+	deep_free(app)
 	batch_free(&app.batch)
 	band_free(&app.band)
 	layouts_free(&app.layouts)
