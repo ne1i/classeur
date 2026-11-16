@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.30.0] - 2026-11-16 12:12
+
+### Fixed
+- **Closing your session no longer reads as a crash.** The next start no longer shows a crash report after a logout or a shutdown. Also from the toolkit: a setting found in the palette is changed right there (Shift+Enter opens its page), and the pricing page keeps the site's bar as it is.
+
 ## [0.29.0] - 2026-11-15 21:09
 
 ### Added
@@ -555,6 +560,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.30.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.30.0
 [0.29.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.29.0
 [0.28.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.28.0
 [0.27.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.27.0
