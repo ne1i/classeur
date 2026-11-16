@@ -3,6 +3,14 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.32.0] - 2026-11-16 17:56
+
+### Added
+- **Your licence as a card.** The Licence page of the settings shows a registered licence as a card: an engraved iridescent foil, your name raised in silver, a seal in relief; it tilts towards the pointer and turns over to show its back.
+
+### Changed
+- **The palette goes to a command's button and asks a layout's name**: Shift+Enter on a command shows the button that runs it (the sidebar's, New tab, Back, Forward, Up, Lock, Bookmark, the path, the footer's Types, Search subfolders and Jobs, the inspector's close), focused and lit. Save layout asks its name in the palette, and Open layout lists the saved layouts there; their keys still open the prompt and the menu. A setting changed in the palette shows on the settings page in the same frame.
+
 ## [0.31.0] - 2026-11-16 13:56
 
 ### Changed
@@ -565,6 +573,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.32.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.0
 [0.31.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.31.0
 [0.30.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.30.0
 [0.29.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.29.0
