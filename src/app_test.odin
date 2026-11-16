@@ -2687,7 +2687,8 @@ test_window_commands_from_the_settings :: proc(t: ^testing.T) {
 	})
 }
 
-// A setting found in the palette (by one of its tags): the settings open on it alone.
+// A setting found in the palette (by one of its tags): Shift+Enter goes where it lives, the settings open on it alone.
+// (Enter edits it in the palette itself: the toolkit's run mode.)
 @(test)
 test_palette_settings :: proc(t: ^testing.T) {
 	unwatched.run(t, proc(t: ^testing.T) {
@@ -2699,11 +2700,11 @@ test_palette_settings :: proc(t: ^testing.T) {
 		palette_ranked(s)
 		session.frames(s, 2)
 		testing.expect(t, session.find_text(s, "Rounding") != nil, "the rounding, by its tag")
-		session.key(s, .Return)
+		session.key(s, .Return, {.Shift})
 		session.wait_until(s, proc(s: ^session.Session) -> bool { return ui.view_is_open(&(^App)(s.user).views, OPTIONS_VIEW) }, "the settings open")
 		session.frames(s, 3)
 		testing.expect(t, !ui.palette_is_open(&app.palette.pal) && ui.view_is_open(&app.views, OPTIONS_VIEW), "the settings open")
-		testing.expect(t, strings.contains(ui.line_edit_string(&app.options.page.query), "appearance.rounding"), "on the rounding")
+		testing.expect(t, session.find(s, "set_appearance.rounding") != nil, "on the rounding")
 		testing.expect(t, session.find_text(s, fmt.tprintf("Classeur %s", APP_VERSION)) != nil, "the version at their foot")
 		when SHOTS { session.save_png(s, "palette_settings.png") }
 	})
