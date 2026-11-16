@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.32.2] - 2026-11-16 22:50
+
+### Fixed
+- **A click past the last crumb opens the path field, even on a long path.** A folder with a long name covered the empty part of the path bar, and the click did nothing.
+
 ## [0.32.1] - 2026-11-16 21:39
 
 ### Changed
@@ -581,6 +586,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.32.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.2
 [0.32.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.1
 [0.32.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.0
 [0.31.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.31.0
