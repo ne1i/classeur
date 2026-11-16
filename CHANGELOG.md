@@ -3,6 +3,14 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.32.1] - 2026-11-16 21:39
+
+### Changed
+- **GoTo and the path field search below the current folder, at any depth**: a few letters find any file or folder under it, and a relative path typed whole (packages/web/public/brand/logo.svg) goes straight to its file. A click on the path opens the path field with its list under it, no longer a dialog over the panel.
+
+### Fixed
+- **The command palette appears at once, with its rows.** Ctrl+K showed it after a few empty frames, faded it in before its rows came, and jumped when a frame was late; now it comes in the frame its rows are ready, and fades in over 70 ms.
+
 ## [0.32.0] - 2026-11-16 17:56
 
 ### Added
@@ -573,6 +581,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.32.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.1
 [0.32.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.0
 [0.31.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.31.0
 [0.30.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.30.0
