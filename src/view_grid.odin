@@ -15,7 +15,7 @@ import "fs"
 // (the height leaves room for a name on two lines from the second size of cards up)
 CARD_HEIGHT  :: 1.2
 CARD_PICTURE :: 0.72
-CARD_GAP_EM  :: 0.6
+CARD_GAP_EM  :: ui.SPACE_2
 CARD_LINE_EM :: 1.3   // a line of a card's name, in ems
 COLUMN_EM    :: 20
 
@@ -120,10 +120,10 @@ item :: proc(app: ^App, t: ^Tab, row: int, look: ^Row_Look, line: bool, width, h
 		}
 		defer if cut { ui.pop_parent() }
 		if line {
-			ui.spacer(ui.px(em * 0.4))
+			ui.space(ui.SPACE_2)
 			tree_lead(app, t, e, em)
 			entry_glyph(app, t.path, e^, em * 1.9)
-			ui.spacer(ui.px(em * 0.5))
+			ui.space(ui.ICON_GAP)
 			entry_name(app, t, e, selected, em)
 		} else {
 			card_body(app, t, e, selected, width, height, em)
@@ -166,10 +166,10 @@ item :: proc(app: ^App, t: ^Tab, row: int, look: ^Row_Look, line: bool, width, h
 @(private = "file")
 card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, height, em: f32) {
 	pic := width * CARD_PICTURE
-	ui.spacer(ui.px(em * 0.5))
+	ui.space(ui.SPACE_2)
 	ui.next({width = ui.fill(), height = ui.px(pic)})
 	if ui.row(.Center) {
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 		path := entry_path(t, e)
 		if thumb_wanted(app, e) {
 			if th, ready := thumb_get(app, path, e.size, e.mtime); ready {
@@ -183,12 +183,12 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 		} else {
 			big_icon(app, t.path, e^, pic)
 		}
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 	}
 	ui.spacer(ui.fill())
 	// the name on two lines where the card has room for them (under its picture, above its size), else on one; too long,
 	// cut in its middle
-	lines := height - pic - em * (0.5 + 1.3 + 0.4) >= em * CARD_LINE_EM * 2 ? 2 : 1
+	lines := height - pic - em * (ui.SPACE_2 + 1.3 + ui.SPACE_2) >= em * CARD_LINE_EM * 2 ? 2 : 1
 	st := ui.top_style()
 	name := card_name(ui.text_shown(fs.base(shown_name(app, e^))), width - 2 * st.text_pad - 1, lines)
 	ui.next({width = ui.fill(), height = ui.px(lines == 2 ? em * CARD_LINE_EM * 2 : em * 1.5), text_align = .Center})
@@ -200,7 +200,7 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	ui.next({width = ui.fill(), height = ui.px(em * 1.3), text_align = .Center, font_size = em * 0.88})
 	ui.label(fmt.tprintf("%s###s", size))
 	if !selected { ui.pop_tags() }
-	ui.spacer(ui.px(em * 0.4))
+	ui.space(ui.SPACE_2)
 }
 
 // A card's name in at most `lines` lines of `width` pixels, at the style's font (wrapped at its spaces, as the card's

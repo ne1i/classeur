@@ -23,8 +23,8 @@ TOP_EM :: 2.6
 // A tab's width, at most and at least, in ems.
 TAB_EM     :: 14
 TAB_MIN_EM :: 5
-// What a row of tabs holds after them: the new tab's button and the room around it, in ems.
-TAB_ROW_END_EM :: 2.8
+// What a row of tabs holds after them: the new tab's button, the gap before it and the room around it, in ems.
+TAB_ROW_END_EM :: 2 + ui.TOOL_GAP + 0.5
 // The button of the list of the tabs, before the new tab's (a row with more tabs than it holds), in ems.
 TAB_LIST_EM :: 2
 
@@ -147,10 +147,10 @@ hover_tip :: proc(sig: ui.Signal, lines: ..string) {
 
 // A thin vertical line between groups of buttons.
 vrule :: proc(em: f32, height: f32 = 1.3) {
-	ui.spacer(ui.px(em * 0.35))
+	ui.space(ui.TOOL_GAP)
 	ui.next({width = ui.px(max(1, ui.scale())), height = ui.px(em * height), bg = ui.color("border")})
 	ui.build_box({.Draw_Background}, fmt.tprintf("###rule%d", ui.parent_box().child_count))
-	ui.spacer(ui.px(em * 0.35))
+	ui.space(ui.TOOL_GAP)
 }
 
 // The tooltip of a command: its title and its keys in effect, the person's own when they set some.
@@ -200,11 +200,11 @@ build_top :: proc(app: ^App, em: f32) {
 		col_w := (app.window_px.x - left - right - f32(max(cols - 1, 0)) * line) / f32(max(cols, 1))
 		ui.next({width = ui.px(head), height = ui.pct(1)})
 		if ui.row(.Center, {}, "###head") {
-			ui.spacer(ui.px(em * 0.6))
+			ui.space(ui.SPACE_2)
 			logo_icon(em * 1.8)
 			ui.spacer(ui.fill())
 			if icon_action(app, "sidebar", sidebar_shown(app) ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em) { act_toggle_sidebar(app) }
-			ui.spacer(ui.px(em * 0.3))
+			ui.space(ui.SPACE_1)
 		}
 		// (a column's top panel has its tabs here; a panel below another has them at its own top: panel_build)
 		for p, i in app.panels {
@@ -218,7 +218,7 @@ build_top :: proc(app: ^App, em: f32) {
 		// (an update to install, coming, or in place: a button before the window's own; nothing otherwise)
 		if app.updater != nil {
 			ui.next({height = ui.px(ui.dense(em * 1.9))})
-			if prefs_page.update_badge(app.updater, proc(user: rawptr) { updates_restart((^App)(user)) }, app) != nil { ui.spacer(ui.px(em * 0.5)) }
+			if prefs_page.update_badge(app.updater, proc(user: rawptr) { updates_restart((^App)(user)) }, app) != nil { ui.space(ui.CONTROL_GAP) }
 		}
 		ui.window_buttons()
 	}
@@ -315,9 +315,9 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 					ui.spacer(ui.px(max(2, ui.scale() * 2)))
 					ui.next({width = ui.fill(), height = ui.fill()})
 					if ui.row(.Center) {
-						ui.spacer(ui.px(em * 0.7))
+						ui.space(ui.SPACE_3)
 						path_icon(app, t.path, true, em * 1.6)
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1)})
 						if !on { ui.push_tags("weak") }
 						ui.label(fmt.tprintf("%s###title", ui.text_shown(tab_title(app, t))))
@@ -329,7 +329,7 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 						} else {
 							ui.spacer(ui.px(em * 1.6))
 						}
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.SPACE_2)
 					}
 				}
 				if sig.pressed { p.active = i; app.focus = index }
@@ -350,7 +350,7 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 			app.focus = index
 			tabs_menu_open(app, p)
 		}
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.TOOL_GAP)
 		if icon_action(app, fmt.tprintf("newtab%d", index), lucide.PLUS, command_tip(app, "tab_new"), em) {
 			app.focus = index
 			act_tab_new(app)
@@ -507,7 +507,7 @@ job_status :: proc(app: ^App, em: f32) {
 		ui.label(fmt.tprintf("%s###job%d", job_status_text(job, ui.now_ms()), job.id))
 		ui.next({width = ui.px(em * 7), height = ui.px(em * 0.45)})
 		ui.progress(fmt.tprintf("###jobbar%d", job.id), clamp(t, 0, 1), st == .Counting)
-		ui.spacer(ui.px(em * 0.2))
+		ui.space(ui.SPACE_1)
 		if icon_action(app, fmt.tprintf("jobcancel%d", job.id), lucide.X, i18n.tr("Cancel"), em) { job_cancel(job) }
 		vrule(em)
 		return

@@ -283,7 +283,7 @@ batch_view :: proc(v: ^ui.View, app: ^App) {
 			if batch_field_row(app, i18n.tr("Replace"), "###brep", &b.replace, i18n.tr("With"), em, pw) { apply = true }
 			ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 2.6))})
 			if ui.row(.Center, id = "###batch_opts") {
-				ui.spacer(ui.px(em * 0.9))
+				ui.space(ui.SPACE_4)
 				// (the case: one of three, the toolkit's segmented control)
 				casing := int(b.casing)
 				// (three equal parts: each one as wide as the widest word, so that a language's longer word widens the
@@ -305,19 +305,20 @@ batch_view :: proc(v: ^ui.View, app: ^App) {
 						b.list_asked = platform.clipboard_request(app.main.win, .Text)
 					}
 				}
-				ui.spacer(ui.px(em * 0.9))
+				ui.space(ui.SPACE_4)
 			}
 			if ui.tags("weak") {
 				// (the fields stay as typed in every language; what each one gives is said in the language in use, as a
 				// paragraph that wraps)
-				if ui.style({font_size = em * 0.85}) {
-					ui.next({width = ui.px(pw), height = ui.children_sum()})
-					if ui.row(.Start, id = "###batch_help") {
-						ui.spacer(ui.px(em * 0.9))
+				// (the smaller text inside the row: its insets stay in the dialog's font size, in line with the fields)
+				ui.next({width = ui.px(pw), height = ui.children_sum()})
+				if ui.row(.Start, id = "###batch_help") {
+					ui.space(ui.SPACE_4)
+					if ui.style({font_size = em * 0.85}) {
 						ui.next({width = ui.fill()})
 						ui.paragraph(fmt.tprintf("%s###bhelp", i18n.tr("{name} the name without its extension · {ext} the extension · {n} a number from 1 ({n:3}: 001) · {date} the date modified · {time} its time · {id} a short id of its own")))
-						ui.spacer(ui.px(em * 0.9))
 					}
+					ui.space(ui.SPACE_4)
 				}
 			}
 			ui.hline(ui.px(pw))
@@ -332,24 +333,24 @@ batch_view :: proc(v: ^ui.View, app: ^App) {
 					problem := problems[i]
 					ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 2.0))})
 					if ui.row(.Center, id = fmt.tprintf("###brow%d", vi)) {
-						ui.spacer(ui.px(em * 0.9))
+						ui.space(ui.SPACE_4)
 						path_icon(app, fs.join(b.dir, b.names[i], context.temp_allocator), false, em * 1.5)
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.ICON_GAP)
 						if ui.tags("weak") {
 							// (content: the names before and after, to check and copy)
 							ui.next({width = ui.pct(0.42), height = ui.pct(1), flags = {.Selectable}})
 							ui.label(fmt.tprintf("%s###old", ui.text_shown(b.names[i])))
 						}
 						if ui.tags("weak") { glyph(app, lucide.ARROW_RIGHT, em * 1.4) }
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1), fg = problem != "" ? ui.color("bad text") : nil, flags = {.Selectable}})
 						ui.label(problem != "" ? fmt.tprintf("%s (%s)###new", ui.text_shown(news[i]), problem) : fmt.tprintf("%s###new", ui.text_shown(news[i])))
-						ui.spacer(ui.px(em * 0.9))
+						ui.space(ui.SPACE_4)
 					}
 				}
 			}
 			ui.hline(ui.px(pw))
-			ui.spacer(ui.px(em * 0.6))
+			ui.space(ui.SPACE_2)
 			// (the toolkit's row of a dialog's buttons; what keeps the names from being had said before them)
 			if ui.dialog_buttons("batch_buttons") {
 				if ui.tags("weak") {
@@ -374,7 +375,7 @@ batch_view :: proc(v: ^ui.View, app: ^App) {
 batch_field_row :: proc(app: ^App, label, id: string, field: ^ui.Line_Edit, hint: string, em, pw: f32, focus := false) -> (committed: bool) {
 	ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 2.6))})
 	if ui.row(.Center, id = fmt.tprintf("%s_row", id)) {
-		ui.spacer(ui.px(em * 0.9))
+		ui.space(ui.SPACE_4)
 		if ui.tags("weak") {
 			ui.next({width = ui.px(em * 6), height = ui.pct(1)})
 			ui.label(fmt.tprintf("%s###lab", label))
@@ -383,7 +384,7 @@ batch_field_row :: proc(app: ^App, label, id: string, field: ^ui.Line_Edit, hint
 		ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.1))})
 		committed = ui.line_edit(id, field, {placeholder = hint}).committed
 		if focus { ui.set_focus(key) }
-		ui.spacer(ui.px(em * 0.9))
+		ui.space(ui.SPACE_4)
 	}
 	return
 }

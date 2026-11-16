@@ -107,14 +107,14 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 	if ui.popover("###jobs_view", anchor, w, .Above, true) {
 		ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 2.8))})
 		if ui.row(.Center, id = "###jobs_head") {
-			ui.spacer(ui.px(em * 0.9))
+			ui.space(ui.SPACE_4)
 			if ui.tags("weak") { glyph(app, lucide.LAYERS_2, em * 1.6) }
 			ui.next({width = ui.fill(), height = ui.pct(1)})
 			ui.label(fmt.tprintf("%s###jobs_title", n == 0 ? i18n.tr("No job yet") : fmt.tprintf(i18n.tr("Jobs: %d"), n)))
 			// (the jobs go on: the panel alone goes, the footer's button brings it back)
 			ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 1.9))})
 			if ui.button("jobs_bg", i18n.tr("Background")).clicked { v.open = false }
-			ui.spacer(ui.px(em * 0.9))
+			ui.space(ui.SPACE_4)
 		}
 		ui.hline(ui.px(w))
 		ui.next({width = ui.px(w), height = ui.children_sum(), axis = .Y})
@@ -127,7 +127,7 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 				if ui.column(.Start, {.Draw_Side_Bottom}, fmt.tprintf("###job%d", job.id)) {
 					ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 2.4))})
 					if ui.row(.Center, id = "###line") {
-						ui.spacer(ui.px(em * 0.9))
+						ui.space(ui.SPACE_4)
 						ui.next({width = ui.fill(), height = ui.pct(1), flags = {.Selectable}})   // (content: the paths it acts on)
 						ui.label(fmt.tprintf("%s###what", ui.text_shown(job_title(job))))
 						state := ""
@@ -149,16 +149,16 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 							total, done := sync.atomic_load(&job.bytes_total), sync.atomic_load(&job.bytes_done)
 							ui.next({width = ui.px(em * 6), height = ui.px(em * 0.45)})
 							ui.progress("###bar", total > 0 ? clamp(f32(f64(done) / f64(total)), 0, 1) : 0, st == .Counting)
-							ui.spacer(ui.px(em * 0.4))
+							ui.space(ui.CONTROL_GAP)
 							ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 1.9))})
 							if ui.button("cancel", i18n.tr("Cancel")).clicked { job_cancel(job) }
 						}
 						if st == .Failed || st == .Cancelled {
-							ui.spacer(ui.px(em * 0.4))
+							ui.space(ui.CONTROL_GAP)
 							ui.next({width = ui.text_size(em * 1.2), height = ui.px(ui.dense(em * 1.9))})
 							if ui.button("retry", i18n.tr("Retry"), o = {intent = .Primary}).clicked { job_retry(app, job) }
 						}
-						ui.spacer(ui.px(em * 0.9))
+						ui.space(ui.SPACE_4)
 					}
 					// what failed, a line each (the first few)
 					sync.mutex_lock(&job.mutex)
@@ -178,7 +178,7 @@ jobs_view_build :: proc(app: ^App, em: f32) {
 		}
 		ui.next({width = ui.px(w), height = ui.px(ui.dense(em * 2.2))})
 		if ui.row(.Center, id = "###jobs_foot") {
-			ui.spacer(ui.px(em * 0.9))
+			ui.space(ui.SPACE_4)
 			if ui.tags("weak") {
 				ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.85})
 				ui.label(fmt.tprintf("%s###jobs_help", n > JOBS_VIEW_ROWS ? fmt.tprintf(i18n.tr("The last %d of %d   Esc: to the background"), JOBS_VIEW_ROWS, n) : i18n.tr("They run on in the background   Esc: hide")))

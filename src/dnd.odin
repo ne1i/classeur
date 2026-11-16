@@ -291,7 +291,7 @@ file_ghost :: proc(app: ^App, m: [2]f32, effect: Maybe(platform.Drop_Effect), di
 	b := ui.build_box({.Floating_X, .Floating_Y, .Draw_Background, .Draw_Border}, "###file_ghost")
 	b.fixed_pos = m + {em, em * 1.1}
 	if ui.parent(b) {
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 		path_icon(app, first, app.drag_first_folder, em * 1.6)
 		ui.next({width = ui.text_size(em * 0.4), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###name", name))
@@ -299,7 +299,7 @@ file_ghost :: proc(app: ^App, m: [2]f32, effect: Maybe(platform.Drop_Effect), di
 			ui.next({width = ui.text_size(em * 0.2), height = ui.pct(1)})
 			if ui.tags("weak") { ui.label(fmt.tprintf("%s###what", what)) }
 		}
-		ui.spacer(ui.px(em * 0.4))
+		ui.space(ui.SPACE_2)
 	}
 }
 

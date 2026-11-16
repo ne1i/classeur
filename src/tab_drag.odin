@@ -87,10 +87,10 @@ tab_ghost :: proc(app: ^App, width, em: f32) {
 	b := ui.build_box({}, "###tab_land")
 	tab_paint(b, draw.hex(surfaces(app).top), ui.color("accent"), ui.Color{}, tab_radius(em))
 	if ui.parent(b) {
-		ui.spacer(ui.px(em * 0.7))
+		ui.space(ui.SPACE_3)
 		if path != "" {
 			path_icon(app, path, true, em * 1.6)
-			ui.spacer(ui.px(em * 0.4))
+			ui.space(ui.ICON_GAP)
 		}
 		ui.next({width = ui.fill(), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###title", title))
@@ -349,9 +349,9 @@ tab_drag_overlay :: proc(app: ^App, em: f32) {
 	// (one line around it, the tabs' own: the accent marks where it lands, not the tab)
 	ghost := place({at, at + d.size}, draw.hex(surfaces(app).list) * {1, 1, 1, 0.94}, draw.hex(surfaces(app).edge), "###tab_ghost", tab_radius(em) / max(ui.rounding(ui.current_state()), 0.01))
 	if ui.parent(ghost) {
-		ui.spacer(ui.px(em * 0.7))
+		ui.space(ui.SPACE_3)
 		path_icon(app, t.path, true, em * 1.6)
-		ui.spacer(ui.px(em * 0.4))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###title", ui.text_shown(tab_title(app, t))))
 	}

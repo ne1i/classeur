@@ -63,7 +63,7 @@ sidebar_build :: proc(app: ^App, em: f32) {
 		ui.next({width = ui.fill(), height = ui.fill()})
 		if ui.scroll_y("###side_scroll") {
 			scroll := ui.parent_box()
-			ui.spacer(ui.px(em * 0.3))
+			ui.space(ui.SPACE_1)
 			// (the sections in the person's order: a heading dragged, or its menu's Move up and Move down)
 			for sec in app.side_order {
 				switch sec {
@@ -83,15 +83,16 @@ sidebar_build :: proc(app: ^App, em: f32) {
 						side_bookmarks(app, t, query, here, em)
 						if len(app.bookmarks) == 0 && query == "" {
 							if ui.tags("weak") {
-								// (a paragraph: a narrow sidebar or a longer language wraps the hint instead of cutting it)
-								if ui.style({font_size = em * 0.85}) {
-									ui.next({width = ui.fill(), height = ui.children_sum()})
-									if ui.row() {
-										ui.spacer(ui.px(em * 2.6))
+								// (a paragraph: a narrow sidebar or a longer language wraps the hint instead of cutting it; the
+								// smaller text inside the row, its end's gap in the sidebar's font size)
+								ui.next({width = ui.fill(), height = ui.children_sum()})
+								if ui.row() {
+									ui.spacer(ui.px(em * 2.6))
+									if ui.style({font_size = em * 0.85}) {
 										ui.next({width = ui.fill()})
 										ui.paragraph(fmt.tprintf("%s###bm_hint", fmt.tprintf(i18n.tr("%s: bookmark a folder"), command_keys(app, command_find("bookmark")))))
-										ui.spacer(ui.px(em * 0.6))
 									}
+									ui.space(ui.SPACE_2)
 								}
 							}
 						}
@@ -129,7 +130,7 @@ sidebar_build :: proc(app: ^App, em: f32) {
 				}
 			}
 			app.side_end_y = ui.parent_box().rect.min.y - ui.parent_box().view_off.y + ui.parent_box().view_bounds.y
-			ui.spacer(ui.px(em * 0.6))
+			ui.space(ui.SPACE_2)
 			// (the cursor moved: its row in view, as the last layout placed it)
 			if k.moved && k.row != nil {
 				top := k.row.rect.min.y - scroll.rect.min.y + scroll.view_off.y
@@ -300,13 +301,13 @@ section :: proc(app: ^App, s: Side_Section, em: f32) -> bool {
 	sig: ui.Signal
 	if ui.row(.Center, {.Clickable, .Draw_Hot_Effects, .Hot_Within}, fmt.tprintf("###sec_%s", SECTION_TITLES[s])) {
 		sig = ui.signal(ui.parent_box())
-		ui.spacer(ui.px(em * 0.6))
+		ui.space(ui.SPACE_2)
 		if ui.tags("weak") { glyph(app, SECTION_ICONS[s], em * 1.6) }
-		ui.spacer(ui.px(em * 0.4))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###t", i18n.tr(SECTION_TITLES[s])))
 		if ui.tags("weak") { glyph(app, open ? lucide.CHEVRON_DOWN : lucide.CHEVRON_RIGHT, em * 1.6) }
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 	}
 	app.side_heads[s] = sig.box.rect
 	// dragged past a few pixels: the section moves where it is let go (side_drag_end); a right click: its menu
@@ -428,7 +429,7 @@ side_folder :: proc(app: ^App, id, path, name, under: string, here: string, curs
 		if cursor { side_cursor_mark(app, ui.parent_box(), em) }
 		ui.spacer(ui.px(em * 2.4))
 		path_icon(app, path, true, em * 1.7)
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.ICON_GAP)
 		if under == "" {
 			ui.next({width = ui.fill(), height = ui.pct(1)})
 			ui.label(fmt.tprintf("%s###n", ui.text_shown(name)))
@@ -455,7 +456,7 @@ side_row :: proc(app: ^App, id, path: string, name: string, here: bool, cursor: 
 		if cursor { side_cursor_mark(app, ui.parent_box(), em) }
 		ui.spacer(ui.px(em * 2.4))
 		path_icon(app, path, true, em * 1.7)
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###n", ui.text_shown(name)))
 		drop_zone(app, ui.parent_box().rect, path)
@@ -491,13 +492,13 @@ side_volume :: proc(app: ^App, i: int, v: fs.Volume, sp: fs.Space, here: bool, c
 		if app.drop_hover == v.path { drop_mark(ui.parent_box()) }
 		ui.spacer(ui.px(em * 2.4))
 		path_icon(app, v.path, true, em * 1.7)
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1), axis = .Y})
 		if ui.column() {
 			ui.spacer(ui.fill())
 			ui.next({width = ui.fill(), height = ui.px(em * 1.45)})
 			ui.label(fmt.tprintf("%s###n", ui.text_shown(v.label)))
-			ui.spacer(ui.px(em * 0.1))
+			ui.space(ui.SPACE_1)
 			if sp.total > 0 {
 				used := 1 - f32(f64(sp.free) / f64(sp.total))
 				d := ui.frame_new(Bar_Draw)
@@ -507,7 +508,7 @@ side_volume :: proc(app: ^App, i: int, v: fs.Volume, sp: fs.Space, here: bool, c
 			}
 			ui.spacer(ui.fill())
 		}
-		ui.spacer(ui.px(em * 0.8))
+		ui.space(ui.SPACE_3)
 	}
 	hover_tip(sig, v.path, sp.total > 0 ? fmt.tprintf(i18n.tr("%s free of %s"), size_text(sp.free), size_text(sp.total)) : "")
 	return
@@ -569,7 +570,7 @@ side_device :: proc(app: ^App, i: int, d: fs.Network_Device, cursor: bool, em: f
 		if cursor { side_cursor_mark(app, ui.parent_box(), em) }
 		ui.spacer(ui.px(em * 2.4))
 		glyph(app, DEVICE_ICONS[fs.device_kind(d)], em * 1.7)
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1)})
 		ui.label(fmt.tprintf("%s###n", ui.text_shown(d.name)))
 	}

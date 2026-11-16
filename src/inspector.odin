@@ -351,15 +351,15 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 			// keys stay the list's: the arrows move the cursor, Space closes the inspector)
 			// (all the room under the properties, down to the pane's foot: the picture fitted in it, its buttons at the
 			// foot; a box as tall as the picture left the rest of the pane empty and the buttons over its edge)
-			ui.spacer(ui.px(em * 0.6))
+			ui.space(ui.SPACE_2)
 			ui.next({width = ui.fill(), height = ui.fill()})
 			if ui.row() {
-				ui.spacer(ui.px(em * 0.8))
+				ui.space(ui.SPACE_3)
 				ui.next({width = ui.fill(), height = ui.fill()})
 				ui.preview_image("###insp_pic", &insp.preview, insp.tex, {f32(insp.size.x), f32(insp.size.y)}, {buttons = true, radius = 3 * corner_k(), no_keys = true})
-				ui.spacer(ui.px(em * 0.8))
+				ui.space(ui.SPACE_3)
 			}
-			if insp.caption == "" { ui.spacer(ui.px(em * 0.8)) }
+			if insp.caption == "" { ui.space(ui.SPACE_3) }
 			if insp.caption != "" {
 				if ui.tags("weak") {
 					ui.next({width = ui.fill(), height = ui.px(em * 2.2), text_align = .Center, font_size = em * 0.86, flags = {.Selectable}})
@@ -370,11 +370,11 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 			ui.next({width = ui.fill(), height = ui.fill()})
 			if ui.scroll_y("###insp_text") {
 				inspector_scroll_keys(app, ui.parent_box(), em)
-				ui.spacer(ui.px(em * 0.5))
+				ui.space(ui.SPACE_2)
 				// (as tall as its text: a row of the style's height let the text run past it, and the view had nothing to scroll)
 				ui.next({width = ui.fill(), height = ui.children_sum()})
 				if ui.row() {
-					ui.spacer(ui.px(em * 0.8))
+					ui.space(ui.SPACE_3)
 					ui.next({width = ui.fill()})
 					if ui.style({font = ui.mono_font(), font_size = em * 0.92}) {
 						// (a source file in its language's colours: the toolkit's syntax lexer; plain text as it is)
@@ -384,7 +384,7 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 							ui.paragraph(fmt.tprintf("%s###insp_body", ui.text_shown(insp.text)))
 						}
 					}
-					ui.spacer(ui.px(em * 0.8))
+					ui.space(ui.SPACE_3)
 				}
 				if insp.cut {
 					if ui.tags("weak") {
@@ -407,9 +407,9 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 					sig: ui.Signal
 					if ui.row(.Center, {.Clickable, .Draw_Hot_Effects, .Hot_Within}, fmt.tprintf("###insp_e%d", i)) {
 						sig = ui.signal(ui.parent_box())
-						ui.spacer(ui.px(em * 0.8))
+						ui.space(ui.SPACE_3)
 						entry_glyph(app, insp.path, x, em * 1.8)
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1)})
 						ui.label(fmt.tprintf("%s###n", ui.text_shown(x.name)))
 					}
@@ -420,7 +420,7 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 				}
 				if n > INSPECTOR_SUMMARY_ROWS {
 					if ui.tags("weak") {
-						ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0)), text_pad = em * 3.0})
+						ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0)), text_pad = em * (ui.SPACE_3 + 1.8 + ui.ICON_GAP)})
 						ui.label(fmt.tprintf("%s###insp_more", fmt.tprintf(i18n.tr(n - INSPECTOR_SUMMARY_ROWS, "and %d more", "and %d more"), n - INSPECTOR_SUMMARY_ROWS)))
 					}
 				}
@@ -474,7 +474,7 @@ inspector_keys_mark :: proc(b: ^ui.Box) {
 inspector_head :: proc(app: ^App, path: string, folder: bool, title, meta: string, em: f32) {
 	ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 3.2))})
 	if ui.row(.Center, {.Draw_Side_Bottom}, "###insp_head") {
-		ui.spacer(ui.px(em * 0.6))
+		ui.space(ui.SPACE_2)
 		if path != "" {
 			path_icon(app, path, folder, em * 2.4)
 		} else {
@@ -483,7 +483,7 @@ inspector_head :: proc(app: ^App, path: string, folder: bool, title, meta: strin
 				ui.build_box({.Draw_Text, .No_Text_Trunc}, fmt.tprintf("%s###icon", lucide.FILES))
 			}
 		}
-		ui.spacer(ui.px(em * 0.4))
+		ui.space(ui.ICON_GAP)
 		ui.next({width = ui.fill(), height = ui.pct(1), axis = .Y})
 		if ui.column() {
 			ui.spacer(ui.fill())
@@ -499,7 +499,7 @@ inspector_head :: proc(app: ^App, path: string, folder: bool, title, meta: strin
 			ui.spacer(ui.fill())
 		}
 		if ui.tags("weak") { if icon_action(app, "insp_close", lucide.X, command_tip(app, "inspector"), em) { act_inspector(app) } }
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.SPACE_1)
 	}
 }
 
@@ -522,16 +522,16 @@ inspector_summary :: proc(app: ^App, t: ^Tab, em: f32) {
 			x := t.folder.listing.entries[i]
 			ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0))})
 			if ui.row(.Center, {}, fmt.tprintf("###insp_s%d", k)) {
-				ui.spacer(ui.px(em * 0.8))
+				ui.space(ui.SPACE_3)
 				entry_glyph(app, t.path, x, em * 1.8)
-				ui.spacer(ui.px(em * 0.4))
+				ui.space(ui.ICON_GAP)
 				ui.next({width = ui.fill(), height = ui.pct(1)})
 				ui.label(fmt.tprintf("%s###n", ui.text_shown(x.name)))
 			}
 		}
 		if s.count > len(s.rows) {
 			if ui.tags("weak") {
-				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0)), text_pad = em * 3.0})
+				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0)), text_pad = em * (ui.SPACE_3 + 1.8 + ui.ICON_GAP)})
 				ui.label(fmt.tprintf("%s###insp_more", fmt.tprintf(i18n.tr(s.count - len(s.rows), "and %d more", "and %d more"), s.count - len(s.rows))))
 			}
 		}
@@ -580,7 +580,7 @@ inspector_props :: proc(app: ^App, t: ^Tab, e: fs.Entry, em: f32) {
 		if value == "" { return }
 		ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 1.8))})
 		if ui.row(.Center, {}, id) {
-			ui.spacer(ui.px(em * 0.8))
+			ui.space(ui.SPACE_3)
 			if ui.tags("weak") {
 				ui.next({width = ui.px(em * 6.5), height = ui.pct(1), font_size = em * 0.88})
 				ui.label(fmt.tprintf("%s###k", key))
@@ -592,19 +592,19 @@ inspector_props :: proc(app: ^App, t: ^Tab, e: fs.Entry, em: f32) {
 				ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.9, flags = {.Selectable}})
 			}
 			ui.label(fmt.tprintf("%s###v", ui.text_shown(value)))
-			ui.spacer(ui.px(em * 0.5))
+			ui.space(ui.SPACE_2)
 		}
 	}
 	ui.next({width = ui.fill(), height = ui.children_sum(), axis = .Y})
 	if ui.column(.Start, {.Draw_Side_Bottom}, "###insp_props") {
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.SPACE_1)
 		line(app, "###p_where", i18n.tr("Where"), home_path(app, fs.parent(insp.path)), em, mono = true)
 		line(app, "###p_modified", i18n.tr("Modified"), date_text(app, e.mtime), em)
 		if p.created != 0 { line(app, "###p_created", i18n.tr("Created"), date_text(app, p.created), em) }
 		if p.accessed != 0 { line(app, "###p_accessed", i18n.tr("Accessed"), date_text(app, p.accessed), em) }
 		line(app, "###p_perm", i18n.tr(PERMISSIONS_WORD), p.permissions, em, mono = true)
 		line(app, "###p_owner", i18n.tr("Owner"), p.owner, em, mono = true)
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.SPACE_1)
 	}
 }
 

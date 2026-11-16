@@ -126,12 +126,12 @@ conflict_view :: proc(view: ^ui.View, app: ^App) {
 		sync.mutex_unlock(&job.mutex)
 		conflict_file_line(app, i18n.tr("There"), there, coming, em, "###there")
 		conflict_file_line(app, job.kind == .Move ? i18n.tr("Moved") : job.kind == .Restore ? i18n.tr("the file coming, put back from the trash", "Put back") : i18n.tr("Copied"), coming, there, em, "###coming")
-		ui.spacer(ui.px(em * 0.4))
+		ui.space(ui.LINE_GAP)
 		if ui.tags("weak") {
 			ui.next({width = ui.fill()})
 			ui.paragraph(fmt.tprintf("%s###text", i18n.tr("Replace it, keep both (the new one numbered), or skip it.")))
 		}
-		ui.spacer(ui.px(em * 0.6))
+		ui.space(ui.LINE_GAP)
 		ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.0))})
 		if ui.row(.Center) { ui.checkbox("###all", i18n.tr("Do the same for the next ones"), &v.all) }
 	}
@@ -169,7 +169,7 @@ conflict_file_line :: proc(app: ^App, word: string, f, other: fs.Info, em: f32, 
 		ui.next({width = ui.text_size(0, 0), height = ui.pct(1), flags = {.Selectable}})   // (content: its size and date)
 		ui.label(fmt.tprintf("%s: %s###file", word, text))
 		if other.mtime != 0 && f.mtime > other.mtime {
-			ui.spacer(ui.px(em * 0.3))
+			ui.space(ui.SPACE_1)
 			ui.next({width = ui.text_size(0, 0), height = ui.pct(1), fg = ui.color("accent")})
 			ui.label(fmt.tprintf("%s###newer", i18n.tr("· newer")))
 		}

@@ -244,7 +244,7 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 		if ui.style({width = ui.px(pw)}) {
 			ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 3.2))})
 			if ui.row(.Center, id = "###goto_head") {
-				ui.spacer(ui.px(em * 0.8))
+				ui.space(ui.SPACE_3)
 				if ui.tags("weak") { glyph(app, lucide.FOLDER_SEARCH, em * 1.8) }
 				input_key := ui.key_from_string(ui.parent_box().key, "###goto_input")
 				ui.next({width = ui.fill(), height = ui.px(ui.dense(em * 2.3))})
@@ -263,7 +263,7 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 				// (in its first build, unseen: a dialog measured before it shows keeps the focus its builds gave, and the
 				// letters typed meanwhile come into the field)
 				if g.focus_due { ui.set_focus(input_key); g.focus_due = false }
-				ui.spacer(ui.px(em * 0.8))
+				ui.space(ui.SPACE_3)
 			}
 			ui.hline(ui.px(pw))
 			ui.next({width = ui.px(pw), height = ui.children_sum()})
@@ -279,16 +279,16 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 					sig: ui.Signal
 					if ui.row(.Center, flags, fmt.tprintf("###goto_row%d", vi)) {
 						sig = ui.signal(ui.parent_box())
-						ui.spacer(ui.px(em * 0.8))
+						ui.space(ui.SPACE_3)
 						path_icon(app, r.path, true, em * 1.7)
-						ui.spacer(ui.px(em * 0.4))
+						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1)})
 						ui.matched_label("###label", ui.text_shown(r.label), r.ranges)
 						if ui.tags("weak") {
 							ui.next({width = ui.text_size(em * 0.5), height = ui.pct(1), font_size = math.round(em * 0.85)})
 							ui.label(fmt.tprintf("%s###kind", r.kind))
 						}
-						ui.spacer(ui.px(em * 0.8))
+						ui.space(ui.SPACE_3)
 					}
 					if selected { ui.pop_tags() }
 					if sig.clicked { go_to = r.path }
@@ -304,7 +304,7 @@ goto_view :: proc(v: ^ui.View, app: ^App) {
 			ui.hline(ui.px(pw))
 			ui.next({width = ui.px(pw), height = ui.px(ui.dense(em * 2.1))})
 			if ui.row(.Center, id = "###goto_foot") {
-				ui.spacer(ui.px(em * 0.9))
+				ui.space(ui.SPACE_4)
 				if ui.tags("weak") {
 					ui.next({width = ui.fill(), height = ui.pct(1), font_size = math.round(em * 0.85)})
 					ui.label(fmt.tprintf("%s###goto_help", i18n.tr("Up, Down: choose   Tab: complete the path   Enter: go   Esc: close")))

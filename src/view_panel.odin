@@ -22,7 +22,7 @@ HEADER_EM  :: 2.1
 ROW_EM     :: 2.2
 FOOTER_EM  :: 2.3
 // The widths of the columns after the name, in ems.
-ROW_LEAD_EM     :: 0.4   // between a row's edge and its icon
+ROW_LEAD_EM     :: ui.SPACE_2   // between a row's edge and its icon
 ICON_CELL_EM    :: 1.9   // a row's icon, which is its box too
 TREE_CHEVRON_EM :: 1.6   // a tree's chevron (icon_action at 0.8 em)
 COL_MODIFIED_EM :: 9.5
@@ -43,7 +43,7 @@ srgb_mix :: proc(a, b: u32, k: f32) -> u32 {
 }
 
 // How far the rows' pills and lines stand from the panel's sides, in ems.
-ROW_INSET_EM :: 0.5
+ROW_INSET_EM :: ui.SPACE_2
 // The name's least width, and what a row holds besides its columns (insets, box, icon), in ems.
 NAME_MIN_EM   :: 14
 ROW_FIXED_EM  :: 7
@@ -207,7 +207,7 @@ toolbar :: proc(app: ^App, p: ^Panel, t: ^Tab, index: int, em: f32) {
 	ui.next({width = ui.fill(), height = ui.px(ui.dense(em * TOOLBAR_EM))})
 	ui.next_merge({bg = draw.hex(surfaces(app).list)})
 	if ui.row(.Center, {.Draw_Side_Bottom, .Draw_Background}, "###toolbar") {
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.SPACE_1)
 		if ui.tags("weak") {
 			if icon_action(app, "back", lucide.ARROW_LEFT, command_tip(app, "back"), em, len(t.back) > 0) { tab_back(app, t) }
 			if icon_action(app, "forward", lucide.ARROW_RIGHT, command_tip(app, "forward"), em, len(t.forward) > 0) { tab_forward(app, t) }
@@ -234,7 +234,7 @@ toolbar :: proc(app: ^App, p: ^Panel, t: ^Tab, index: int, em: f32) {
 				panel_menu_open(app, ui.mouse_pos())
 			}
 		}
-		ui.spacer(ui.px(em * 0.3))
+		ui.space(ui.SPACE_1)
 	}
 }
 
@@ -350,9 +350,9 @@ address_field :: proc(app: ^App, t: ^Tab, em: f32) {
 			sig: ui.Signal
 			if ui.row(.Center, flags, fmt.tprintf("###sugg%d", i)) {
 				sig = ui.signal(ui.parent_box())
-				ui.spacer(ui.px(em * 0.6))
+				ui.space(ui.SPACE_2)
 				path_icon(app, r.path, true, em * 1.6)
-				ui.spacer(ui.px(em * 0.4))
+				ui.space(ui.ICON_GAP)
 				ui.next({width = ui.fill(), height = ui.pct(1)})
 				// (the folder's name, the letters typed lit: the path before it is the field's)
 				ui.matched_label("###label", ui.text_shown(r.label), r.ranges)
@@ -391,7 +391,7 @@ list_move :: proc(t: ^Tab, by: int) {
 // checks every row stands over the icons), in ems.
 @(private = "file")
 header_lead_em :: proc(f: ^Folder) -> f32 {
-	lead: f32 = ROW_INSET_EM + ROW_LEAD_EM + ICON_CELL_EM + 0.5
+	lead: f32 = ROW_INSET_EM + ROW_LEAD_EM + ICON_CELL_EM + ui.ICON_GAP
 	if f.tree && f.filter == "" { lead += TREE_CHEVRON_EM }
 	return lead
 }
@@ -864,7 +864,7 @@ entry_row :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, row: int, selected: bool, na
 		ui.spacer(ui.px(em * (ROW_INSET_EM + ROW_LEAD_EM)))
 		tree_lead(app, t, e, em)
 		check = icon_check(app, t, e^, row, selected, em)
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.ICON_GAP)
 		entry_name(app, t, e, selected, em)
 	}
 	if names_only {
@@ -1074,9 +1074,9 @@ footer :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 					used := 100 - int(100 * f64(t.space.free) / f64(t.space.total))
 					stat(app, "disk", lucide.HARD_DRIVE, i18n.percent(f64(used) / 100), fmt.tprintf(i18n.tr("%s free of %s"), size_text(t.space.free), size_text(t.space.total)), em)
 				}
-				ui.spacer(ui.px(em * 0.5))
+				ui.space(ui.SPACE_2)
 				zoom_pill(app, t, em)
-				ui.spacer(ui.px(em * 0.5))
+				ui.space(ui.SPACE_2)
 			}
 		}
 	}
@@ -1208,7 +1208,7 @@ zoom_slider_build :: proc(app: ^App, em: f32) {
 						if !on { ui.push_tags("weak") }
 						glyph(app, ZOOM_ICONS[step], em * 1.7)
 						if !on { ui.pop_tags() }
-						ui.spacer(ui.px(em * 0.3))
+						ui.space(ui.ICON_GAP)
 						ui.next({width = ui.fill(), height = ui.pct(1)})
 						ui.label(fmt.tprintf("%s###zn", i18n.tr(ZOOM_NAMES[step])))
 						ui.push_tags("weak")
@@ -1252,7 +1252,7 @@ stat :: proc(app: ^App, id, icon, text, tip: string, em: f32, lit := false) {
 	sig: ui.Signal
 	if ui.row(.Center, {.Clickable}, fmt.tprintf("###stat_%s", id)) {
 		sig = ui.signal(ui.parent_box())
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 		if ui.tags("weak") { glyph(app, icon, em * 1.5) }
 		ui.next({width = ui.text_size(em * 0.2), height = ui.pct(1), fg = lit ? ui.color("accent") : nil})
 		ui.label(fmt.tprintf("%s###v", text))
@@ -1272,7 +1272,7 @@ filter_field :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 	ui.next({width = ui.px(em * FILTER_EM), height = ui.pct(1), bg = draw.hex(surfaces(app).top)})
 	if ui.row(.Center, {.Draw_Background}, "###filterbox") {
 		if t.flat { tab_flat_line(ui.parent_box()) }
-		ui.spacer(ui.px(em * 0.5))
+		ui.space(ui.SPACE_2)
 		if ui.tags("weak") { glyph(app, lucide.SEARCH, em * 1.5) }
 		key := ui.key_from_string(ui.parent_box().key, "###filter")
 		// text typed in the panel that has the keyboard, no field, no dialog and no other view taking it: into its filter
@@ -1321,7 +1321,7 @@ filter_field :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 				}
 			}
 		}
-		ui.spacer(ui.px(em * 0.2))
+		ui.space(ui.SPACE_1)
 	}
 }
 
