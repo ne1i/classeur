@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.31.0] - 2026-11-16 13:56
+
+### Changed
+- **Even spacing.** The gaps of classeur's windows follow the toolkit's one scale, so neighbouring parts line up.
+
 ## [0.30.0] - 2026-11-16 12:12
 
 ### Fixed
@@ -560,6 +565,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.31.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.31.0
 [0.30.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.30.0
 [0.29.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.29.0
 [0.28.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.28.0
