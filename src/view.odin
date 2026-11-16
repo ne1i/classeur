@@ -56,6 +56,9 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	// (a view shown as a dialog holds the keys; one that floats or is docked keeps those it is given)
 	app.no_dialog = !ui.views_hold_keys(&app.views)
 	keys_follow(app)
+	// the palette's choice, before anything is built: a value its run mode writes shows on the settings' view in the
+	// same frame (the views are built first, in views_frame)
+	palette_choose(app)
 
 	ui.next({width = ui.fill(), height = ui.fill(), axis = .Y, bg = draw.hex(surfaces(app).list)})
 	page := ui.build_box({.Draw_Background}, "###page")
@@ -69,8 +72,8 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 			// the program's keys, after the views' (built first in the frame: a view with the focus reads its keys
 			// first; the toolkit's F6 comes last, only when nothing took it). The window's commands first, over a
 			// dialog too (the settings are one); the toolkit's recorder claims every chord while it records
-			// (the palette first: its keys are the toolkit's, and its choice runs a command as a key does)
-			palette_build(app)
+			// (the palette's keys first: they are the toolkit's)
+			palette_keys_read(app)
 			window_keys(app)
 			if app.no_dialog {
 				gesture_escape(app)
@@ -124,11 +127,14 @@ CONTROL_RADIUS_EM :: 0.15
 control_look :: proc(em: f32) -> ui.Style_Mod { return {radius = em * CONTROL_RADIUS_EM * corner_k(), flags = {.Fixed_Radius}} }
 
 // A small flat button with a Lucide icon; its tooltip says what it does. `on`: lit in the accent (a toggle that is on).
-icon_action :: proc(app: ^App, id, g, tip: string, em: f32, enabled := true, on := false) -> bool {
+// `command`: the id of the command its click runs, and acts on what that command acts on (the palette's Shift+Enter on
+// the command comes to this button); "": it runs none.
+icon_action :: proc(app: ^App, id, g, tip: string, em: f32, enabled := true, on := false, command := "") -> bool {
 	side := em * 2.0
 	ui.next({width = ui.px(side), height = ui.px(side), text_pad = 0, fg = on ? ui.color("accent") : nil})
 	ui.next_merge(control_look(em))
 	sig := ui.button(id, icon = g, o = {tip = tip, icon_font = app.icons, disabled = !enabled})
+	if command != "" { ui.act_command(sig.box, command) }
 	return enabled && sig.clicked
 }
 
@@ -203,7 +209,7 @@ build_top :: proc(app: ^App, em: f32) {
 			ui.space(ui.SPACE_2)
 			logo_icon(em * 1.8)
 			ui.spacer(ui.fill())
-			if icon_action(app, "sidebar", sidebar_shown(app) ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em) { act_toggle_sidebar(app) }
+			if icon_action(app, "sidebar", sidebar_shown(app) ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em, command = "sidebar") { act_toggle_sidebar(app) }
 			ui.space(ui.SPACE_1)
 		}
 		// (a column's top panel has its tabs here; a panel below another has them at its own top: panel_build)
@@ -351,7 +357,8 @@ tab_region :: proc(app: ^App, p: ^Panel, index: int, width: ui.Size, room: f32, 
 			tabs_menu_open(app, p)
 		}
 		ui.space(ui.TOOL_GAP)
-		if icon_action(app, fmt.tprintf("newtab%d", index), lucide.PLUS, command_tip(app, "tab_new"), em) {
+		// (New tab acts on the panel with the keyboard: its button is that panel's)
+		if icon_action(app, fmt.tprintf("newtab%d", index), lucide.PLUS, command_tip(app, "tab_new"), em, command = focused ? "tab_new" : "") {
 			app.focus = index
 			act_tab_new(app)
 		}

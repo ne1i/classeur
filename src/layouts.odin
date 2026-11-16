@@ -120,9 +120,37 @@ layout_delete :: proc(app: ^App, name: string) {
 	}
 }
 
+// The name a new layout gets when none is typed.
+@(private = "file")
+layout_next_name :: proc(app: ^App) -> string { return fmt.tprintf(i18n.tr("Layout %d"), len(app.layouts.list) + 1) }
+
+// Save layout from the palette: its form gave the name (empty: the next free one), so the prompt is not opened.
+layout_save_with :: proc(app: ^App, values: []string) {
+	name := len(values) > 0 ? strings.trim_space(values[0]) : ""
+	if name == "" { name = layout_next_name(app) }
+	layout_save(app, strings.clone(name, context.temp_allocator))
+}
+
+// Open layout from the palette: its form chose the layout among the saved ones (layout_choices).
+layout_open_with :: proc(app: ^App, values: []string) {
+	name := len(values) > 0 ? values[0] : ""
+	if len(app.layouts.list) == 0 || !layout_open(app, strings.clone(name, context.temp_allocator)) {
+		act_layout_open(app)   // (no layout of that name: the menu of those there are, or the words that none is saved)
+	}
+}
+
+// The layouts' names, the values and the labels of Open layout's argument: a slice of `names`, which the palette's form
+// reads while it is open. The strings are the list's own: a layout is deleted from its menu only, never open with the
+// palette.
+layout_choices :: proc(app: ^App, names: ^[dynamic]string) -> []string {
+	clear(names)
+	for x in app.layouts.list { append(names, x.name) }
+	return names[:]
+}
+
 act_layout_save :: proc(app: ^App) {
 	l := &app.layouts
-	ui.line_edit_set(&l.field, fmt.tprintf(i18n.tr("Layout %d"), len(l.list) + 1))
+	ui.line_edit_set(&l.field, layout_next_name(app))
 	ui.line_edit_select_all(&l.field)
 	layout_name_ask(app)
 }

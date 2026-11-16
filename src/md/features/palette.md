@@ -9,9 +9,34 @@ choice as a source and an id.
 
 | Prefix | Source | Items | Choosing |
 |---|---|---|---|
-| `>`, plain | the commands (`ui.palette_commands`) | `COMMANDS` by group, the keys in effect, the aliases as tags (the toolkit's keymap) | runs it; Ctrl+Enter records a key of one's own, Alt+Enter makes the letters typed its alias (both the toolkit's) |
+| `>`, plain | the commands (`ui.palette_commands`) | `COMMANDS` by group, the keys in effect, the aliases as tags (the toolkit's keymap) | runs it; a command with arguments asks them in its form first; Ctrl+Enter records a key of one's own, Alt+Enter makes the letters typed its alias (both the toolkit's) |
 | `>`, plain | the views' moves (the toolkit's) | float, dock, re-attach, close each open view | the toolkit runs it |
-| `:`, plain | the settings (`prefs_page.palette_settings_add`) | each setting the pages show | a switch flips, the palette stays; another opens the settings on it |
+| `:`, plain | the settings (`prefs_page.palette_settings_add`) | each setting the pages show | a switch flips, the palette stays; another opens its control under its row (the run mode) |
+
+Shift+Enter, in every source, goes to where the item lives (the toolkit's go to): the settings page on a setting, or the
+button that runs a command.
+
+## Go to a command's button
+
+A button whose click runs a command of `COMMANDS` states it at its build (`icon_action`'s `command`, else
+`ui.act_command`): Shift+Enter on the command shows that button, focused and lit. Named today:
+
+- the top bar: Sidebar (`sidebar`), and the focused panel's New tab (`tab_new`);
+- the focused panel's toolbar: Back, Forward, Up, Lock, Bookmark (`back`, `forward`, `up`, `lock`, `bookmark`), and the
+  empty part of the path, which opens GoTo (`goto_popup`);
+- the focused panel's footer: Types shown (`types`, which opens its menu), Search subfolders (`flat`), Jobs (`jobs`);
+- the inspector's close button (`inspector`).
+
+## Commands with arguments
+
+A command that asks one value before it acts states it (`Command.arguments`, a `config.Def` each); the palette asks it in
+its form, and the choice runs `Command.run_with` with the value. Its keys still run `Command.run`, which asks in a dialog
+of its own.
+
+| Command | Its argument | Its dialog, kept for its keys |
+|---|---|---|
+| Save layout (`layout_save`) | the name, free text; empty: "Layout n", the next | the prompt (`LAYOUT_NAME_VIEW`) |
+| Open layout (`layout_open`) | the layout, among the saved ones (`Palette_Commands_Options.choices`: `layout_choices`) | the menu (`LAYOUTS_MENU`), which also deletes a layout |
 | `@`, plain | the tabs | every tab, under its panel's name; the shown one marked | its panel gets the keyboard and shows it |
 | `/`, plain | the folders | the folders of the path typed, and the recent folders, bookmarks and places the letters find | goes there in the tab; Ctrl+Enter in a new tab; Tab completes the path |
 
@@ -44,7 +69,20 @@ choice as a source and an id.
   typed whole put first. Classeur had them alone and the toolkit took them; [keyboard.md](keyboard.md) says what
   classeur keeps.
 
+- **The choice is taken at the top of the build** (`palette_choose`, before anything is built). The views, the settings
+  page among them, are built first in `views_frame`: a value the run mode writes later in the build would show in the
+  palette one frame before the page. The palette's keys stay after the views' (`palette_keys_read`).
+- **Only the focused panel's buttons state their commands.** The commands act on the panel with the keyboard; the same
+  button of another panel acts on its own panel, and a name kept for the last panel built would send go to there.
+- **The dialogs that stay.** GoTo (`goto_popup`) shows where each letter typed leads, a preview the palette's `/` source
+  already gives. Rename and New folder name the item in its row, in place (Tab goes to the next row). Batch rename asks
+  several values with the preview of each new name. The name taken (replace, skip, keep both) and the confirmation of a
+  deletion are a job's questions, not a command's values.
+
 ## Refused
+
+- **An argument's default that changes** ("Layout 3", the next free name): a `config.Def`'s default is the table's,
+  made once. The form's empty name means the next free one.
 
 - **Decoding a chosen index by ranges** (commands, then settings, then moves): it broke when the table was made again
   between the choice and its reading. A choice is a source and an id.

@@ -4,6 +4,7 @@ package classeur
 // (commands_keys), the command palette lists and runs them (palette.odin), the menus show their keys. A new action is a
 // line here and a procedure in actions.odin.
 
+import config "gt:config"
 import "gt:i18n"
 import lucide "gt:lucide"
 import "gt:ui"
@@ -25,6 +26,20 @@ Command :: struct {
 	scope:   ui.Command_Scope,
 	run:     proc(app: ^App),
 	enabled: proc(app: ^App) -> bool,   // nil: always; else, when it says false, its keys do nothing and the palette hides it
+	// what it asks before it acts, when the palette runs it (ui.Command.arguments): the palette shows their form and
+	// `run_with` gets the values, in their order, as config.value_text writes them. Its keys still run `run`, which asks
+	// the same values in a dialog of its own
+	arguments: []config.Def,
+	run_with:  proc(app: ^App, values: []string),
+}
+
+// The arguments of the commands that take some (palette.odin's `layout_choices` gives the layouts' names). (Not rodata:
+// i18n.later marks the words for the catalogue.)
+LAYOUT_SAVE_ARGUMENTS := [?]config.Def{
+	{name = "name", title = i18n.later("Name"), description = i18n.later("The layout's name. Empty: the next free one."), kind = .String, default = {s = ""}},
+}
+LAYOUT_OPEN_ARGUMENTS := [?]config.Def{
+	{name = "layout", title = i18n.later("Layout"), description = i18n.later("The layout that takes the place of the panels shown."), kind = .String, default = {s = ""}},
 }
 
 // (not rodata: i18n.later marks the titles for the catalogue, a call the compiler does not fold)
@@ -106,8 +121,8 @@ COMMANDS := [?]Command{
 	{id = "sort_size", title = i18n.later("Sort by size"), icon = lucide.GAUGE, keys = {{.N3, {.Ctrl, .Alt}}}, in_text = true, run = act_sort_size},
 	{id = "sort_type", title = i18n.later("Sort by type"), icon = lucide.FILE_TEXT, keys = {{.N4, {.Ctrl, .Alt}}}, in_text = true, run = act_sort_type},
 	{id = "folders_mixed", title = i18n.later("Folders first"), icon = lucide.FOLDER_TREE, tags = {"or among the files"}, keys = {{.N0, {.Ctrl, .Alt}}}, in_text = true, run = act_folders_mixed},
-	{id = "layout_save", title = i18n.later("Save layout"), icon = lucide.SAVE, tags = {"panels and tabs"}, keys = {{.S, {.Ctrl, .Alt}}}, in_text = true, run = act_layout_save},
-	{id = "layout_open", title = i18n.later("Open layout"), icon = lucide.BLOCKS, keys = {{.L, {.Ctrl, .Alt}}}, in_text = true, run = act_layout_open},
+	{id = "layout_save", title = i18n.later("Save layout"), icon = lucide.SAVE, tags = {"panels and tabs"}, keys = {{.S, {.Ctrl, .Alt}}}, in_text = true, run = act_layout_save, arguments = LAYOUT_SAVE_ARGUMENTS[:], run_with = layout_save_with},
+	{id = "layout_open", title = i18n.later("Open layout"), icon = lucide.BLOCKS, keys = {{.L, {.Ctrl, .Alt}}}, in_text = true, run = act_layout_open, arguments = LAYOUT_OPEN_ARGUMENTS[:], run_with = layout_open_with},
 	{id = "tree", title = i18n.later("Tree view"), icon = lucide.LIST_TREE, tags = {"folders opened in place"}, keys = {{.E, {.Ctrl, .Shift}}}, in_text = true, run = act_tree},
 	{id = "group_date", title = i18n.later("Group by date"), icon = lucide.SUN_MOON, tags = {"again no groups"}, keys = {{.N5, {.Ctrl, .Alt}}}, in_text = true, run = act_group_date},
 	{id = "group_type", title = i18n.later("Group by type"), icon = lucide.FILE_BOX, tags = {"again no groups"}, keys = {{.N6, {.Ctrl, .Alt}}}, in_text = true, run = act_group_type},
@@ -165,7 +180,7 @@ commands_make :: proc(out: []ui.Command) {
 	for c, i in COMMANDS {
 		out[i] = ui.Command{
 			id = c.id, label = c.title, group = COMMAND_GROUPS[command_group(c.id)], keys = c.keys, icon = c.icon,
-			tags = c.tags, scope = c.scope,
+			tags = c.tags, scope = c.scope, arguments = c.arguments,
 		}
 	}
 }

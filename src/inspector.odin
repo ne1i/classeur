@@ -498,7 +498,7 @@ inspector_head :: proc(app: ^App, path: string, folder: bool, title, meta: strin
 			}
 			ui.spacer(ui.fill())
 		}
-		if ui.tags("weak") { if icon_action(app, "insp_close", lucide.X, command_tip(app, "inspector"), em) { act_inspector(app) } }
+		if ui.tags("weak") { if icon_action(app, "insp_close", lucide.X, command_tip(app, "inspector"), em, command = "inspector") { act_inspector(app) } }
 		ui.space(ui.SPACE_1)
 	}
 }

@@ -14,7 +14,7 @@ it (the decisions, the refused alternatives, the subtle points) are in [src/md](
 | `src/jobs.odin` | Copy, move, trash, delete: one thread, one job at a time, progress in atomics, a question through `ui.post` and a semaphore. |
 | `src/dialogs.odin` | The name-taken question and the delete-for-good confirmation. |
 | `src/watcher.odin` | The folders of the tabs, watched on a thread (`fs.Watch`); a change reads the tab again. |
-| `src/commands.odin` | The table of every command: id, title, icon, keys, whether its keys work while a text field has the keyboard. The keyboard (`commands_keys`), the palette and the menus read it. |
+| `src/commands.odin` | The table of every command: id, title, icon, keys, whether its keys work while a text field has the keyboard, the arguments the palette asks. The keyboard (`commands_keys`), the palette and the menus read it. |
 | `src/actions.odin` | What the commands do, and the rename in place. |
 | `src/palette.odin` | The command palette (the toolkit's `ui.Command_Palette`): the commands source's table, the settings source, the choice, the sheet of the keys. The person's keys and aliases are the toolkit's (`ui.Keymap`, its recorder). |
 | `src/palette_sources.odin` | The palette's own sources: `@` the tabs, `/` the folders (listed on the workers, answered in an arena of their own). |

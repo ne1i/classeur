@@ -180,6 +180,18 @@ fr Annuler
 en Rename (Enter)
 fr Renommer (Entrée)
 
+en Name
+fr Nom
+
+en The layout's name. Empty: the next free one.
+fr Le nom de la disposition. Vide : le prochain libre.
+
+en Layout
+fr Disposition
+
+en The layout that takes the place of the panels shown.
+fr La disposition qui remplace les panneaux affichés.
+
 en Open
 fr Ouvrir
 
@@ -1569,9 +1581,6 @@ fr Verrouillé : les dossiers s'ouvrent dans un nouvel onglet
 
 en Every tab of the panel
 fr Tous les onglets du panneau
-
-en Name
-fr Nom
 
 en Type
 fr Type

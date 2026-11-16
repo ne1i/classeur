@@ -7,7 +7,7 @@ keyboard is a small state machine (`app.keys_at`: the sidebar, a panel's list, t
 ## The order of a build
 
 0. `view_build` reads the palette's keys first, Ctrl+K and Ctrl+Shift+P (the toolkit's `ui.palette_keys`, in
-   `palette_build`: the command is the toolkit's, `ui.palette_command`, with no line in `COMMANDS`), then the keys of the
+   `palette_keys_read`: the command is the toolkit's, `ui.palette_command`, with no line in `COMMANDS`), then the keys of the
    window's commands (`window_keys`: the keys, the settings, quit; `scope = .Window`). They work in every page and
    whatever has the keyboard: a field, the sidebar, a view, and over a view shown as a dialog (the settings are one). The
    toolkit's `ui.command_pressed` takes their chords from wherever the focus is. One exception: while the toolkit's

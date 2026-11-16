@@ -37,6 +37,7 @@ Palette :: struct {
 	enabled:     u64,            // a bit per gated command that can act, as `disabled` says it
 	version:     u64,            // the commands source's: bumped when `disabled` changes
 	gated:       [dynamic]int,   // the commands that have an `enabled` (read each frame: few)
+	layout_names: [dynamic]string,   // Open layout's choices while its form is open (layout_choices; the strings not owned)
 }
 
 // (the toolkit's palette is destroyed before the window: app_close)
@@ -49,6 +50,7 @@ palette_free :: proc(p: ^Palette) {
 	delete(p.line_of)
 	delete(p.disabled)
 	delete(p.gated)
+	delete(p.layout_names)
 	p^ = {}
 }
 
@@ -89,7 +91,7 @@ palette_start :: proc(app: ^App) {
 	palette_sources_add(app)
 }
 
-// The palette (a menu's line; Ctrl+K and Ctrl+Shift+P are the toolkit's: palette_build), `typed` in its field.
+// The palette (a menu's line; Ctrl+K and Ctrl+Shift+P are the toolkit's: palette_keys_read), `typed` in its field.
 palette_open :: proc(app: ^App, typed := "") {
 	ui.palette_open(&app.palette.pal, typed)
 }
@@ -147,16 +149,35 @@ shortcuts_open :: proc(app: ^App) {
 	ui.shortcuts_sheet_open(&p.sheet, p.sheet_table[:])
 }
 
-// Each build, before the page's keys: the commands given (compared by their version), Ctrl+K and Ctrl+Shift+P, the
-// choice.
-palette_build :: proc(app: ^App) {
+// At the top of each build, before anything is built: the commands given (compared by their version), then the choice.
+// palette_chosen makes the run mode's writes (a setting changed in the palette): before the settings' view is built,
+// the page shows the value in the same frame as the palette.
+palette_choose :: proc(app: ^App) {
 	p := &app.palette
 	palette_disabled_keep(app)
-	ui.palette_commands(&p.pal, p.table[:], p.disabled[:], {version = p.version})
-	// (the recorder claims every chord, Ctrl+K too: keys_claim)
-	_ = ui.palette_keys(&p.pal)
-	// (the toolkit's sources act in palette_chosen: a setting, a view's move, a key or an alias of one's own)
+	ui.palette_commands(&p.pal, p.table[:], p.disabled[:], {version = p.version, choices = palette_choices, user = app})
+	// (the toolkit's sources act in palette_chosen: a setting, a view's move, a key or an alias of one's own, go to)
 	if c, ok := ui.palette_chosen(&p.pal); ok { palette_run(app, c) }
+}
+
+// Ctrl+K and Ctrl+Shift+P, after the views' keys (a view with the focus reads its keys first), before the page's.
+palette_keys_read :: proc(app: ^App) {
+	// (the recorder claims every chord, Ctrl+K too: keys_claim)
+	_ = ui.palette_keys(&app.palette.pal)
+}
+
+// The values a command's argument takes, when the program has the list (ui.Palette_Commands_Options.choices): `index`
+// is the commands source's table's.
+@(private = "file")
+palette_choices :: proc(user: rawptr, index: int, argument: string) -> (labels, values: []string) {
+	app := (^App)(user)
+	p := &app.palette
+	if index < 0 || index >= len(p.order) { return nil, nil }
+	if COMMANDS[p.order[index]].id == "layout_open" && argument == "layout" {
+		names := layout_choices(app, &p.layout_names)
+		return names, names
+	}
+	return nil, nil
 }
 
 // A choice of one of classeur's sources.
@@ -167,7 +188,12 @@ palette_run :: proc(app: ^App, c: ui.Palette_Choice) {
 		cmd := command_find(c.id)
 		if cmd == nil { return }
 		if t := current_tab(app); t != nil { t.focus_due = .List }
-		cmd.run(app)
+		// (a command with arguments chosen with their values: its form asked them, no dialog of its own)
+		if cmd.run_with != nil && len(c.arguments) == len(cmd.arguments) {
+			cmd.run_with(app, c.arguments)
+		} else {
+			cmd.run(app)
+		}
 		return
 	}
 	if c.source == &p.tabs {
