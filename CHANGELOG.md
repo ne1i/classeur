@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.35.0] - 2026-11-17 18:13
+
+### Added
+- **Something engraved on the back of the licence card**: turn the card over and look at it from the right angle.
+
 ## [0.34.0] - 2026-11-17 12:44
 
 ### Changed
@@ -602,6 +607,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.35.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.35.0
 [0.34.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.34.0
 [0.33.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.33.0
 [0.32.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.2
