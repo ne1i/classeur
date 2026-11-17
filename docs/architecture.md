@@ -52,8 +52,9 @@ it (the decisions, the refused alternatives, the subtle points) are in [src/md](
   most 30 seconds): the grid's on the thumbnails' pool, the inspector's on the workers.
 - A program started (the system's application for a file, Open with, a terminal) is a task of the workers (`launch`):
   a failure comes back to be said. The files written as the window runs (the session, the layouts) are
-  each a `store.Writer` (gt:store: its own thread, the latest text wins), the preferences a `config.User_Writer`. Only the reads of the start
-  (the preferences, the session, the layouts) run on the interface's thread, before the first frame.
+  each a `store.Writer` (gt:store: its own thread, the latest text wins), the preferences a `config.User_Writer`. Only the read of the
+  preferences runs on the interface's thread, before the first frame. The session and the layouts are read by a task at
+  the start; the window shows its start's tab until they come (`app.start_read`, src/md/features/session.md).
 - The tests wait for the answers with `wait_read` (`app.answers_due`).
 
 ## The keyboard

@@ -77,6 +77,20 @@ wait_read :: proc(s: ^session.Session, loc := #caller_location) {
 	session.frames(s, 2)
 }
 
+// For a test that opens classeur itself (no testkit session): frames until the start's read of the session has come
+// and every tab has its folder. False: not within the bound.
+// (shared by the tests of the package: each file of tests uses it)
+wait_start_read :: proc(app: ^App) -> bool {
+	for _ in 0 ..< 4000 {
+		app_frame(app)
+		loading := false
+		for p in app.panels { for tb in p.tabs { if tb.loading { loading = true } } }
+		if app.start_read != .Reading && app.answers_due == 0 && !loading { return true }
+		time.sleep(time.Millisecond)   // (the workers' turn; the bound is the loop's)
+	}
+	return false
+}
+
 // The cursor on `name`, and it alone selected (as a click does).
 // (shared by the tests of the package: each file of tests uses it)
 point_at :: proc(t: ^testing.T, tab: ^Tab, name: string, loc := #caller_location) {
@@ -737,13 +751,12 @@ test_session :: proc(t: ^testing.T) {
 			photos := fs.join(dir, "Photos", context.temp_allocator)
 			app := app_open({folders = {photos}, headless = true, session = file})
 			defer app_close(app)
-			// (the reads come: the tab of Projects, gone, goes up)
-			for _ in 0 ..< 400 {
-				app_frame(app)
-				loading := false
-				for p in app.panels { for tb in p.tabs { if tb.loading { loading = true } } }
-				if !loading { break }
-			}
+			// (the window has its start's tab at once; the session is read on a worker, applied by a frame)
+			testing.expect_value(t, app.start_read, Start_Read.Reading)
+			testing.expect_value(t, len(app.panels), 1)
+			// (the session comes from a worker, then the reads: the tab of Projects, gone, goes up)
+			testing.expect(t, wait_start_read(app), "the session read and its tabs' folders")
+			testing.expect_value(t, app.start_read, Start_Read.Applied)
 			testing.expect_value(t, len(app.panels), 2)
 			testing.expect_value(t, len(app.panels[0].tabs), 2)
 			testing.expect_value(t, app.panels[0].active, 1)
@@ -759,6 +772,66 @@ test_session :: proc(t: ^testing.T) {
 			testing.expect_value(t, app.panels[1].active, 1)
 			testing.expect_value(t, len(app.bookmarks), 1)
 		}
+	})
+}
+
+// A session that comes after the person acted: their tab stays, the session's panels are dropped, its bookmarks are
+// merged. Nothing is written before it came: the start's state would replace the last session. (The read is held by
+// start_gate: late for certain.)
+@(test)
+test_session_late :: proc(t: ^testing.T) {
+	unwatched.run(t, proc(t: ^testing.T) {
+		files := FIXTURE
+		fixture := make_fixture(t, files[:])
+		context.allocator = runtime.heap_allocator()
+		// (kept on the heap: the frames below empty the temporary allocator)
+		dir := strings.clone(fixture)
+		defer delete(dir)
+		file := fs.join(dir, ".session")
+		defer delete(file)
+		documents := fs.join(dir, "Documents")
+		defer delete(documents)
+		photos := fs.join(dir, "Photos")
+		defer delete(photos)
+		projects := fs.join(dir, "Projects")
+		defer delete(projects)
+		before := fmt.aprintf("focus 0\npanel 1\ntab 0 0 0 0 %s\ntab 0 0 0 0 %s\nbookmark %s\n", dir, documents, photos)
+		defer delete(before)
+		testing.expect(t, os.write_entire_file(file, transmute([]u8)before) == nil)
+		gate: sync.Sema
+		app := app_open({folders = {dir}, headless = true, session = file, start_gate = &gate})
+		testing.expect(t, app != nil)
+		if app == nil { sync.sema_post(&gate); return }
+		defer app_close(app)
+		testing.expect_value(t, app.start_read, Start_Read.Reading)
+		testing.expect_value(t, len(app.panels), 1)
+		testing.expect_value(t, len(app.panels[0].tabs), 1)
+		// the person acts first: a tab opened, a folder bookmarked
+		tab_open(app, app.panels[0], projects)
+		bookmark_toggle(app, documents)
+		for _ in 0 ..< 3 { app_frame(app) }
+		// a save now, waited for, writes nothing: the last session stays as it was
+		session_save(app)
+		on_disk, err := os.read_entire_file(file, context.temp_allocator)
+		testing.expect(t, err == nil && string(on_disk) == before, "the last session untouched before its read")
+		sync.sema_post(&gate)
+		testing.expect(t, wait_start_read(app), "the late session")
+		testing.expect_value(t, app.start_read, Start_Read.Dropped)
+		testing.expect_value(t, len(app.panels), 1)
+		testing.expect_value(t, len(app.panels[0].tabs), 2)
+		if len(app.panels[0].tabs) == 2 { testing.expect_value(t, app.panels[0].tabs[1].path, projects) }
+		// the file's bookmarks first, then the person's
+		testing.expect_value(t, len(app.bookmarks), 2)
+		if len(app.bookmarks) == 2 {
+			testing.expect_value(t, app.bookmarks[0], photos)
+			testing.expect_value(t, app.bookmarks[1], documents)
+		}
+		// written once it came: the person's tabs and both bookmarks
+		session_save(app)
+		after, _ := os.read_entire_file(file, context.temp_allocator)
+		testing.expect(t, strings.contains(string(after), fmt.tprintf(" %s\n", projects)), "the person's tab written")
+		testing.expect(t, strings.contains(string(after), fmt.tprintf("bookmark %s\n", photos)), "the file's bookmark kept")
+		testing.expect(t, strings.contains(string(after), fmt.tprintf("bookmark %s\n", documents)), "the person's bookmark written")
 	})
 }
 
@@ -1103,7 +1176,9 @@ test_layouts :: proc(t: ^testing.T) {
 		// read again from its file, once its writer has written it (on a worker)
 		store.writer_flush(&app.layouts_writer)
 		layouts_free(&app.layouts)
-		layouts_load(app)
+		text, err := os.read_entire_file(layouts_file(app), context.temp_allocator)
+		testing.expect(t, err == nil, "the layouts written")
+		app.layouts.list = layouts_parse(string(text))
 		testing.expect(t, layout_open(app, "work"))
 		wait_read(s)
 		testing.expect_value(t, len(app.panels), 2)
@@ -2572,6 +2647,8 @@ test_session_writes_in_order :: proc(t: ^testing.T) {
 		testing.expect(t, app != nil)
 		if app == nil { return }
 		defer app_close(app)
+		// (nothing is written before the start's read came: session_save)
+		testing.expect(t, wait_start_read(app), "the start's read")
 		for i in 0 ..< 200 {
 			append(&app.bookmarks, strings.clone(fmt.tprintf("/mark/%d", i)))
 			session_save(app, later = true)

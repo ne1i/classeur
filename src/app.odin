@@ -196,6 +196,11 @@ App :: struct {
 	session_seen:    string,        // owned: the session's text at its last change (session_autosave waits for it to settle)
 	session_changed_ms: f64,        // when it changed
 	session_written: string,        // owned: the session (but the window's place) as last written (session_autosave)
+	start_read:     Start_Read,     // the start's read of the session and the layouts (session.odin's start_read_ask)
+	start_panels:   string,         // owned: the start's panels as text, while Reading (changed: the session is dropped)
+	start_folders:  [dynamic]string,   // owned: the command line's folders, while Reading (beside a restored session)
+	start_acted:    bool,           // a key or a press came while Reading (the session's panels are dropped)
+	start_gate:     ^sync.Sema,     // the tests: the start's read waits for it (a late answer made certain)
 	tab_image:    platform.Drag_Image,   // owned: the dragged tab's picture, read back from the renderer (tab_drag_poll)
 	opened:      [dynamic]string,   // headless: what open_system would have opened (owned)
 	launched_on: int,               // atomic: the thread that last started a program (launch: a worker, never this one)
@@ -216,6 +221,7 @@ Open_Options :: struct {
 	session:  string,     // the session file ("": the person's; headless: none)
 	standalone: bool,     // a window of a torn-off tab: no session read or written
 	pref_args: []string,  // the command line's `--pref name=value`: for this run only, over the person's file
+	start_gate: ^sync.Sema,   // the tests: the start's read of the session waits until it is posted (nil: it does not)
 }
 
 // `standalone`: a window of a tab torn off another (classeur --window): it owns nothing (no instance, no session).
@@ -398,27 +404,25 @@ app_open :: proc(o: Open_Options) -> ^App {
 	jobs_start(app)
 	watcher_start(app)
 	places_load(app)
-	layouts_load(app)
 	// (the files written as the window runs: their paths known now, a test's included)
 	if path := session_file(app); path != "" { store.writer_open(&app.session_writer, path) }
 	if path := layouts_file(app); path != "" { store.writer_open(&app.layouts_writer, path) }
 	// (the window where it was: the toolkit's window.placement)
 	if !app.headless { prefs_page.placement_restore(&app.placement, &app.prefs, app.main.win) }
-	// (the session's tabs come back; folders given open beside them, as the second start's do)
-	if session_load(app) {
-		folders_show(app, o.folders)
+	// The start's tabs at once: the session's come back when a worker has read them (start_read_done), so a settings'
+	// folder on a share that does not answer never keeps the window from opening.
+	first := new(Panel)
+	append(&app.panels, first)
+	if len(o.folders) == 0 {
+		tab_open(app, first, app.home)
 	} else {
-		first := new(Panel)
-		append(&app.panels, first)
-		if len(o.folders) == 0 {
-			tab_open(app, first, app.home)
-		} else {
-			for f in o.folders { tab_open(app, first, f) }
-			first.active = 0
-		}
+		for f in o.folders { tab_open(app, first, f) }
+		first.active = 0
 	}
 	// (the keys go to the list from the start: the arrows did nothing until a click)
 	if t := current_tab(app); t != nil { t.focus_due = .List }
+	app.start_gate = o.start_gate
+	start_read_ask(app, o.folders)
 	return app
 }
 
@@ -507,7 +511,8 @@ app_close :: proc(app: ^App) {
 	reads_ended := pool_stop_until(&app.pool, until)
 	edits_ended := pool_stop_until(&app.edit_pool, until)
 	if !app.headless { prefs_page.placement_keep(&app.placement, &app.prefs, app.main.win) }
-	session_save(app)   // (after the workers: a bookmark asked of one of them is in it)
+	// (after the workers: a bookmark asked of one of them is in it; nothing while the start's read has not come)
+	session_save(app)
 	// (what is pending written now: the process may end before their threads would)
 	store.writer_flush(&app.layouts_writer)
 	measures_ended := pool_stop_until(&app.measure_pool, until)
@@ -581,6 +586,7 @@ app_free :: proc(app: ^App) {
 	delete(app.tab_coming_path)
 	delete(app.session_written)
 	delete(app.session_seen)
+	start_read_forget(app)   // (a window closed before the start's read came)
 	store.writer_close(&app.session_writer)
 	prefs_page.placement_keeper_destroy(&app.placement)
 	_ = config.user_writer_stop(&app.prefs_writer, &app.prefs)
@@ -654,6 +660,11 @@ app_input :: proc(h: ^host.Host, events: []platform.Event) -> []platform.Event {
 	app := (^App)(h.user)
 	out := make([dynamic]platform.Event, 0, len(events), context.temp_allocator)
 	for e in events {
+		// (a key or a press before the session came: what it does is the person's, a late session drops its panels;
+		// a filter typed or a selection is not in panels_text)
+		if app.start_read == .Reading && (e.kind == .Key_Press || e.kind == .Text || e.kind == .Mouse_Press || e.kind == .Pointer_Down) {
+			app.start_acted = true
+		}
 		// a drag of another program's: where it would go, and the drop
 		#partial switch e.kind {
 		case .Drop_Enter, .Drop_Over, .Drop_Leave, .Drop:

@@ -6,7 +6,6 @@ package classeur
 // panels_text). The tests keep theirs beside their session file.
 
 import "core:fmt"
-import "core:os"
 import "core:slice"
 import "core:strings"
 import "gt:i18n"
@@ -37,34 +36,55 @@ layouts_file :: proc(app: ^App) -> string {
 	return strings.concatenate({platform.user_dir(.Config, APP_FOLDER, context.temp_allocator), "/layouts"}, context.temp_allocator)
 }
 
-// Read once, on this thread: at the start, before the window is shown and the first frame (the changes are written on a
-// worker: layouts_save).
-layouts_load :: proc(app: ^App) {
-	l := &app.layouts
-	path := layouts_file(app)
-	if path == "" { return }
-	data, err := os.read_entire_file(path, context.temp_allocator)
-	if err != nil { return }
-	text := string(data)
+// The layouts of the file's text. Read at the start by the session's worker (session.odin's start_read_ask), never on
+// the interface's thread: the settings' folder may be on a share that does not answer.
+layouts_parse :: proc(text: string) -> (list: [dynamic]Layout) {
+	rest := text
 	name := ""
 	b := strings.builder_make(context.temp_allocator)
-	flush :: proc(l: ^Layouts, name: string, b: ^strings.Builder) {
-		if name != "" { append(&l.list, Layout{strings.clone(name), strings.clone(strings.to_string(b^))}) }
+	flush :: proc(list: ^[dynamic]Layout, name: string, b: ^strings.Builder) {
+		if name != "" { append(list, Layout{strings.clone(name), strings.clone(strings.to_string(b^))}) }
 		strings.builder_reset(b)
 	}
-	for line in strings.split_lines_iterator(&text) {
+	for line in strings.split_lines_iterator(&rest) {
 		if strings.has_prefix(line, "layout ") {
-			flush(l, name, &b)
+			flush(&list, name, &b)
 			name = strings.clone(line[len("layout "):], context.temp_allocator)
 			continue
 		}
 		if line != "" { fmt.sbprintf(&b, "%s\n", line) }
 	}
-	flush(l, name, &b)
+	flush(&list, name, &b)
+	return
 }
 
+// On the interface's thread, the start's read come: the file's layouts join those saved since the start (a name saved
+// since is the newer: the file's is dropped). `read` is emptied. Written again only when the list is not the file's.
+layouts_merge :: proc(app: ^App, read: ^[dynamic]Layout) {
+	l := &app.layouts
+	saved_since := len(l.list) > 0
+	next: for x in read^ {
+		for y in l.list {
+			if y.name == x.name {
+				delete(x.name)
+				delete(x.text)
+				continue next
+			}
+		}
+		append(&l.list, x)
+	}
+	clear(read)
+	if saved_since {
+		slice.sort_by(l.list[:], proc(a, b: Layout) -> bool { return a.name < b.name })
+		layouts_save(app)
+	}
+}
+
+// Nothing while the start's read has not come: the list is not the file's yet, it would replace it (layouts_merge
+// writes it then).
 @(private = "file")
 layouts_save :: proc(app: ^App) {
+	if app.start_read == .Reading { return }
 	b := strings.builder_make(context.temp_allocator)
 	for x in app.layouts.list { fmt.sbprintf(&b, "layout %s\n%s", x.name, x.text) }
 	store.writer_put(&app.layouts_writer, transmute([]u8)strings.to_string(b))

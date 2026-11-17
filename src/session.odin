@@ -15,13 +15,19 @@ package classeur
 //
 // A line not understood is skipped (a file of another version loses that line only). A tab whose folder is gone opens
 // at the nearest folder above it that is still there (the read of the tab goes up: tab.odin's load_done).
+//
+// It is read at the start by a worker (start_read_ask), never on the interface's thread: a settings' folder on a share
+// that does not answer would keep the window from opening. Until it comes the window shows the start's tab.
 
 import "core:fmt"
 import "core:os"
+import "core:slice"
 import "core:strconv"
 import "core:strings"
+import "core:sync"
 import "gt:platform"
 import store "gt:store"
+import tasks "gt:tasks"
 import "gt:ui"
 import "fs"
 
@@ -33,8 +39,10 @@ session_file :: proc(app: ^App, allocator := context.temp_allocator) -> string {
 }
 
 // `later`: written by its writer's thread (the session changed while the window runs); else now, waited for (the window
-// closes: whatever was pending is superseded by this one).
+// closes: whatever was pending is superseded by this one). Nothing while the start's read has not come: the start's
+// state written then would replace the last session before it is read.
 session_save :: proc(app: ^App, later := false) {
+	if app.start_read == .Reading { return }
 	path := session_file(app)
 	if path == "" { return }
 	b := strings.builder_make(context.temp_allocator)
@@ -57,7 +65,8 @@ session_rest :: proc(app: ^App, b: ^strings.Builder) {
 SESSION_SETTLE_MS :: 400
 
 session_autosave :: proc(app: ^App) {
-	if session_file(app) == "" || ui.active_key() != 0 { return }
+	// (before the start's read came, session_written would note a text never written: session_save)
+	if app.start_read == .Reading || session_file(app) == "" || ui.active_key() != 0 { return }
 	b := strings.builder_make(context.temp_allocator)
 	session_rest(app, &b)
 	text := strings.to_string(b)
@@ -138,26 +147,150 @@ panels_open :: proc(app: ^App, text: string) -> bool {
 	return len(app.panels) > first
 }
 
-// Reads the session: the window's place, the panels and tabs, the bookmarks and recents. True: a panel was
-// opened. (Read on this thread: at the start, before the window is shown and the first frame.)
-session_load :: proc(app: ^App) -> (opened: bool) {
-	path := session_file(app)
-	if path == "" { return }
-	data, err := os.read_entire_file(path, context.temp_allocator)
-	if err != nil { return }
-	text := string(data)
-	panel_lines := strings.builder_make(context.temp_allocator)
-	for line in strings.split_lines_iterator(&text) {
+// The start's read of the session and the layouts (src/md/features/session.md). Reading is the zero value: a new App
+// writes neither file until the answer has come.
+Start_Read :: enum {
+	Reading,   // a worker reads the files: nothing of them is written (session_save, layouts_save)
+	Applied,   // the answer was applied: the session's panels, if it had any, in place of the start's
+	Dropped,   // the answer came after the person acted: its panels dropped, the person's kept
+}
+
+// The session and the layouts as the start's worker read them, on their way to the interface's thread.
+@(private = "file")
+Start_Read_Job :: struct {
+	app:          ^App,
+	gate:         ^sync.Sema,        // the tests: waited for before the read
+	session_path: string,            // owned ("": none)
+	layouts_path: string,            // owned ("": none)
+	panels:       string,            // owned: the session's focus, panel and tab lines
+	bookmarks:    [dynamic]string,   // owned
+	recents:      [dynamic]string,   // owned
+	layouts:      [dynamic]Layout,
+}
+
+// Asks a worker to read the session and the layouts; the start's panels are shown meanwhile. `folders`: the command
+// line's, opened again beside a restored session (their priority over it, as when the read was synchronous).
+start_read_ask :: proc(app: ^App, folders: []string) {
+	session_path, layouts_path := session_file(app), layouts_file(app)
+	if session_path == "" && layouts_path == "" {
+		app.start_read = .Applied   // (nothing to read: a test's window with no session file)
+		return
+	}
+	app.start_read = .Reading
+	b := strings.builder_make(context.temp_allocator)
+	panels_text(app, &b)
+	app.start_panels = strings.clone(strings.to_string(b))
+	for f in folders { append(&app.start_folders, strings.clone(f)) }
+	app.answers_due += 1
+	r := new(Start_Read_Job)
+	r^ = {app = app, gate = app.start_gate, session_path = strings.clone(session_path), layouts_path = strings.clone(layouts_path)}
+	tasks.add(&app.pool, start_read_run, r)
+}
+
+@(private = "file")
+start_read_run :: proc(data: rawptr) {
+	r := (^Start_Read_Job)(data)
+	if r.gate != nil { sync.sema_wait(r.gate) }
+	if r.session_path != "" {
+		if text, err := os.read_entire_file(r.session_path, context.temp_allocator); err == nil { session_parse(r, string(text)) }
+	}
+	if r.layouts_path != "" {
+		if text, err := os.read_entire_file(r.layouts_path, context.temp_allocator); err == nil { r.layouts = layouts_parse(string(text)) }
+	}
+	if !ui.post(&r.app.main.state, start_read_done, r) { start_read_free(r) }
+}
+
+// On the worker: the session's lines sorted out (a line not understood is skipped).
+@(private = "file")
+session_parse :: proc(r: ^Start_Read_Job, text: string) {
+	rest_text := text
+	panel_lines := strings.builder_make()
+	for line in strings.split_lines_iterator(&rest_text) {
 		word, _, rest := strings.partition(line, " ")
 		switch word {
 		case "focus", "panel", "tab":
 			fmt.sbprintf(&panel_lines, "%s\n", line)
 		case "bookmark":
-			if rest != "" { append(&app.bookmarks, strings.clone(rest)) }
+			if rest != "" { append(&r.bookmarks, strings.clone(rest)) }
 		case "recent":
-			if rest != "" && len(app.recents) < RECENTS_MAX { append(&app.recents, strings.clone(rest)) }
+			if rest != "" && len(r.recents) < RECENTS_MAX { append(&r.recents, strings.clone(rest)) }
 		}
 	}
-	opened = panels_open(app, strings.to_string(panel_lines))
-	return
+	r.panels = strings.to_string(panel_lines)
+}
+
+// On the interface's thread: the session's panels in place of the start's, unless the person acted first (then theirs
+// stay: a tab they opened must not vanish under them); the bookmarks, the recents and the layouts merged either way.
+@(private = "file")
+start_read_done :: proc(data: rawptr, word: u64) {
+	r := (^Start_Read_Job)(data)
+	app := r.app
+	defer start_read_free(r)
+	app.answers_due -= 1
+	app.start_read = .Applied
+	if r.panels != "" {
+		b := strings.builder_make(context.temp_allocator)
+		panels_text(app, &b)
+		if app.start_acted || strings.to_string(b) != app.start_panels {
+			app.start_read = .Dropped
+		} else {
+			start_panels_replace(app, r.panels)
+		}
+	}
+	// (the file's bookmarks first, then those added since the start)
+	bookmarks := r.bookmarks
+	r.bookmarks = {}
+	for p in app.bookmarks {
+		if slice.contains(bookmarks[:], p) { delete(p) } else { append(&bookmarks, p) }
+	}
+	delete(app.bookmarks)
+	app.bookmarks = bookmarks
+	// (the folders visited since the start first, as the synchronous read gave: their reads put them in front)
+	for p in r.recents {
+		if len(app.recents) < RECENTS_MAX && !slice.contains(app.recents[:], p) { append(&app.recents, p) } else { delete(p) }
+	}
+	clear(&r.recents)
+	layouts_merge(app, &r.layouts)   // (after the state: it may write the layouts now)
+	start_read_forget(app)
+	app_frames(app)
+}
+
+// The start's panels destroyed and the session's opened, the command line's folders beside them. A session whose lines
+// open no panel leaves the start's.
+@(private = "file")
+start_panels_replace :: proc(app: ^App, text: string) {
+	old, old_focus := app.panels, app.focus
+	app.panels = {}
+	if !panels_open(app, text) {
+		delete(app.panels)
+		app.panels, app.focus = old, old_focus
+		return
+	}
+	for p in old { panel_destroy(p) }
+	delete(old)
+	folders_show(app, app.start_folders[:])
+	if t := current_tab(app); t != nil { t.focus_due = .List }
+}
+
+// What the start kept for the answer, let go (the answer came, or the window closed first).
+start_read_forget :: proc(app: ^App) {
+	delete(app.start_panels)
+	app.start_panels = ""
+	for f in app.start_folders { delete(f) }
+	delete(app.start_folders)
+	app.start_folders = nil
+}
+
+@(private = "file")
+start_read_free :: proc(r: ^Start_Read_Job) {
+	delete(r.session_path)
+	delete(r.layouts_path)
+	delete(r.panels)
+	for p in r.bookmarks { delete(p) }
+	delete(r.bookmarks)
+	for p in r.recents { delete(p) }
+	delete(r.recents)
+	for x in r.layouts { delete(x.name); delete(x.text) }
+	delete(r.layouts)
+	free(r)
 }

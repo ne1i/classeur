@@ -27,6 +27,8 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 ## State machines
 
 - A tab's read: asked (with a `serial`), then done; an answer with an old serial is dropped.
+- The start's read of the session and the layouts (`app.start_read`): Reading, then Applied or Dropped (the person
+  changed the panels first); nothing of them is written while Reading. See [features/session.md](features/session.md).
 - A job: counting, copying, asking (name taken), done or cancelled.
 - Who has the keyboard (`app.keys_at`): see [features/keyboard.md](features/keyboard.md).
 - A paste: asked of the clipboard, then started when the files come (a `Clipboard_Data` event).
@@ -35,8 +37,8 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 ## Subtleties
 
 - The interface's thread never waits: not a `stat`, not a mount table, not a clipboard of files. A share that hangs
-  must never freeze the window. Only the reads of the start (the preferences, the session, the layouts) run there, before
-  the first frame.
+  must never freeze the window. The preferences are still read there, before the first frame; the session and the
+  layouts are read on a worker ([features/session.md](features/session.md)).
 - A frame does no work in proportion to the number of entries: orders, counts and sizes are made when the data changes
   and kept.
 - The Recycle Bin of Windows is no folder: `fs.list` reads every drive's `$I` records into a listing whose entries
@@ -59,6 +61,8 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
   files, the trash, undo, batch rename, thumbnails); the known gaps
 - [features/keyboard.md](features/keyboard.md): the order in which a build reads the keys, the person's keys and
   aliases (the toolkit's keymap, classeur's ids), who has the keyboard, why F6 stays classeur's
+- [features/session.md](features/session.md): the session and the layouts read on a worker at the start, the state
+  machine of that read, why a late session does not replace what the person did, no write before the answer
 - [features/palette.md](features/palette.md): the command palette's sources (commands, moves, settings, `@` tabs, `/`
   folders), what reads on the workers, what each choice does, the buttons go to reaches, the commands with arguments
 - [features/goto.md](features/goto.md): GoTo and the path field: one set of rows, the deep search below the current
