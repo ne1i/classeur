@@ -95,7 +95,7 @@ App :: struct {
 	bm_held:       bool,                // ... and its button is still down (let go: it lands)
 	bm_cancelled:  bool,                // Escape cancelled it, its button still down (its release opens nothing)
 	bm_line:       ui.Rect,             // where it lands, as shown ({}: none)
-	no_dialog:     bool,                // this build: no dialog takes the keys (typing goes to the filter)                // a heading was clicked or dragged: the section the commands move is known
+	no_dialog:     bool,                // this build: no dialog takes the keys (typing goes to the filter)
 	side_filter: ui.Line_Edit,
 	keys_at:     Keys_At,           // what has the keyboard: the panel's list, the sidebar, the inspector (F6)
 	side_keys:   Side_Keys,         // the sidebar's cursor while it has the keyboard (sidebar.odin)
@@ -155,9 +155,9 @@ App :: struct {
 	settings:    Settings,          // their values as the program reads them
 	standard:    prefs_page.Standard_Watch,   // the toolkit's standard settings applied as they change (prefs.odin)
 	themes_file: prefs_page.Themes_File,      // the program's themes and the person's own (themes.txt): the themes shown
-	options:     Options,
+	options:     Options,           // the options' list (options.odin)
 	licence:     prefs_page.Licence,   // who supports classeur (licence.odin): the settings' Licence page
-	inspector:   Inspector,         // the pane of Space (inspector.odin)           // the options' list (options.odin)
+	inspector:   Inspector,         // the pane of Space (inspector.odin)
 	drop_zones:      [dynamic]Drop_Zone,   // where a drop goes, noted by this frame (dnd.odin)
 	drop_zones_last: [dynamic]Drop_Zone,   // and by the last one (what a drop is tested against)
 	drop_hover:  string,            // owned: the folder a drop would go into now ("": none)
