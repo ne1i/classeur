@@ -889,9 +889,6 @@ fr Propriétaire
 en Classeur in the terminal (on the PATH)
 fr Classeur dans le terminal (dans le PATH)
 
-en The desktop's launcher cannot be changed: %s
-fr Le lanceur du bureau ne peut pas être modifié : %s
-
 en Copying
 fr Copie
 

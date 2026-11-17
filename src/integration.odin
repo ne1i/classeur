@@ -15,17 +15,11 @@ package classeur
 // standalone; on Linux Nix installs it, or `classeur --install`.
 
 import "base:runtime"
-import "core:fmt"
 import "core:os"
 import "core:sync"
-import config "gt:config"
 import desktop "gt:desktop"
 import "gt:i18n"
-import "gt:process"
 import setup "gt:setup"
-import prefs_page "gt:prefs_page"
-import tasks "gt:tasks"
-import "gt:ui"
 
 ICON_PNGS := [?]desktop.Icon{
 	{16, #load("../assets/logo_16.png")},
@@ -58,17 +52,7 @@ classeur_parts :: proc(o: ^desktop.Integration_Options) {
 	o.add_to_path = true
 }
 
-// The running copy's integration (desktop_follow): the places of a test come from the environment (CLASSEUR_DESKTOP_*).
-@(private = "file")
-integration_options :: proc() -> desktop.Integration_Options {
-	o := desktop.options_make(classeur_identity())
-	o.exe = process.executable_path()
-	o.icons = ICON_PNGS[:]
-	classeur_parts(&o)
-	desktop.roots_from_env(&o, env_lookup)
-	return o
-}
-
+// (the places of a test come from the environment: CLASSEUR_DESKTOP_*)
 @(private = "file")
 env_lookup :: proc(name: string) -> string { return os.get_env(name, context.temp_allocator) }
 
@@ -98,70 +82,3 @@ SETUP_CHOICES := [?]setup.Choice{
 	{label = SETUP_FILE_MANAGER_WORDS, on = false, parts = {.File_Manager}},
 }
 
-// Once the start's reading of the install came (prefs_page.install_offer): the switches of the menu and the session for
-// it. (Whether this copy updates by itself, prefs_page.updates_follow reads from the install each frame.)
-setup_follow :: proc(app: ^App) {
-	if app.setup_known || !app.install.known { return }
-	app.setup_known = true
-	app_frames(app)
-}
-
-////////////////////////////////
-// The settings' general.menu and general.autostart (the toolkit's standard ones)
-
-// The install (its dialog, its page, `classeur --install`) integrates a copy; the settings then say whether that copy is in
-// the application menu and starts with the session, and desktop.apply makes it so. Only the integrated copy follows
-// them: a build or a copy that is not integrated (Nix's, which Nix integrates) never installs anything because of a
-// preference. So at the start, and after each change of the two, a worker reads the integration's status: when its parts
-// are this copy's, it applies the two (the PATH part stays as the install left it), and the settings show
-// their switches. `classeur --uninstall` and the Installation page's Uninstall stay the way to take the whole install away.
-desktop_follow :: proc(app: ^App) {
-	if app.headless || app.standalone { return }   // (the tests touch nothing of the person's; a torn-off tab's window owns nothing)
-	job := new(Desktop_Follow)
-	job^ = {app = app, menu = config.bool_of(&app.prefs, prefs_page.MENU_PREF), autostart = config.bool_of(&app.prefs, prefs_page.AUTOSTART_PREF)}
-	// (the edits' worker: one at a time, in the order asked, so that the last change wins)
-	tasks.add(&app.edit_pool, desktop_follow_run, job)
-}
-
-@(private = "file")
-Desktop_Follow :: struct {
-	app:        ^App,
-	menu:       bool,
-	autostart:  bool,
-	integrated: bool,     // the worker's answer
-	failed:     string,   // owned: what desktop.apply said went wrong
-}
-
-@(private = "file")
-desktop_follow_run :: proc(data: rawptr) {
-	job := (^Desktop_Follow)(data)
-	o := integration_options()
-	st := desktop.status(&o, context.temp_allocator)
-	job.integrated = st.state != .Absent && st.error == .None && st.stale_exe == ""
-	if job.integrated {
-		// (the parts of the install's boxes stay as the install left them: only Install changes those)
-		o.add_to_path = st.parts[.Path].present
-		o.default_file_manager = st.parts[.File_Manager].present
-		o.start_menu, o.autostart = job.menu, job.autostart
-		if r := desktop.apply(&o); r.error != .None {
-			job.failed = fmt.aprintf("%s %s", desktop.error_text(r.error), r.detail)
-		}
-	}
-	if !ui.post(&job.app.main.state, desktop_follow_done, job) {
-		delete(job.failed)
-		free(job)
-	}
-}
-
-@(private = "file")
-desktop_follow_done :: proc(data: rawptr, word: u64) {
-	job := (^Desktop_Follow)(data)
-	defer { delete(job.failed); free(job) }
-	app := job.app
-	names := [?]string{prefs_page.MENU_PREF, prefs_page.AUTOSTART_PREF}
-	for name in names {
-		if r := config.ref_of(&app.prefs, name); r != config.NO_REF { config.entry(&app.prefs, r).def.hidden = !job.integrated }
-	}
-	if job.failed != "" { say(app, i18n.tr("The desktop's launcher cannot be changed: %s"), job.failed) }
-	app_frames(app)
-}

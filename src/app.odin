@@ -205,7 +205,6 @@ App :: struct {
 	opened:      [dynamic]string,   // headless: what open_system would have opened (owned)
 	launched_on: int,               // atomic: the thread that last started a program (launch: a worker, never this one)
 	window_fails: bool,             // the tests: a tab's window of its own fails to start (tab_window)
-	setup_known: bool,              // the start's reading of the install came (setup_follow)
 }
 
 WINDOW_SIZE :: [2]int{1180, 720}
@@ -388,7 +387,8 @@ app_open :: proc(o: Open_Options) -> ^App {
 	dnd_start(app)
 	ui.table_layout_init(&app.columns, detail_columns(app))   // (before the preferences: they say its columns)
 	prefs_open(app, o.pref_args)   // (and h.partial_redraw: rendering.partial_redraw)
-	prefs_page.install_init(&app.install, &app.prefs, setup_options())
+	// (the toolkit follows general.menu and general.autostart for the installed copy, and says here when the desktop refuses)
+	prefs_page.install_init(&app.install, &app.prefs, setup_options(), &app.announcer)
 	// (the vendor signs the install's dialog and page: "By <mark> Froment Software"; a texture of this window's renderer)
 	prefs_page.install_vendor_mark(&app.install, &app.shared.r, #load("../assets/froment-software-64.png"))
 	h.params = app_params
@@ -398,7 +398,6 @@ app_open :: proc(o: Open_Options) -> ^App {
 
 	pools_start(app)
 	licence_open(app)
-	desktop_follow(app)
 	palette_start(app)
 	app.side_open = {.Recents = false, .Bookmarks = true, .Storage = true, .Network = true, .Places = true}
 	jobs_start(app)

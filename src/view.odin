@@ -93,11 +93,8 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	side_menu_build(app, em)
 	panel_menus_build(app, em)
 	layouts_build(app, em)
-	setup_follow(app)
-	#partial switch prefs_page.install_frame(&app.install) {
-	case .Installed, .Uninstalled: desktop_follow(app)   // (the switches of the menu and the session, for the copy now integrated)
-	case .Launched:                platform.request_close(app.main.win)   // (the installed copy starts once this one has ended: app_run)
-	}
+	// (the installed copy starts once this one has ended: app_run)
+	if prefs_page.install_frame(&app.install) == .Launched { platform.request_close(app.main.win) }
 	zoom_slider_build(app, em)
 	columns_menu_build(app, em)
 	jobs_view_build(app, em)

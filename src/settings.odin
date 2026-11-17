@@ -90,12 +90,6 @@ prefs_open :: proc(app: ^App, pref_args: []string = nil) {
 		// classeur changes its title bar at once: settings_apply)
 		e.def.hidden = !platform.system_title_available(app.main.win)
 	}
-	// (the launcher and the start with the session apply to the copy that is integrated: their switches show once a
-	// worker found this copy is it, desktop_follow)
-	desktop_owned := [?]string{prefs_page.MENU_PREF, prefs_page.AUTOSTART_PREF}
-	for name in desktop_owned {
-		if r := config.ref_of(&app.prefs, name); r != config.NO_REF { config.entry(&app.prefs, r).def.hidden = true }
-	}
 	config.register(&app.prefs, PREF_DEFS[:])
 	prefs_page.changelog_register(&app.prefs)   // (the version last started: What's new after an update)
 	if !app.headless { config.load_file(&app.prefs, prefs_file(), .User) }

@@ -101,11 +101,7 @@ options_page :: proc(app: ^App) -> prefs_page.Page_Options {
 		pages = OPTIONS_PAGES[:],
 		icon_font = app.icons, search_icon = lucide.SEARCH, reset_icon = lucide.ROTATE_CCW,
 		file = SHOTS_BUILD ? "" : prefs_path(app),
-		changed = proc(user: rawptr, name: string) {
-			app := (^App)(user)
-			settings_apply(app)
-			if name == prefs_page.MENU_PREF || name == prefs_page.AUTOSTART_PREF { desktop_follow(app) }
-		},
+		changed = proc(user: rawptr, _: string) { settings_apply((^App)(user)) },
 		// (a slider held: its value shown at once, written when it is let go; only what moves nothing: a text size
 		// shown live moved the slider under the pointer, it comes when let go)
 		preview = proc(user: rawptr, name: string, value: f64) {
@@ -119,6 +115,6 @@ options_page :: proc(app: ^App) -> prefs_page.Page_Options {
 		updater = app.updates.updater,
 		restart = proc(user: rawptr) { updates_restart((^App)(user)) },
 		themes = themes(app), themes_light = app.theme_shown.light, themes_file = &app.themes_file,
-		changelog = &app.changelog, licence = &app.licence, install = &app.install, diagnostics = &app.main,
+		changelog = &app.changelog, licence = &app.licence, install = &app.install, diagnostics = prefs_page.diagnostics_of(&app.main),
 	}
 }

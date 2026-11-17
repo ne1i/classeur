@@ -6,6 +6,7 @@ package classeur
 import "base:runtime"
 import "core:sync"
 import "core:testing"
+import config "gt:config"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
 import prefs_page "gt:prefs_page"
@@ -82,7 +83,12 @@ test_setup_not_read_by_tests :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		session.frames(s, 3)
 		testing.expect(t, !app.install.reading && !app.install.known, "nothing read")
-		testing.expect(t, !app.setup_known)
+		// (no reading: the switches of the menu and the session stay hidden, nothing written to the desktop)
+		names := [?]string{prefs_page.MENU_PREF, prefs_page.AUTOSTART_PREF}
+		for name in names {
+			r := config.ref_of(&app.prefs, name)
+			testing.expect(t, r != config.NO_REF && config.entry(&app.prefs, r).def.hidden, name)
+		}
 		testing.expect(t, !prefs_page.install_open_now(&app.install), "nothing offered to the tests")
 	})
 }
