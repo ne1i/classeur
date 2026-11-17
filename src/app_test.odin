@@ -2801,6 +2801,8 @@ test_system_title_setting :: proc(t: ^testing.T) {
 		context.allocator = runtime.heap_allocator()
 		session.key(s, .K, {.Ctrl})
 		session.type_text(s, "title bar")
+		// (the palette ranks on a worker: on a slow machine two frames are not enough)
+		palette_ranked(s)
 		session.frames(s, 2)
 		testing.expect(t, session.find_text(s, "The system's title bar") != nil, "the setting, by its title")
 		session.key(s, .Escape)
