@@ -146,7 +146,9 @@ panel_dim :: proc(app: ^App, index: int) -> f32 {
 
 panel_build :: proc(app: ^App, p: ^Panel, index: int, em: f32) -> ui.Rect {
 	focused := index == app.focus
-	box := ui.build_box({.Clip}, fmt.tprintf("###panel%d", index))
+	// (.Fits_Width: a panel is as wide as the panels' split gives it, and its tabs in the title bar follow that split;
+	// what is in it, a tool bar or a long path, folds or is cut there and never pushes the next panel aside)
+	box := ui.build_box({.Clip, .Fits_Width}, fmt.tprintf("###panel%d", index))
 	if ui.parent(box) {
 		// a press anywhere in the panel makes it the one the keyboard works in; the keyboard goes back to the list unless
 		// the press was on a text field (a button, a column, a crumb keep no keyboard of their own)
