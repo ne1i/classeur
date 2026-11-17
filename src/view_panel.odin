@@ -468,7 +468,7 @@ header :: proc(app: ^App, t: ^Tab, em: f32) -> ui.Key {
 		lead = proc(user: rawptr, em: f32) {
 			h := (^Head)(user)
 			f := &h.t.folder
-			ui.spacer(ui.px(em * (ROW_INSET_EM + ROW_LEAD_EM)))
+			ui.space(ROW_INSET_EM + ROW_LEAD_EM)
 			if f.tree && f.filter == "" { ui.spacer(ui.px(em * TREE_CHEVRON_EM)) }
 			all := len(f.shown) > 0 && len(f.selected) == len(f.shown)
 			if check_box(h.app, "check_all", all, len(f.selected) > 0 && !all, em * ICON_CELL_EM) {
@@ -731,7 +731,7 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 					ui.next({width = ui.fill(), height = ui.px(head)})
 					if ui.row(.End, {.Draw_Side_Bottom, .Clickable, .Draw_Hot_Effects}, "###group") {
 						gsig := ui.signal(ui.parent_box())
-						ui.spacer(ui.px(em * ROW_INSET_EM))
+						ui.space(ROW_INSET_EM)
 						ui.push_tags("weak")
 						ui.next({height = ui.px(head * 0.8)})
 						glyph(app, folded ? lucide.CHEVRON_RIGHT : lucide.CHEVRON_DOWN, em * 1.3)
@@ -916,14 +916,14 @@ entry_row :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, row: int, selected: bool, na
 	// the name's cell: the row's edge, the tree's chevron, the icon (its box too), the name; the name's column wide
 	ui.next({width = names_only ? ui.fill() : ui.table_width(l, int(Detail.Name)), height = ui.pct(1)})
 	if ui.row(.Center, {}, "###name_cell") {
-		ui.spacer(ui.px(em * (ROW_INSET_EM + ROW_LEAD_EM)))
+		ui.space(ROW_INSET_EM + ROW_LEAD_EM)
 		tree_lead(app, t, e, em)
 		check = icon_check(app, t, e^, row, selected, em)
 		ui.space(ui.ICON_GAP)
 		entry_name(app, t, e, selected, em)
 	}
 	if names_only {
-		ui.spacer(ui.px(em * ROW_INSET_EM))
+		ui.space(ROW_INSET_EM)
 		return
 	}
 	m: Measure
@@ -1093,7 +1093,7 @@ footer :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 			ui.spacer(ui.fill())
 		} else if ui.tags("weak") {
 			// (content: the cursor's name, type and size)
-			ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.92, text_pad = em * 0.6, flags = {.Selectable}})
+			ui.next({width = ui.fill(), height = ui.pct(1), font_size = em * 0.92, text_pad = em * ui.SPACE_2, flags = {.Selectable}})
 			ui.label(fmt.tprintf("%s###item_info", footer_info(app, t)))
 		}
 		if focused {

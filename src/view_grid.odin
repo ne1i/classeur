@@ -5,6 +5,7 @@ package classeur
 // the cursor card by card (view.odin's list_keys); a row of the list is a row of cards.
 
 import "core:fmt"
+import "core:math"
 import "core:strings"
 import "gt:draw"
 import "gt:render"
@@ -30,7 +31,9 @@ grid_list :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 	card_em := ui.anim(ui.key_from_string(0, fmt.tprintf("classeur_card%d", t.id)), z.card_em > 0 ? z.card_em : ZOOMS[ZOOM_GRID - 1].card_em, 22)
 	item_w := lines ? em * COLUMN_EM : em * card_em
 	item_h := lines ? em * ROW_EM : em * card_em * CARD_HEIGHT
-	gap := lines ? em * ROW_INSET_EM : em * CARD_GAP_EM
+	gap_step := lines ? ROW_INSET_EM : CARD_GAP_EM
+	// (on whole pixels, as ui.space lays it out: the band's hit test reads the same gap as the spacers)
+	gap := math.round(em * gap_step)
 	// as many items in a row as the width laid out last time holds (the lines share it all)
 	width: f32 = item_w * 4
 	if b := ui.prev_box("###grid"); b != nil && b.size.x > 0 { width = b.size.x }
@@ -57,14 +60,14 @@ grid_list :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 		if row.right_clicked { right_empty = true }
 		opened := false
 		if ui.parent(row.box) {
-			ui.spacer(ui.px(gap))
+			ui.space(gap_step)
 			for c in 0 ..< cols {
 				at := r * cols + c
 				if at >= n { break }
 				open, pressed := item(app, t, at, look, lines, item_w, item_h, em)
 				if pressed { pressed_item = true }
 				if open { opened = true; break }
-				ui.spacer(ui.px(gap))
+				ui.space(gap_step)
 			}
 		}
 		if opened { return }
