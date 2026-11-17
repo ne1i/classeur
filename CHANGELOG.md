@@ -3,6 +3,14 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.34.0] - 2026-11-17 12:44
+
+### Changed
+- **Gaps and margins follow one scale**: the insets of the list's rows and group titles, the gaps between the grid's cards and the padding of the footer's item text use the toolkit's spacing steps, on whole pixels.
+
+### Fixed
+- **The window opens at once, even when the settings' folder is on a share that does not answer**: the last session's tabs, bookmarks and layouts come back a moment later. If you open or close a tab, or press a key, before they come, your tabs stay as they are.
+
 ## [0.33.0] - 2026-11-17 11:20
 
 ### Changed
@@ -594,6 +602,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.34.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.34.0
 [0.33.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.33.0
 [0.32.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.2
 [0.32.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.1
