@@ -1,7 +1,7 @@
 package classeur
 
 // The preferences: one registry (gt:config), its user file at <config>/FromentSoftware/Classeur/prefs, read at the start and written at
-// each change made in the options (options.odin). `settings_apply` copies classeur's values where the program reads
+// each change made in the options (settings_view.odin). `settings_apply` copies classeur's values where the program reads
 // them; the toolkit's standard ones go to the toolkit by themselves (prefs_page.standard_watch).
 
 import "core:log"

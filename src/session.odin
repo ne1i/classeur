@@ -2,7 +2,7 @@ package classeur
 
 // The session: what the window shows comes back at the next start (File Pilot's): the panels and their tabs (the
 // folder, the view's zoom, the lock), the panel with the keyboard; and the bookmarks and the recent folders. (The
-// window's place and size are the toolkit's window.placement, prefs.odin; the sidebar and the inspector are views: the
+// window's place and size are the toolkit's window.placement, settings.odin; the sidebar and the inspector are views: the
 // toolkit's memory of the views keeps them, views.odin.) A text file, a line per thing, written when the window closes
 // and, on a worker, as soon as any of it changes (session_autosave: a program killed, a session of the system ended,
 // loses nothing):

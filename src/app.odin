@@ -151,11 +151,11 @@ App :: struct {
 	jobs:        Jobs,              // copies, moves, the trash (jobs.odin)
 	confirm:     Confirm,           // delete for good? (dialogs.odin)
 	conflict:    Conflict_View,     // a name taken: what to do (dialogs.odin)
-	prefs:       config.Prefs,      // the preferences (prefs.odin)
+	prefs:       config.Prefs,      // the preferences (settings.odin)
 	settings:    Settings,          // their values as the program reads them
-	standard:    prefs_page.Standard_Watch,   // the toolkit's standard settings applied as they change (prefs.odin)
+	standard:    prefs_page.Standard_Watch,   // the toolkit's standard settings applied as they change (settings.odin)
 	themes_file: prefs_page.Themes_File,      // the program's themes and the person's own (themes.txt): the themes shown
-	options:     Options,           // the options' list (options.odin)
+	options:     Options,           // the options' list (settings_view.odin)
 	licence:     prefs_page.Licence,   // who supports classeur (licence.odin): the settings' Licence page
 	inspector:   Inspector,         // the pane of Space (inspector.odin)
 	drop_zones:      [dynamic]Drop_Zone,   // where a drop goes, noted by this frame (dnd.odin)
@@ -192,7 +192,7 @@ App :: struct {
 	prefs_writer:   config.User_Writer,   // never waits for a disk, the latest text wins
 	placement:      prefs_page.Placement_Keeper,   // the window's place, the toolkit's window.placement
 	layouts_writer: store.Writer,
-	prefs_words:    vmem.Arena,     // the standard preferences' descriptions (the registry keeps them: prefs.odin)
+	prefs_words:    vmem.Arena,     // the standard preferences' descriptions (the registry keeps them: settings.odin)
 	crash_bar:      crash_bar.Bar,  // the report of the last session, which did not end cleanly: a bar at the top
 	mounting:     [dynamic]string,  // owned: the shares being found or mounted on a worker (locations.odin)
 	shares:       []fs.Share,       // the shares of the network mounted now (the sidebar's Network section)
