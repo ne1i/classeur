@@ -1,9 +1,20 @@
 # changelog.d
 
-One file per change a person sees, never an edit of `CHANGELOG.md`. `classeurtool ship` assembles them into the version's
-section and deletes them; `classeurtool check` refuses a malformed one.
+One file per change that a user can see, assembled into `CHANGELOG.md` by `classeurtool ship <patch|minor|major|x.y.z>`,
+which then deletes them. Do not edit `CHANGELOG.md` by hand.
 
-    odin run tools/classeurtool -collection:gt=ext/gui_toolkit/src -out:build/classeurtool -- changelog new Fixed "**The tab's ghost fits its row**: ..." -subject:tab-ghost
+A fragment is `changelog.d/<yyyyMMdd-HHmmss>-<subject>.md` (subject: lowercase letters, digits and `-`):
 
-A fragment is `<yyyyMMdd-HHmmss>-<subject>.md`: `type: <Added|Changed|Deprecated|Removed|Fixed|Security>`, a blank line,
-then the one entry, a short bold summary first (the format: gui_toolkit's docs/changelog.md).
+```
+type: Fixed
+
+**Short summary**: what changed for the user, in one entry (no leading "- ").
+```
+
+- `type` is `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed` or `Security` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)).
+- The text is one entry of the list. It can span lines; sub-items are indented `  - ` lines; no blank line, no heading.
+- A change that no user can see has no fragment.
+
+`classeurtool changelog new <type> <text> [-subject:<subject>]` writes one; `classeurtool check` refuses a malformed one;
+`classeurtool changelog preview` prints what the next version brings. gui_toolkit's `gt:changelog` reads and assembles
+them (its docs/changelog.md).
