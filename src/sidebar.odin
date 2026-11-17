@@ -11,6 +11,7 @@ import config "gt:config"
 import "gt:draw"
 import "gt:i18n"
 import lucide "gt:lucide"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -510,7 +511,7 @@ side_volume :: proc(app: ^App, i: int, v: fs.Volume, sp: fs.Space, here: bool, c
 		}
 		ui.space(ui.SPACE_3)
 	}
-	hover_tip(sig, v.path, sp.total > 0 ? fmt.tprintf(i18n.tr("%s free of %s"), size_text(sp.free), size_text(sp.total)) : "")
+	hover_tip(sig, v.path, sp.total > 0 ? fmt.tprintf(i18n.tr("%s free of %s"), timefmt.size(sp.free), timefmt.size(sp.total)) : "")
 	return
 }
 

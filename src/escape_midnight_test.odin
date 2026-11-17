@@ -62,7 +62,7 @@ test_ms_to_midnight :: proc(t: ^testing.T) {
 	testing.expect_value(t, ms_to_midnight({23, 59, 59, 999_900_000}), 1)
 }
 
-// The relative dates count from app.today: once the day turns, today's date reads "Yesterday". A relative date shown
+// The relative dates count from app.today: once the day turns, today's date reads "yesterday". A relative date shown
 // asks the loop to wake by the next midnight.
 @(test)
 test_relative_date_after_midnight :: proc(t: ^testing.T) {
@@ -82,9 +82,9 @@ test_relative_date_after_midnight :: proc(t: ^testing.T) {
 		testing.expectf(t, wake > 0 && wake <= 86_400_000 + MIDNIGHT_MARGIN_MS, "a wake by the next midnight: %d", wake)
 
 		app.today_frame, app.today = app.frame, dt.date
-		testing.expect_value(t, date_text(app, ns), fmt.tprintf("Today %02d:%02d", dt.hour, dt.minute))
+		testing.expect_value(t, date_text(app, ns), fmt.tprintf("today %02d:%02d", dt.hour, dt.minute))
 		next, _ := datetime.add_days_to_date(dt.date, 1)
 		app.today = next
-		testing.expect_value(t, date_text(app, ns), fmt.tprintf("Yesterday %02d:%02d", dt.hour, dt.minute))
+		testing.expect_value(t, date_text(app, ns), fmt.tprintf("yesterday %02d:%02d", dt.hour, dt.minute))
 	})
 }

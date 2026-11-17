@@ -4,9 +4,11 @@ package classeur
 
 import "base:runtime"
 import "core:fmt"
+import "core:log"
 import "core:testing"
 import "core:time"
 import "core:time/datetime"
+import "core:time/timezone"
 import config "gt:config"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
@@ -21,16 +23,31 @@ test_date_formats :: proc(t: ^testing.T) {
 	}
 	now := at(2026, 11, 12, 21, 16)
 	testing.expect_value(t, date_format_text(now, today, .ISO), "2026-11-12 21:16")
-	testing.expect_value(t, date_format_text(now, today, .Day_Month_Year), "12 Nov 2026 21:16")
-	testing.expect_value(t, date_format_text(at(2026, 1, 3, 8, 5), today, .Day_Month_Year), "3 Jan 2026 08:05")
-	testing.expect_value(t, date_format_text(now, today, .Relative), "Today 21:16")
-	testing.expect_value(t, date_format_text(at(2026, 11, 11, 9, 2), today, .Relative), "Yesterday 09:02")
+	testing.expect_value(t, date_format_text(now, today, .Day_Month_Year), "Nov 12 2026 21:16")
+	testing.expect_value(t, date_format_text(at(2026, 1, 3, 8, 5), today, .Day_Month_Year), "Jan 3 2026 08:05")
+	testing.expect_value(t, date_format_text(now, today, .Relative), "today 21:16")
+	testing.expect_value(t, date_format_text(at(2026, 11, 11, 9, 2), today, .Relative), "yesterday 09:02")
 	testing.expect_value(t, date_format_text(at(2026, 11, 9, 8, 5), today, .Relative), "Monday 08:05")
 	testing.expect_value(t, date_format_text(at(2026, 11, 6, 8, 5), today, .Relative), "Friday 08:05")
-	// (a week back: Thursday again, the date said)
-	testing.expect_value(t, date_format_text(at(2026, 11, 5, 8, 5), today, .Relative), "5 Nov 2026")
-	testing.expect_value(t, date_format_text(at(2025, 12, 31, 23, 59), today, .Relative), "31 Dec 2025")
-	testing.expect_value(t, date_format_text(at(2026, 11, 14, 8, 5), today, .Relative), "14 Nov 2026")   // (to come)
+	// (a week back: Thursday again, the date said; its year only when it is not this one)
+	testing.expect_value(t, date_format_text(at(2026, 11, 5, 8, 5), today, .Relative), "Nov 5, 08:05")
+	testing.expect_value(t, date_format_text(at(2025, 12, 31, 23, 59), today, .Relative), "Dec 31 2025, 23:59")
+	testing.expect_value(t, date_format_text(at(2026, 11, 14, 8, 5), today, .Relative), "Nov 14, 08:05")   // (to come)
+}
+
+// A date reads with the offset of its own day, not today's: Paris is UTC+2 in July and UTC+1 in January, whatever the
+// day the test runs (timefmt.local_offset_minutes alone would put one of the two an hour off).
+@(test)
+test_date_keeps_its_own_offset :: proc(t: ^testing.T) {
+	tz, ok := timezone.region_load("Europe/Paris")
+	if !ok { log.warn("no time zone database: skipped"); return }   // (a system without one: nothing to check)
+	defer timezone.region_destroy(tz)
+	iso :: proc(tz: ^datetime.TZ_Region, unix_s: i64) -> string {
+		dt, ok := local_datetime(tz, unix_s * 1e9)
+		return ok ? date_format_text(dt, dt.date, .ISO) : ""
+	}
+	testing.expect_value(t, iso(tz, 1_782_907_200), "2026-07-01 14:00")   // (2026-07-01 12:00 UTC)
+	testing.expect_value(t, iso(tz, 1_767_268_800), "2026-01-01 13:00")   // (2026-01-01 12:00 UTC)
 }
 
 // date_text follows the setting: ISO by default, the others once chosen.
@@ -50,7 +67,7 @@ test_date_setting :: proc(t: ^testing.T) {
 		testing.expect_value(t, date_text(app, ns), date_format_text(dt, dt.date, .Day_Month_Year))
 		_ = config.set_from_string(&app.prefs, "files.date_format", "relative", .User)
 		settings_apply(app)
-		testing.expect_value(t, date_text(app, ns), fmt.tprintf("Today %02d:%02d", dt.hour, dt.minute))
+		testing.expect_value(t, date_text(app, ns), fmt.tprintf("today %02d:%02d", dt.hour, dt.minute))
 	})
 }
 

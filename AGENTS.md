@@ -4,7 +4,8 @@ A file manager for Linux and Windows, in Odin, on the `ext/gui_toolkit` submodul
 Pilot (filepilot.tech): tabs in panels, a command palette, fast search, an inspector, keyboard first.
 
 Read first: [README.md](README.md), [src/md/README.md](src/md/README.md) (the intent),
-[docs/architecture.md](docs/architecture.md), [ROADMAP.md](ROADMAP.md), [docs/development.md](docs/development.md).
+[docs/architecture.md](docs/architecture.md), [docs/configuration.md](docs/configuration.md), [ROADMAP.md](ROADMAP.md),
+[docs/development.md](docs/development.md).
 
 ## Build and test
 
@@ -32,6 +33,7 @@ Every step is a command of `tools/classeurtool` (`help` lists them):
   listing) and kept; a frame reads what it shows.
 - The tests never touch the person's files or desktop: they make their folders with `testkit.temp_folder`, and
   `open_system` starts nothing when the program is headless.
+- A preference is a `config.Def` in `src/settings.odin` with its line in `docs/configuration.md` (a test checks it).
 - What more than one program needs goes in gui_toolkit, generic, with its docs, test and changelog fragment; classeur then
   points to the toolkit's new tag.
 - Automation is a command of `tools/classeurtool`, never a shell, batch, PowerShell, Python or Node script.

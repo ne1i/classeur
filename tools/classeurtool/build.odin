@@ -1,93 +1,35 @@
 package classeurtool
 
-// build, test, check: the program and its tests, the same steps on a laptop and in the CI.
+// build, test, check: the toolkit's (toolbox.build_commands), with classeur's own checks.
 
 import "core:fmt"
 import "core:os"
 import "core:strings"
 import changelog "gt:changelog"
-import cli "gt:cli"
 import toolbox "gt:toolbox"
 
-// The packages that have tests, and this tool.
-TEST_PACKAGES :: [?]string{"src", "src/fs", "tools/classeurtool"}
+// (src: one thread, each test said as it starts: a test that hangs is the last one said; the CI's log shows it)
+@(rodata) TESTS := [?]toolbox.Test_Package{{path = "src", one_thread = true}, {path = "src/fs"}, {path = "tools/classeurtool"}}
+@(rodata) CHECKS := [?]toolbox.Build_Check{check_systems, check_fs_other}
 
-run_build :: proc(args: []string) -> cli.Exit {
+build_options :: proc() -> toolbox.Build_Options {
 	p := project()
-	release := len(args) > 0 && args[0] == "release"
-	if !toolbox.build_native(p) { return .Failed }
-	_ = os.make_directory("build")
-	mode := release ? []string{"-o:speed"} : []string{"-debug"}
-	extra := make([dynamic]string, context.temp_allocator)
-	append(&extra, fmt.tprintf("-out:%s", PROGRAM))
-	append(&extra, ..mode)
+	return {project = p, changelog_command = changelog.command(p), tests = TESTS[:], catalogues = I18N, checks = CHECKS[:]}
+}
+
+// Windows: the file system's code of the other system (the program is written for both; Linux checks Windows itself).
+check_fs_other :: proc(p: toolbox.Project) -> bool {
 	when ODIN_OS == .Windows {
-		if release { append(&extra, "-subsystem:windows") }
-	}
-	if !toolbox.run(toolbox.odin_command(p, "build", "", extra[:]), {echo = true}) { return .Failed }
-	fmt.printfln("built %s", PROGRAM)
-	return .Done
-}
-
-run_test :: proc(args: []string) -> cli.Exit {
-	p := project()
-	if !toolbox.build_native(p) { return .Failed }
-	_ = os.make_directory("build")
-	// (names given, `classeur.test_watch,classeur.test_zoom_icons_stay`: those tests of the program alone, in that order)
-	if len(args) > 0 {
-		out := fmt.tprintf("-out:build/test_some%s", ODIN_OS == .Windows ? ".exe" : "")
-		names := fmt.tprintf("-define:ODIN_TEST_NAMES=%s", args[0])
-		return toolbox.ended(toolbox.run(toolbox.odin_command(p, "test", "src", {out, names, "-define:ODIN_TEST_THREADS=1", "-define:ODIN_TEST_LOG_STATE_CHANGES=true"}), {echo = true}))
-	}
-	for pkg in TEST_PACKAGES {
-		name, _ := strings.replace_all(pkg, "/", "_", context.temp_allocator)
-		out := fmt.tprintf("-out:build/test_%s%s", name, ODIN_OS == .Windows ? ".exe" : "")
-		// (each test said as it starts: a test that hangs is the last one said; the CI's log shows it)
-		extra := pkg == "src" ? []string{out, "-define:ODIN_TEST_THREADS=1", "-define:ODIN_TEST_LOG_STATE_CHANGES=true"} : []string{out}
-		// (the tool links no native library: no Linux link flag)
-		cmd := pkg == "tools/classeurtool" ? []string{"odin", "test", pkg, fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", out} : toolbox.odin_command(p, "test", pkg, extra)
-		if !toolbox.run(cmd, {echo = true}) { return .Failed }
-	}
-	return .Done
-}
-
-run_check :: proc(args: []string) -> cli.Exit {
-	p := project()
-	if !changelog_check(p) { return .Failed }
-	if !toolbox.check_scopes("src") { return .Failed }
-	if !check_systems() { return .Failed }
-	// (a text of the interface without its French fails here, not in front of a person)
-	if e := toolbox.i18n_catalogue(I18N.dirs, fmt.tprintf("%s/fr.txt", I18N.folder), "fr", true); e != "" { fmt.eprintln(e); return .Failed }
-	if !toolbox.run(toolbox.odin_command(p, "check"), {echo = true}) { return .Failed }
-	// (the whole program for Windows and macOS too, from any system: code of another system that does not compile fails
-	// the Linux job)
-	when ODIN_OS != .Windows {
-		if !toolbox.check_windows(p) { return .Failed }
-		if !toolbox.check_darwin(p) { return .Failed }
+		return toolbox.run({"odin", "check", "src/fs", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", "-no-entry-point", "-target:linux_amd64"}, {echo = true})
 	} else {
-		// (the file system's code of the other system: the program is written for both)
-		if !toolbox.run({"odin", "check", "src/fs", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet", "-no-entry-point", "-target:linux_amd64"}, {echo = true}) { return .Failed }
+		return true
 	}
-	if !toolbox.run({"odin", "check", "tools/classeurtool", fmt.tprintf("-collection:gt=%s/src", toolbox.toolkit_dir(p)), "-vet"}, {echo = true}) { return .Failed }
-	if run_test(nil) != .Done { return .Failed }
-	if run_build({"release"}) != .Done { return .Failed }
-	return toolbox.ended(toolbox.check_launcher(p))
-}
-
-// The fragments of changelog.d/, as `changelog check` says them.
-@(private = "file")
-changelog_check :: proc(p: toolbox.Project) -> bool {
-	q := p
-	errors, n := changelog.check(changelog.project_options(&q))
-	for e in errors { fmt.eprintln("changelog:", e) }
-	if len(errors) == 0 { fmt.printfln("changelog: %d fragments, all well formed", n) }
-	return len(errors) == 0
 }
 
 // The system and the interface apart: the interface (src/*.odin) asks src/fs and the toolkit (platform, desktop) what
 // differs between the systems, and says nothing of them itself. A difference of the program's own is a constant in a
 // file of the system's name (system_windows.odin, system_other.odin), never a `when ODIN_OS` in the interface.
-check_systems :: proc() -> bool {
+check_systems :: proc(_: toolbox.Project) -> bool {
 	files, ok_files := source_files("src")
 	if !ok_files { return false }
 	ok := true

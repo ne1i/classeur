@@ -8,38 +8,15 @@ import "core:time"
 import "core:time/datetime"
 import "core:time/timezone"
 import "gt:i18n"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
-// "512 B", "12.4 KB", "3.1 MB", "1.2 GB" (powers of 1024, as the systems' file managers count).
-size_text :: proc(n: i64, allocator := context.temp_allocator) -> string {
-	units := [?]string{i18n.tr("KB"), i18n.tr("MB"), i18n.tr("GB"), i18n.tr("TB"), i18n.tr("PB")}
-	if n < 1024 { return fmt.aprintf(i18n.tr("%d B"), n, allocator = allocator) }
-	v := f64(n) / 1024
-	u := 0
-	for v >= 1024 && u < len(units) - 1 {
-		v /= 1024
-		u += 1
-	}
-	// (the language's decimal mark: "3,1 Mo" in French)
-	return fmt.aprintf("%s %s", i18n.decimal(v, v < 10 ? 1 : 0), units[u], allocator = allocator)
-}
-
-// How the dates read (files.date_format).
+// How the dates read (files.date_format). The words and their order are the language's (gt:timefmt).
 Date_Format :: enum u8 {
 	ISO,              // "2026-11-09 21:40"
-	Relative,         // "Today 21:40", "Yesterday 21:40", "Monday 21:40", else "9 Nov 2026"
-	Day_Month_Year,   // "9 Nov 2026 21:40"
-}
-
-// (not rodata: i18n.later marks the names for the catalogue; tr where a date is written)
-@(private = "file")
-MONTH_NAMES := [12]string{i18n.later("Jan"), i18n.later("Feb"), i18n.later("Mar"), i18n.later("Apr"), i18n.later("May"), i18n.later("Jun"), i18n.later("Jul"), i18n.later("Aug"), i18n.later("Sep"), i18n.later("Oct"), i18n.later("Nov"), i18n.later("Dec")}
-
-@(private = "file")
-WEEKDAY_NAMES := [datetime.Weekday]string{
-	.Sunday = i18n.later("Sunday"), .Monday = i18n.later("Monday"), .Tuesday = i18n.later("Tuesday"), .Wednesday = i18n.later("Wednesday"), .Thursday = i18n.later("Thursday"),
-	.Friday = i18n.later("Friday"), .Saturday = i18n.later("Saturday"),
+	Relative,         // "today 21:40", "yesterday 21:40", "Monday 21:40", else "Nov 5, 21:40" ("Dec 31 2025, 21:40")
+	Day_Month_Year,   // "Nov 9 2026 21:40"
 }
 
 // A time in the local time (UTC when the time zone is not known).
@@ -82,26 +59,31 @@ ms_to_midnight :: proc(at: datetime.Time) -> i64 {
 	return max(24 * 3600 * 1000 - past, 1)
 }
 
-// `dt` in `format`; `today` is what Relative counts from.
+// `dt` (a local time) in `format`; `today` is what Relative counts from.
 date_format_text :: proc(dt: datetime.DateTime, today: datetime.Date, format: Date_Format, allocator := context.temp_allocator) -> string {
-	month := i18n.tr(MONTH_NAMES[clamp(int(dt.month), 1, 12) - 1])
+	ms, ok := wall_ms(dt)
+	if !ok { return "" }
 	switch format {
 	case .ISO:
 	case .Day_Month_Year:
-		return fmt.aprintf("%d %s %d %02d:%02d", dt.day, month, dt.year, dt.hour, dt.minute, allocator = allocator)
+		return fmt.aprintf("%s %s", timefmt.date(ms, 0, year = true), timefmt.clock(ms, 0), allocator = allocator)
 	case .Relative:
-		day, _ := datetime.date_to_ordinal(dt.date)
-		now, _ := datetime.date_to_ordinal(today)
-		switch {
-		case day == now:     return fmt.aprintf(i18n.tr("Today %02d:%02d"), dt.hour, dt.minute, allocator = allocator)
-		case day == now - 1: return fmt.aprintf(i18n.tr("Yesterday %02d:%02d"), dt.hour, dt.minute, allocator = allocator)
-		// (a week back the weekday is today's again: from there, the date)
-		case day < now && day > now - 7:
-			return fmt.aprintf("%s %02d:%02d", i18n.tr(WEEKDAY_NAMES[datetime.day_of_week(day)]), dt.hour, dt.minute, allocator = allocator)
-		}
-		return fmt.aprintf("%d %s %d", dt.day, month, dt.year, allocator = allocator)
+		// (today's midnight: moment reads its day and its year alone)
+		now, now_ok := wall_ms({date = today})
+		return timefmt.moment(ms, now_ok ? now : 0, 0, weekdays = true, allocator = allocator)
 	}
-	return fmt.aprintf("%04d-%02d-%02d %02d:%02d", dt.year, dt.month, dt.day, dt.hour, dt.minute, allocator = allocator)
+	return timefmt.iso_date(ms, 0, with_clock = true, allocator = allocator)
+}
+
+// A local time as milliseconds whose UTC fields read as its own, for timefmt with an offset of 0. The time zone's
+// region converts each date with the offset of its own day: timefmt.local_offset_minutes is today's alone, and a date
+// across a change of the clock (summer time) would read an hour off.
+@(private = "file")
+wall_ms :: proc(dt: datetime.DateTime) -> (ms: f64, ok: bool) {
+	plain := dt
+	plain.tz = nil   // (its fields are the wall clock's already)
+	t := time.compound_to_time(plain) or_return
+	return f64(time.to_unix_nanoseconds(t)) / 1e6, true
 }
 
 // What an entry is: the system's name of its type when it is known (type_names.odin), else its extension's.

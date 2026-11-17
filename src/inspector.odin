@@ -18,6 +18,7 @@ import "gt:platform"
 import "gt:render"
 import syntax "gt:syntax"
 import tasks "gt:tasks"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -332,8 +333,8 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 			return
 		}
 		// what it is: its icon, its name, its size, its pixels (a picture) and its date
-		size := e.size >= 0 ? size_text(e.size) : ""
-		if m, ok := measure_of(app, t, e^); ok { size = fmt.tprintf("%s · %s · %s", size_text(m.bytes), fmt.tprintf(i18n.tr(int(m.folders), "%d folders", "%d folders"), m.folders), fmt.tprintf(i18n.tr(int(m.files), "%d files", "%d files"), m.files)) }
+		size := e.size >= 0 ? timefmt.size(e.size) : ""
+		if m, ok := measure_of(app, t, e^); ok { size = fmt.tprintf("%s · %s · %s", timefmt.size(m.bytes), fmt.tprintf(i18n.tr(int(m.folders), "%d folders", "%d folders"), m.folders), fmt.tprintf(i18n.tr(int(m.files), "%d files", "%d files"), m.files)) }
 		if insp.ready && insp.kind == .Picture && insp.pixels.x > 0 { size = fmt.tprintf("%s · %d × %d", size, insp.pixels.x, insp.pixels.y) }
 		meta := fmt.tprintf("%s · %s · %s", type_text(app, e^), size, date_text(app, e.mtime))
 		inspector_head(app, fs.join(t.path, e.name, context.temp_allocator), e.kind == .Directory, fs.base(e.name), meta, em)
@@ -389,7 +390,7 @@ inspector_build :: proc(app: ^App, t: ^Tab, em: f32) {
 				if insp.cut {
 					if ui.tags("weak") {
 						ui.next({width = ui.fill(), height = ui.px(em * 3), text_align = .Center, font_size = em * 0.86})
-						ui.label(fmt.tprintf("%s###insp_cut", fmt.tprintf(i18n.tr("The first %s are shown."), size_text(INSPECTOR_TEXT_BYTES))))
+						ui.label(fmt.tprintf("%s###insp_cut", fmt.tprintf(i18n.tr("The first %s are shown."), timefmt.size(INSPECTOR_TEXT_BYTES))))
 					}
 				}
 			}
@@ -512,7 +513,7 @@ inspector_summary :: proc(app: ^App, t: ^Tab, em: f32) {
 	parts := make([dynamic]string, context.temp_allocator)
 	if s.folders > 0 { append(&parts, fmt.tprintf(i18n.tr(s.folders, "%d folder", "%d folders"), s.folders)) }
 	if s.files > 0 { append(&parts, fmt.tprintf(i18n.tr(s.files, "%d file", "%d files"), s.files)) }
-	append(&parts, size_text(s.bytes))
+	append(&parts, timefmt.size(s.bytes))
 	inspector_head(app, "", false, fmt.tprintf(i18n.tr(s.count, "%d item", "%d items"), s.count), strings.join(parts[:], " · ", context.temp_allocator), em)
 	ui.next({width = ui.fill(), height = ui.fill()})
 	if ui.scroll_y("###insp_items") {

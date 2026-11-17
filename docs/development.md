@@ -20,8 +20,8 @@ Every step is a command of `tools/classeurtool`, a list of the toolkit's `toolbo
 | Command | |
 |---|---|
 | `build [release]` | the toolkit's text library when its sources changed (Linux); Windows: what the toolkit's build makes from the Project, the resource (icon, version, manifest) and `build/classeur.com` (the console launcher, which classeur embeds); then `build/classeur` |
-| `test` | `src` (the whole program, no window of the system: `-define:ODIN_TEST_THREADS=1`), `src/fs`, the tool |
-| `check` | the changelog's fragments, the scopes (`toolbox.check_scopes`), `ODIN_OS` out of the interface, `odin check -vet` of the program for this system and for Windows (from Linux too: `toolbox.check_windows`), of the tool, the tests, a release build; Windows: `classeur.com version` gives classeur's output, `classeur.exe` has its icon |
+| `test [names]` | `src` (the whole program, no window of the system: `-define:ODIN_TEST_THREADS=1`), `src/fs`, the tool; names given (`classeur.test_a,classeur.test_b`): those tests of `src` alone |
+| `check` | the toolkit's `toolbox.program_check` (gui_toolkit `docs/toolbox.md`): the changelog's fragments and the roadmap, the scopes, classeur's own checks (`ODIN_OS` out of the interface; on Windows, `src/fs` for Linux), the French catalogue, `odin check -vet` of the program for this system, for Windows and macOS (from Linux), of the tool, the tests, a release build; Windows: `classeur.com version` gives classeur's output, `classeur.exe` has its icon |
 | `logo` | `assets/logo*.png`, `assets/classeur.ico` (the exe's icon) and `.project/image.png`, drawn by gui_toolkit's `paint` |
 | `changelog new <type> <text> -subject:<subject>` / `check` / `preview` | the fragments of `changelog.d/` |
 | `package`, `notes <version>`, `ship <patch\|minor\|major\|x.y.z> [--dry-run]` | a release (gui_toolkit's `release.commands`) |

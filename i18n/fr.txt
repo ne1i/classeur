@@ -673,87 +673,6 @@ fr Cette année
 en Older
 fr Plus anciens
 
-en KB
-fr Ko
-
-en MB
-fr Mo
-
-en GB
-fr Go
-
-en TB
-fr To
-
-en PB
-fr Po
-
-en %d B
-fr %d o
-
-en Jan
-fr janv.
-
-en Feb
-fr févr.
-
-en Mar
-fr mars
-
-en Apr
-fr avr.
-
-en May
-fr mai
-
-en Jun
-fr juin
-
-en Jul
-fr juil.
-
-en Aug
-fr août
-
-en Sep
-fr sept.
-
-en Oct
-fr oct.
-
-en Nov
-fr nov.
-
-en Dec
-fr déc.
-
-en Sunday
-fr Dimanche
-
-en Monday
-fr Lundi
-
-en Tuesday
-fr Mardi
-
-en Wednesday
-fr Mercredi
-
-en Thursday
-fr Jeudi
-
-en Friday
-fr Vendredi
-
-en Saturday
-fr Samedi
-
-en Today %02d:%02d
-fr Aujourd'hui %02d:%02d
-
-en Yesterday %02d:%02d
-fr Hier %02d:%02d
-
 en Folder link
 fr Lien de dossier
 
@@ -1242,41 +1161,14 @@ fr Aucune application
 en %s (default)
 fr %s (par défaut)
 
-en General
-fr Général
-
-en Appearance
-fr Apparence
-
-en Window
-fr Fenêtre
-
-en Files
-fr Fichiers
-
-en Opening
-fr Ouverture
-
-en Scrolling
-fr Défilement
-
-en Input
-fr Saisie
-
-en Delays and menus
-fr Délais et menus
-
-en Updates
-fr Mises à jour
-
-en Rendering
-fr Rendu
-
 en Go
 fr Aller
 
 en Tabs and panels
 fr Onglets et panneaux
+
+en Files
+fr Fichiers
 
 en Selection
 fr Sélection
@@ -1317,57 +1209,6 @@ fr Musique
 en Videos
 fr Vidéos
 
-en Inactive opacity
-fr Opacité des panneaux inactifs
-
-en Dims the contents of the panels that do not have the keyboard, so that the one that has it stands out.
-fr Atténue le contenu des panneaux inactifs pour faire ressortir le panneau actif.
-
-en Show extensions
-fr Afficher les extensions
-
-en Shows the extensions of the files' names.
-fr Affiche les extensions des noms de fichiers.
-
-en Show hidden
-fr Afficher les fichiers cachés
-
-en Shows the hidden files (their names start with a dot; on Windows, their attribute).
-fr Affiche les fichiers cachés (nom commençant par un point ; sous Windows, attribut Caché).
-
-en Lists the folders before the files, whatever the sort.
-fr Affiche les dossiers avant les fichiers, quel que soit le tri.
-
-en Date format
-fr Format des dates
-
-en How the dates read: 2026-11-09 21:40; Today 21:40, Yesterday, the weekday for the last week, then 9 Nov 2026; or 9 Nov 2026 21:40.
-fr Affichage des dates : 2026-11-09 21:40 ; Aujourd'hui 21:40, Hier, le jour de la semaine pour la dernière semaine, puis 9 nov. 2026 ; ou 9 nov. 2026 21:40.
-
-en ISO
-fr ISO
-
-en Relative
-fr Relatif
-
-en Day month year
-fr Jour mois année
-
-en Measure folders
-fr Calculer la taille des dossiers
-
-en Measures the folders shown: what they hold all the way down, in the Folders, Files and Size columns.
-fr Calcule le contenu complet des dossiers affichés, sous-dossiers compris, dans les colonnes Dossiers, Fichiers et Taille.
-
-en Single click
-fr Ouverture en un clic
-
-en Opens an item with one click instead of two.
-fr Ouvre un élément en un clic au lieu de deux.
-
-en The settings cannot be written to %s
-fr Impossible d'enregistrer les réglages dans %s
-
 en No window could be started.
 fr Impossible d'ouvrir une fenêtre.
 
@@ -1397,6 +1238,84 @@ fr Taille du texte : %v.
 
 en The thumbnails are cleared.
 fr Miniatures effacées.
+
+en Inactive opacity
+fr Opacité des panneaux inactifs
+
+en Dims the contents of the panels that do not have the keyboard, so that the one that has it stands out.
+fr Atténue le contenu des panneaux inactifs pour faire ressortir le panneau actif.
+
+en Show extensions
+fr Afficher les extensions
+
+en Shows the extensions of the files' names.
+fr Affiche les extensions des noms de fichiers.
+
+en Show hidden
+fr Afficher les fichiers cachés
+
+en Shows the hidden files (their names start with a dot; on Windows, their attribute).
+fr Affiche les fichiers cachés (nom commençant par un point ; sous Windows, attribut Caché).
+
+en Lists the folders before the files, whatever the sort.
+fr Affiche les dossiers avant les fichiers, quel que soit le tri.
+
+en Date format
+fr Format des dates
+
+en How the dates read: 2026-11-09 21:40; today 21:40, yesterday 21:40, the weekday for the last week, then Nov 9, 21:40; or Nov 9 2026 21:40.
+fr Affichage des dates : 2026-11-09 21:40 ; aujourd'hui 21:40, hier 21:40, le jour de la semaine pour la dernière semaine, puis 9 nov., 21:40 ; ou 9 nov. 2026 21:40.
+
+en ISO
+fr ISO
+
+en Relative
+fr Relatif
+
+en Day month year
+fr Jour mois année
+
+en Measure folders
+fr Calculer la taille des dossiers
+
+en Measures the folders shown: what they hold all the way down, in the Folders, Files and Size columns.
+fr Calcule le contenu complet des dossiers affichés, sous-dossiers compris, dans les colonnes Dossiers, Fichiers et Taille.
+
+en Single click
+fr Ouverture en un clic
+
+en Opens an item with one click instead of two.
+fr Ouvre un élément en un clic au lieu de deux.
+
+en The settings cannot be written to %s
+fr Impossible d'enregistrer les réglages dans %s
+
+en General
+fr Général
+
+en Appearance
+fr Apparence
+
+en Window
+fr Fenêtre
+
+en Opening
+fr Ouverture
+
+en Scrolling
+fr Défilement
+
+en Input
+fr Saisie
+
+en Delays and menus
+fr Délais et menus
+
+en Updates
+fr Mises à jour
+
+en Rendering
+fr Rendu
 
 en Recents
 fr Récents

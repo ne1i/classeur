@@ -13,6 +13,7 @@ import "core:sync"
 import "core:thread"
 import "gt:fsx"
 import "gt:i18n"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -181,11 +182,6 @@ rate_step :: proc(prev: f64, bytes: i64, seconds: f64) -> f64 {
 	return prev + (now - prev) * k
 }
 
-// "42 MB/s".
-rate_text :: proc(bytes_per_second: f64, allocator := context.temp_allocator) -> string {
-	return fmt.aprintf("%s/s", size_text(i64(bytes_per_second)), allocator = allocator)
-}
-
 // "12 s left", "2 min left", "1 h 5 min left" (rounded up: a minute left is not "0 min").
 eta_text :: proc(seconds: f64, allocator := context.temp_allocator) -> string {
 	s := int(math.ceil(max(seconds, 0)))
@@ -219,7 +215,7 @@ job_rate_update :: proc(app: ^App, job: ^Job, now: f64) {
 // the time left only with a total to go by.
 job_rate_fields :: proc(job: ^Job, now: f64) -> string {
 	if job.rate <= 0 || job.rate_from_ms == 0 || now - job.rate_from_ms < JOB_RATE_AFTER_MS { return "" }
-	text := fmt.tprintf(" · %s", rate_text(job.rate))
+	text := fmt.tprintf(" · %s", timefmt.rate(job.rate))
 	total, done := sync.atomic_load(&job.bytes_total), sync.atomic_load(&job.bytes_done)
 	if total > 0 && job.rate >= 1 { text = fmt.tprintf("%s · %s", text, eta_text(f64(max(total - done, 0)) / job.rate)) }
 	return text

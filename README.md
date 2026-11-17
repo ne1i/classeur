@@ -102,6 +102,13 @@ What comes next is in [ROADMAP.md](ROADMAP.md). Why the program has its shape is
 | Ctrl+K, Ctrl+Shift+P | the command palette |
 | F1 | every key, by group |
 
+## Documentation
+
+- [Configuration](docs/configuration.md): every preference.
+- [Architecture](docs/architecture.md): the packages, the threads, the files and the tests.
+- [Intent](src/md/README.md): why the code has its shape, the decisions and the refused alternatives.
+- [Development](docs/development.md): building, testing, `classeurtool`.
+
 ## Build
 
 ```sh

@@ -8,6 +8,7 @@ import "core:fmt"
 import "core:strings"
 import "gt:draw"
 import "gt:render"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -195,7 +196,7 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	// (a tile's name is the tile's: its drag moves the files, its press picks them; not text to select)
 	ui.paragraph(fmt.tprintf("%s###n", name), selectable = false)
 	size := ""
-	if e.size >= 0 { size = size_text(e.size) } else if m, ok := measure_of(app, t, e^); ok { size = size_text(m.bytes) }
+	if e.size >= 0 { size = timefmt.size(e.size) } else if m, ok := measure_of(app, t, e^); ok { size = timefmt.size(m.bytes) }
 	if !selected { ui.push_tags("weak") }
 	ui.next({width = ui.fill(), height = ui.px(em * 1.3), text_align = .Center, font_size = em * 0.88})
 	ui.label(fmt.tprintf("%s###s", size))

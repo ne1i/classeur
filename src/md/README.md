@@ -3,7 +3,9 @@
 classeur is a file manager: tabs in panels, a command palette, fast search, an inspector, keyboard first. Its model is
 File Pilot. This folder follows <https://srcmd.org>: it records why the code has its shape, the decisions, the refused
 alternatives, the subtle points. The map of the code (packages, files, threads, tests) is
-[docs/architecture.md](../../docs/architecture.md); building and testing is [docs/development.md](../../docs/development.md).
+[docs/architecture.md](../../docs/architecture.md); building and testing is
+[docs/development.md](../../docs/development.md); the preferences are
+[docs/configuration.md](../../docs/configuration.md).
 
 ## Overview
 
@@ -40,6 +42,10 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 - The Recycle Bin of Windows is no folder: `fs.list` reads every drive's `$I` records into a listing whose entries
   carry their real paths (`Listing.trashed`).
 - A rename never replaces (`fs.rename`).
+- The dates' words, units and order are the toolkit's (`gt:timefmt`), but classeur converts each date to the local time
+  itself, with the time zone's region (`app.tz`): timefmt takes one offset, today's, and a file's date from the other
+  side of a change of the clock (summer time) would read an hour off. timefmt then writes that wall clock with an
+  offset of 0 (`format.odin`).
 - The person reads the name `APP_TITLE` ("Classeur"); `APP_NAME` ("classeur") stays the technical one. The settings,
   the state and the caches are in the vendor's folder (`APP_FOLDER`, `FromentSoftware/Classeur`). `app_run` moves the
   folders of the old name there once (`platform.user_dirs_move`). The single instance's name keeps `APP_NAME`: an old and

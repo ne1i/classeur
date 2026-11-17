@@ -116,7 +116,7 @@ options_page :: proc(app: ^App) -> prefs_page.Page_Options {
 			}
 			app_frames(app)
 		},
-		updater = app.updater,
+		updater = app.updates.updater,
 		restart = proc(user: rawptr) { updates_restart((^App)(user)) },
 		themes = themes(app), themes_light = app.theme_shown.light, themes_file = &app.themes_file,
 		changelog = &app.changelog, licence = &app.licence, install = &app.install, diagnostics = &app.main,

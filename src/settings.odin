@@ -23,7 +23,7 @@ PREF_DEFS := [?]config.Def{
 	{name = "files.show_extensions", title = i18n.later("Show extensions"), tags = {"suffix", "names"}, description = i18n.later("Shows the extensions of the files' names."), kind = .Bool, default = {b = true}},
 	{name = "files.show_hidden", title = i18n.later("Show hidden"), tags = {"dotfiles", "hidden"}, description = i18n.later("Shows the hidden files (their names start with a dot; on Windows, their attribute)."), kind = .Bool, default = {b = false}},
 	{name = "files.folders_first", title = i18n.later("Folders first"), tags = {"directories", "sort", "order"}, description = i18n.later("Lists the folders before the files, whatever the sort."), kind = .Bool, default = {b = true}},
-	{name = "files.date_format", title = i18n.later("Date format"), tags = {"dates", "time", "modified", "relative"}, description = i18n.later("How the dates read: 2026-11-09 21:40; Today 21:40, Yesterday, the weekday for the last week, then 9 Nov 2026; or 9 Nov 2026 21:40."), kind = .String, default = {s = "ISO"}, choices = {"ISO", "relative", "day month year"}, choice_labels = {i18n.later("ISO"), i18n.later("Relative"), i18n.later("Day month year")}},
+	{name = "files.date_format", title = i18n.later("Date format"), tags = {"dates", "time", "modified", "relative"}, description = i18n.later("How the dates read: 2026-11-09 21:40; today 21:40, yesterday 21:40, the weekday for the last week, then Nov 9, 21:40; or Nov 9 2026 21:40."), kind = .String, default = {s = "ISO"}, choices = {"ISO", "relative", "day month year"}, choice_labels = {i18n.later("ISO"), i18n.later("Relative"), i18n.later("Day month year")}},
 	{name = "files.measure_folders", title = i18n.later("Measure folders"), tags = {"size", "du", "count"}, description = i18n.later("Measures the folders shown: what they hold all the way down, in the Folders, Files and Size columns."), kind = .Bool, default = {b = true}},
 	{name = "view.columns", description = "The columns of the details shown after the name, in their order.", kind = .String, default = {s = DETAIL_COLUMNS_DEFAULT}, hidden = true},
 	{name = "view.column_widths", description = "The widths of the details' columns the person changed (ems).", kind = .String, default = {s = ""}, hidden = true},
@@ -172,7 +172,6 @@ settings_apply :: proc(app: ^App) {
 	app.announcer.mode = prefs_page.announce_mode(p)
 	columns_read(app, config.string_of(p, "view.columns"), config.string_of(p, "view.column_widths"))
 	side_order_read(app, config.string_of(p, "side.order"))
-	updates_auto(app)
 	hidden := config.bool_of(p, "files.show_hidden")
 	if hidden != app.show_hidden {
 		app.show_hidden = hidden

@@ -9,6 +9,7 @@ import "core:strings"
 import "core:sync"
 import "gt:i18n"
 import lucide "gt:lucide"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -161,7 +162,7 @@ conflict_view :: proc(view: ^ui.View, app: ^App) {
 // the newer of the two.
 @(private = "file")
 conflict_file_line :: proc(app: ^App, word: string, f, other: fs.Info, em: f32, id: string) {
-	what := f.kind == .Directory ? i18n.tr("Folder") : size_text(f.size)
+	what := f.kind == .Directory ? i18n.tr("Folder") : timefmt.size(f.size)
 	text := what
 	if date := date_text(app, f.mtime); date != "" { text = fmt.tprintf("%s · %s", what, date) }
 	ui.next({width = ui.fill(), height = ui.px(em * 1.5)})

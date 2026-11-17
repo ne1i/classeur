@@ -83,12 +83,12 @@ act_app_full_screen :: proc(app: ^App) { platform.set_fullscreen(app.main.win, !
 ////////////////////////////////
 // Updates (updates.odin)
 
-act_app_update_check :: proc(app: ^App) { if app.updater != nil { update.check_now(app.updater) } }
-act_app_update_install :: proc(app: ^App) { if app.updater != nil { update.install_now(app.updater) } }
+act_app_update_check :: proc(app: ^App) { if app.updates.updater != nil { update.check_now(app.updates.updater) } }
+act_app_update_install :: proc(app: ^App) { if app.updates.updater != nil { update.install_now(app.updates.updater) } }
 
-has_updater :: proc(app: ^App) -> bool { return app.updater != nil }
-update_available :: proc(app: ^App) -> bool { return app.updater != nil && update.status(app.updater).phase == .Available }
-update_installed :: proc(app: ^App) -> bool { return app.updater != nil && update.status(app.updater).phase == .Installed }
+has_updater :: proc(app: ^App) -> bool { return app.updates.updater != nil }
+update_available :: proc(app: ^App) -> bool { return app.updates.updater != nil && update.status(app.updates.updater).phase == .Available }
+update_installed :: proc(app: ^App) -> bool { return app.updates.updater != nil && update.status(app.updates.updater).phase == .Installed }
 
 ////////////////////////////////
 // About classeur

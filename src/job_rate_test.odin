@@ -1,6 +1,6 @@
 package classeur
 
-// The jobs' speed and time left: the smoothing, the texts, and the footer's line of a job that runs.
+// The jobs' speed and time left: the smoothing, the time left's text, and the footer's line of a job that runs.
 
 import "base:runtime"
 import "core:strings"
@@ -27,9 +27,7 @@ test_rate_step :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_rate_and_eta_text :: proc(t: ^testing.T) {
-	testing.expect_value(t, rate_text(42 * MB), "42 MB/s")
-	testing.expect_value(t, rate_text(512), "512 B/s")
+test_eta_text :: proc(t: ^testing.T) {
 	testing.expect_value(t, eta_text(12), "12 s left")
 	testing.expect_value(t, eta_text(11.2), "12 s left")
 	testing.expect_value(t, eta_text(120), "2 min left")
@@ -63,9 +61,10 @@ test_job_status_rate :: proc(t: ^testing.T) {
 		testing.expect_value(t, job_status_text(job, 1500), "Copying 3 of 40 · big.iso")   // (the first second)
 
 		job.bytes_done = 100 * MB
-		testing.expect_value(t, job_status_text(job, 2000), "Copying 3 of 40 · big.iso · 42 MB/s · 2 min left")
+		// (timefmt.rate: a no-break space between the number and its unit)
+		testing.expect_value(t, job_status_text(job, 2000), "Copying 3 of 40 · big.iso · 42 MB/s · 2 min left")
 		job.bytes_total = 0
-		testing.expect_value(t, job_status_text(job, 2000), "Copying 3 of 40 · big.iso · 42 MB/s")
+		testing.expect_value(t, job_status_text(job, 2000), "Copying 3 of 40 · big.iso · 42 MB/s")
 
 		// waiting for an answer: the sampling stops, the time waited is not slowness
 		job.state = .Asking

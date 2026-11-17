@@ -15,13 +15,11 @@ import "core:time/datetime"
 import "core:time/timezone"
 import cli "gt:cli"
 import config "gt:config"
-import crash "gt:crash"
 import "gt:devtools"
 import "gt:font"
 import "gt:host"
 import "gt:i18n"
 import "gt:instance"
-import tk_log "gt:log"
 import lucide "gt:lucide"
 import "gt:platform"
 import "gt:render"
@@ -31,12 +29,8 @@ import crash_bar "gt:crash_bar"
 import setup "gt:setup"
 import store "gt:store"
 import tasks "gt:tasks"
-import update "gt:update"
 import "gt:ui"
 import "fs"
-
-// Frames owed after an event: what it set off settles (the layout, the reveal of the cursor's row).
-FRAMES_AFTER_INPUT :: 3
 
 App :: struct {
 	shared:      host.Shared,
@@ -171,10 +165,8 @@ App :: struct {
 	install:     prefs_page.Install,   // the install: its offer, its dialog, the settings' page (integration.odin)
 	changelog:   prefs_page.Changelog, // What's new: CHANGELOG.md on a page of the settings, said once after an update
 	launch_after: string,           // owned: this program again after an update (Restart), started once this one has ended ("": none)
-	updater:        ^update.Updater,   // checks, downloads and puts in place a new classeur (updates.odin; nil headless)
+	updates:        prefs_page.Updates,   // checks, downloads and puts in place a new classeur (updates.odin; its updater nil headless)
 	measures_sorted_at: f64,           // when measures_resort last sorted (ui.now_ms)
-	update_serial:  int,               // the updater's state last said
-	installed_copy: bool,              // this copy is the installed one: it updates itself by itself
 	headless:    bool,              // the tests: no window of the system, no program started (open_system)
 	announcer:     ui.Announcer,       // where a finished act is said (announce): general.messages
 	system_thumbs: bool,            // the system's thumbnails are asked (desktop.thumbnail: its cache, its thumbnailers);
@@ -234,35 +226,28 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	if !standalone {
 		// (its launcher's activation token first: the first start's window comes up with it on Wayland)
 		message := app_message_make(platform.activation_token_from_env(context.temp_allocator), folders)
-		outcome, owner = instance.acquire({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)message)
+		outcome, owner = instance.acquire({name = app_instance_name()}, transmute([]u8)message)
 		if outcome == .Forwarded { return .Done }
 	}
 	// (a window's process only: a second start forwarded above writes nothing)
 	// (the folders under the old name moved once into the vendor's, before anything reads them: the log's included)
 	_, moved_why := platform.user_dirs_move(APP_NAME, APP_FOLDER)
-	logger := tk_log.install({program = APP_NAME, dir = tk_log.default_dir(APP_FOLDER, context.temp_allocator), echo = true})
-	program_logger = logger
-	context.logger = logger
+	// (the session's mark: the main window's alone, a torn-off one's process ends with its tab)
+	program := host.program_start({name = APP_NAME, folder = APP_FOLDER, version = APP_VERSION, no_session = standalone})
+	program_logger = program.logger
+	context.logger = program.logger
 	defer {
 		context.logger = {}
 		program_logger = {}
-		tk_log.close(logger)
+		host.program_end(&program)
 	}
 	if moved_why != "" { log.warnf("classeur: the settings' folder stays under its old name: %s", moved_why) }
-	crash.install({program = APP_NAME, version = APP_VERSION, report_dir = crash.default_report_dir(APP_FOLDER, context.temp_allocator), log_tail = {tk_log.tail, logger.data}})
-	// (the session's mark: the main window's alone, a torn-off one's process ends with its tab)
-	report := ""
-	if !standalone {
-		crash.begin_session()
-		report, _ = crash.last_report(context.temp_allocator)
-	}
 	app := app_open({folders = folders, standalone = standalone, pref_args = pref_args})
 	if app == nil {
 		if outcome == .First { instance.owner_stop(&owner) }
-		if !standalone { crash.end_session() }
 		return .Failed
 	}
-	if report != "" { crash_bar.init(&app.crash_bar, report) }
+	crash_bar.init(&app.crash_bar, program.last_crash)
 	server: ^instance.Server
 	if outcome == .First { server = instance.serve_start(owner, app_message, app) }
 	platform.show_window(app.main.win)
@@ -285,10 +270,7 @@ app_run :: proc(folders: []string, setup_asked := false, standalone := false, pr
 	prefs_page.changelog_destroy(&app.changelog)
 	prefs_page.install_launch(&app.install)
 	app_close(app)
-	if !standalone {
-		fs.archive_take_out_clear()   // (what was opened out of archives: the main window's to remove)
-		crash.end_session()
-	}
+	if !standalone { fs.archive_take_out_clear() }   // (what was opened out of archives: the main window's to remove)
 	// (Restart after an update: it starts once this one let go of the instance)
 	if launch != "" { _ = setup.launch(launch) }
 	return .Done
@@ -305,14 +287,10 @@ app_instance_name :: proc() -> string {
 }
 
 // Whether a classeur runs and answers (--status: setup.Setup_Options.running).
-app_running :: proc() -> bool {
-	return instance.send({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)string(instance.MESSAGE_PING)) == .Forwarded
-}
+app_running :: proc() -> bool { return instance.running({name = app_instance_name()}) }
 
 // Asks the classeur that runs to end as its Quit does (--quit: setup.Setup_Options.quit); true when it took the request.
-app_quit :: proc() -> bool {
-	return instance.send({name = app_instance_name(), wait_ms = 2000}, transmute([]u8)string(instance.MESSAGE_QUIT)) == .Forwarded
-}
+app_quit :: proc() -> bool { return instance.quit({name = app_instance_name()}) }
 
 app_message_make :: proc(token: string, folders: []string) -> string {
 	b := strings.builder_make(context.temp_allocator)
@@ -400,14 +378,13 @@ app_open :: proc(o: Open_Options) -> ^App {
 	app.icons, _ = font.load_embedded(&app.shared.fonts, lucide.DATA)
 	app.mono, _ = font.load_embedded(&app.shared.fonts, font.FALLBACK_MONO_DATA)
 	h.state.icon_font = app.icons   // (the menus' icons are the commands' Lucide ones; the widgets keep the toolkit's marks)
-	h.after_input = FRAMES_AFTER_INPUT
 	views_start(app)
 	dnd_start(app)
 	ui.table_layout_init(&app.columns, detail_columns(app))   // (before the preferences: they say its columns)
 	prefs_open(app, o.pref_args)   // (and h.partial_redraw: rendering.partial_redraw)
 	prefs_page.install_init(&app.install, &app.prefs, setup_options())
 	// (the vendor signs the install's dialog and page: "By <mark> Froment Software"; a texture of this window's renderer)
-	if mark, ok := setup.logo_make(&app.shared.r, #load("../assets/froment-software-64.png"), {16, 16}); ok { app.install.vendor_mark = mark }
+	prefs_page.install_vendor_mark(&app.install, &app.shared.r, #load("../assets/froment-software-64.png"))
 	h.params = app_params
 	h.input = app_input
 	app.devtools = devtools.start_from_env(win, APP_NAME)
@@ -542,8 +519,9 @@ app_close :: proc(app: ^App) {
 	inspector_free(app)   // (before the renderer goes: the textures are its)
 	devtools.stop(app.devtools)
 	if global_app == app { global_app = nil }
-	prefs_page.install_end(&app.install)   // (again for a window app_run did not end: it does nothing the second time)
-	setup.logo_destroy(&app.shared.r, &app.install.vendor_mark)   // (before the renderer goes, with the window)
+	// (again for a window app_run did not end: it does nothing the second time; the vendor's mark goes with it, before
+	// the renderer)
+	prefs_page.install_end(&app.install)
 	crash_bar.destroy(&app.crash_bar)
 	// (before its window: a question still out finds no palette, the usage memory is written)
 	ui.palette_destroy(&app.palette.pal)
@@ -633,9 +611,7 @@ app_params :: proc(h: ^host.Host, bp: ^ui.Build_Params) {
 }
 
 // More frames: something changed outside of an input (a worker's result).
-app_frames :: proc(app: ^App) {
-	app.main.settle = max(app.main.settle, FRAMES_AFTER_INPUT)
-}
+app_frames :: proc(app: ^App) { host.host_settle(&app.main) }
 
 // A message in the window for a few seconds (a toast): what went wrong, a hint, a state just changed.
 say :: proc(app: ^App, format: string, args: ..any) {

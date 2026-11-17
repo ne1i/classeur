@@ -222,9 +222,9 @@ build_top :: proc(app: ^App, em: f32) {
 			tab_region(app, p, i, w, col_w, em)
 		}
 		// (an update to install, coming, or in place: a button before the window's own; nothing otherwise)
-		if app.updater != nil {
+		if app.updates.updater != nil {
 			ui.next({height = ui.px(ui.dense(em * 1.9))})
-			if prefs_page.update_badge(app.updater, proc(user: rawptr) { updates_restart((^App)(user)) }, app) != nil { ui.space(ui.CONTROL_GAP) }
+			if prefs_page.update_badge(app.updates.updater, proc(user: rawptr) { updates_restart((^App)(user)) }, app) != nil { ui.space(ui.CONTROL_GAP) }
 		}
 		ui.window_buttons()
 	}

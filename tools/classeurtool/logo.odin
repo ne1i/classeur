@@ -19,8 +19,6 @@ LOGO_UNITS  :: 512.0
 // The transparent space around the front panel, and the width of an edge, in units.
 LOGO_GAP    :: 18.0
 LOGO_EDGE   :: 12.0
-// Small sizes are drawn from a master this many times larger, in one step of the cubic filter at most this factor.
-LOGO_SHRINK_STEP :: 4
 
 // The colours: top and bottom of each gradient, and the edges.
 BACK_TOP     :: 0x2F6FB8
@@ -74,9 +72,11 @@ shape :: proc(c: ^paint.Canvas, p: paint.Path, y0, y1: f32, top, bottom, edge: u
 // 1: both sheets (32 px and up); 0: one (16 to 24).
 detail_for :: proc(size: int) -> int { return size <= 24 ? 0 : 1 }
 
-logo_draw :: proc(size: int, detail: int) -> paint.Canvas {
-	c := paint.canvas_make(size, size)
-	k := f32(size) / LOGO_UNITS
+// The logo `pixels` wide, with the details it keeps once shrunk to `size`.
+logo_draw :: proc(pixels, size: int, _: rawptr) -> paint.Canvas {
+	detail := detail_for(size)
+	c := paint.canvas_make(pixels, pixels)
+	k := f32(pixels) / LOGO_UNITS
 	c.transform = paint.scale(paint.IDENTITY, k, k)
 
 	// the back of the folder, its tab at the top left
@@ -120,25 +120,11 @@ logo_draw :: proc(size: int, detail: int) -> paint.Canvas {
 	return c
 }
 
-// The picture at `size`: drawn large, then shrunk in steps the cubic filter keeps clean.
-logo_render :: proc(size: int) -> paint.Canvas {
-	n := size
-	for n < LOGO_MASTER { n *= LOGO_SHRINK_STEP }
-	c := logo_draw(n, detail_for(size))
-	for n > size {
-		next := max(n / LOGO_SHRINK_STEP, size)
-		small := paint.resize(c, next, next)
-		paint.canvas_destroy(&c)
-		c, n = small, next
-	}
-	return c
-}
-
 // The files the `logo` command writes: assets/logo.png, the sizes the program and the site embed, the icon of
 // classeur.exe (resource 1, which the toolkit's build links: every size Windows asks for, each a PNG) and the project's picture.
 logo :: proc() -> toolbox.Logo {
 	return {
-		render = proc(size: int, user: rawptr) -> paint.Canvas { return logo_render(size) },
+		draw = logo_draw,
 		dir = LOGO_DIR, master = LOGO_MASTER, sizes = LOGO_SIZES[:], ico = ICO_FILE, ico_sizes = ICO_SIZES[:], project_image = true,
 	}
 }

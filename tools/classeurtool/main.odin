@@ -58,18 +58,18 @@ LICENCE_TOOL :: toolbox.Licence_Tool{
 }
 
 // The program's catalogues: the texts of its code (src and its packages), one file per language in i18n/.
-I18N :: toolbox.I18n_Catalogues{dirs = {"src"}, folder = "i18n"}
+// (a variable, not a constant: build_options keeps a slice of it, and a constant's slice is made again on the stack)
+I18N := toolbox.I18n_Catalogues{dirs = {"src"}, folder = "i18n"}
 
 // The commands (main_test checks them).
 commands :: proc() -> []toolbox.Command {
 	p := project()
-	r := release.commands({project = p, dist = "build/dist", files = RELEASE_FILES[:], check = proc() -> cli.Exit { return run_check(nil) }, update = classeur_update.PRODUCT})
+	r := release.commands({project = p, dist = "build/dist", files = RELEASE_FILES[:], check = proc() -> cli.Exit { return toolbox.ended(toolbox.program_check(build_options())) }, update = classeur_update.PRODUCT})
 	l := toolbox.licence_commands(LICENCE_TOOL)
+	b := toolbox.build_commands(build_options())
 	list := make([dynamic]toolbox.Command, context.temp_allocator)
 	append(&list,
-		toolbox.Command{name = "build", usage = "[release]: the toolkit's text library when its sources changed, then build/classeur", run = run_build},
-		toolbox.Command{name = "test", usage = "[names]: the tests of the program, of its packages and of this tool", run = run_test},
-		toolbox.Command{name = "check", usage = ": the changelog, the scopes, odin check of the program for this system and for Windows (-vet), the tests, then a release build", run = run_check},
+		b[0], b[1], b[2],
 		toolbox.logo_command(logo()),
 		r[0], r[1], r[2],
 		toolbox.Command{name = "update", usage = "keygen <file> | pubkey | manifest <program> <version> - <out> | verify <manifest> -: classeur's update key and manifests", run = proc(args: []string) -> cli.Exit { return toolbox.update_command(classeur_update.PRODUCT, args) }},

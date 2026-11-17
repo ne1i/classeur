@@ -25,28 +25,12 @@ shop :: proc() -> tk_site.Shop {
 		register       = "Open the file with Classeur, or paste the key in <strong>Settings &gt; General &gt; Licence</strong>.",
 		extension      = classeur_licence.PRODUCT.file_extension,
 		repository     = REPOSITORY,
-		seller         = SELLER,
+		seller         = tk_site.SELLER_FROMENT,
 		code_licence   = "MIT License",
 		platform       = "Linux, x64, and Windows 10 or 11, x64.",
-		network        = "classeur connects to the network for its updates only: the installed copy asks GitHub for the latest release a while after it starts and then once a day, and puts an update in place only if it is signed by Froment Software. Another copy asks only when you press <em>Check now</em> in the settings.",
+		network        = tk_site.NETWORK_UPDATES_ONLY,
 		stylesheet     = "../style.css",
 		home           = "../",
 		updated        = "2026-11-13",
 	}
-}
-
-// The seller, as Wren's imprint names it: the same block in every program of Froment Software.
-SELLER :: tk_site.Seller{
-	name       = "Froment Software",
-	owner      = "Sacha Froment",
-	status     = "sole proprietor (<em>entrepreneur individuel</em>)",
-	address    = "7 Lieu-dit les Renardi&egrave;res, 72220 Marign&eacute;-Laill&eacute;, France",
-	email      = "contact@froment.software",
-	url        = "https://froment.software",
-	siren      = "131 941 718",
-	siret      = "131 941 718 00010",
-	ape        = "6201Z, computer programming",
-	registry   = "the French national register of companies (RNE)",
-	registered = "23 October 2026",
-	vat        = "not applicable, article 293 B of the French General Tax Code (<em>franchise en base de TVA</em>)",
 }

@@ -14,8 +14,10 @@ package classeur
 // On Windows a copy that is not installed offers the install at its start, once per version unless the person keeps it
 // standalone; on Linux Nix installs it, or `classeur --install`.
 
+import "base:runtime"
 import "core:fmt"
 import "core:os"
+import "core:sync"
 import config "gt:config"
 import desktop "gt:desktop"
 import "gt:i18n"
@@ -33,18 +35,21 @@ ICON_PNGS := [?]desktop.Icon{
 	{256, #load("../assets/logo_256.png")},
 }
 
+// The identity's derived strings are allocated: they are made once, for the whole run (the workers and the setup's jobs
+// share them).
+@(private = "file") identity: desktop.Identity
+@(private = "file") identity_once: sync.Once
+
 classeur_identity :: proc() -> desktop.Identity {
-	return desktop.Identity{
-		name = "Classeur", key = "Classeur", slug = APP_NAME,
-		description = "A fast file manager: tabs in panels, a command palette, GoTo, batch rename, undo.",
-		vendor = "Froment Software",
-		entry_marker = "X-Classeur-Integration", registry_mark = "ClasseurIntegration", vendor_key = "FromentSoftware",
-		manifest_name = "classeur_install.txt",
-		generic_name = "File Manager", categories = "System;FileTools;FileManager;Utility;Core;",
-		keywords = "folder;manager;explore;disk;filesystem;files;",
-		env_prefix = "CLASSEUR_DESKTOP_",
-		uninstall_arguments = "--setup",
-	}
+	sync.once_do(&identity_once, proc() {
+		id := desktop.identity_of("Froment Software", APP_TITLE, APP_NAME, runtime.heap_allocator())
+		id.description = "A fast file manager: tabs in panels, a command palette, GoTo, batch rename, undo."
+		id.generic_name, id.categories = "File Manager", "System;FileTools;FileManager;Utility;Core;"
+		id.keywords = "folder;manager;explore;disk;filesystem;files;"
+		id.uninstall_arguments = "--setup"
+		identity = id
+	})
+	return identity
 }
 
 // classeur's own parts of an install: the PATH (on Windows with classeur.com, the console launcher the toolkit's build
@@ -93,13 +98,11 @@ SETUP_CHOICES := [?]setup.Choice{
 	{label = SETUP_FILE_MANAGER_WORDS, on = false, parts = {.File_Manager}},
 }
 
-// Once the start's reading of the install came (prefs_page.install_offer): whether this copy is the installed one (the
-// updater's auto), and the switches of the menu and the session for it.
+// Once the start's reading of the install came (prefs_page.install_offer): the switches of the menu and the session for
+// it. (Whether this copy updates by itself, prefs_page.updates_follow reads from the install each frame.)
 setup_follow :: proc(app: ^App) {
 	if app.setup_known || !app.install.known { return }
 	app.setup_known = true
-	app.installed_copy = app.install.running_it
-	updates_auto(app)
 	app_frames(app)
 }
 

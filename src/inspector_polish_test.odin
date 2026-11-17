@@ -78,7 +78,7 @@ test_inspector_text_cut :: proc(t: ^testing.T) {
 		testing.expect_value(t, app.inspector.kind, Inspect_Kind.Text)
 		testing.expect(t, app.inspector.cut, "cut")
 		testing.expect_value(t, len(app.inspector.text), INSPECTOR_TEXT_BYTES)
-		testing.expect(t, session.find_text(s, "The first 64 KB are shown.") != nil, "the note")
+		testing.expect(t, session.find_text(s, "The first 64 KB are shown.") != nil, "the note")
 		// a short text: no note
 		context.allocator = runtime.heap_allocator()
 		folder_cursor_to_name(&tab.folder, "short.txt")

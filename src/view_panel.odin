@@ -13,6 +13,7 @@ import "core:slice"
 import "gt:draw"
 import "gt:i18n"
 import lucide "gt:lucide"
+import "gt:timefmt"
 import "gt:ui"
 import "fs"
 
@@ -241,22 +242,6 @@ toolbar :: proc(app: ^App, p: ^Panel, t: ^Tab, index: int, em: f32) {
 	}
 }
 
-// `text` cut at its end with "…" to `width` at size `size` in the style's font (whole when it fits). A binary search over
-// its characters: a few measures, whatever its length.
-@(private = "file")
-elided :: proc(text: string, width, size: f32) -> string {
-	f := ui.top_style().font
-	if ui.text_width(f, size, text) <= width { return text }
-	cuts := make([dynamic]int, 0, len(text), context.temp_allocator)
-	for _, i in text { append(&cuts, i) }
-	lo, hi := 0, len(cuts) - 1   // (the longest prefix that fits: cuts[lo], at least none)
-	for lo < hi {
-		mid := (lo + hi + 1) / 2
-		if ui.text_width(f, size, fmt.tprintf("%s…", text[:cuts[mid]])) <= width { lo = mid } else { hi = mid - 1 }
-	}
-	return fmt.tprintf("%s…", text[:cuts[lo]])
-}
-
 // The path as words, one per folder, the last one bright; a click on the empty part types the path instead.
 @(private = "file")
 crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
@@ -293,7 +278,7 @@ crumbs :: proc(app: ^App, t: ^Tab, em: f32) {
 			// never cut, they wrap, and a name has no space to wrap at)
 			name := ui.text_shown(c.name)
 			if total > room && room > 0 && at == first {
-				name = elided(name, max(room - (first > 0 ? em * 2.4 : 0) - em * 2, em * 2), em)
+				name = ui.elide(ui.top_style().font, em, name, max(room - (first > 0 ? em * 2.4 : 0) - em * 2, em * 2))
 			}
 			ui.next({width = ui.text_size(em * 0.35), height = ui.px(ui.dense(em * 1.7))})
 			ui.next_merge(control_look(em))
@@ -957,7 +942,7 @@ entry_row :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, row: int, selected: bool, na
 			case .Files:    ui.table_cell(l, k, files)
 			case .Size:
 				size := "--"
-				if e.size >= 0 { size = size_text(e.size) } else if measured && m.bytes > 0 { size = size_text(m.bytes) }
+				if e.size >= 0 { size = timefmt.size(e.size) } else if measured && m.bytes > 0 { size = timefmt.size(m.bytes) }
 				ui.table_cell(l, k, size)
 				// (File Pilot's: a thin bar under the size, its share of the largest row's)
 				bytes := e.size >= 0 ? e.size : (measured ? m.bytes : 0)
@@ -1134,13 +1119,13 @@ footer :: proc(app: ^App, t: ^Tab, focused: bool, em: f32) {
 				if t.walk != nil { stat(app, "walk", lucide.LOADER, fmt.tprintf("%s…", count_text(i64(tab_walked(t)))), i18n.tr("Entries read so far"), em) }
 				if len(f.selected) > 0 {
 					bytes, _ := folder_selection_size(f)
-					stat(app, "sel", lucide.LAYERS_2, bytes > 0 ? fmt.tprintf("%d · %s", len(f.selected), size_text(bytes)) : fmt.tprintf("%d", len(f.selected)), i18n.tr("Selected, and the size of their files"), em)
+					stat(app, "sel", lucide.LAYERS_2, bytes > 0 ? fmt.tprintf("%d · %s", len(f.selected), timefmt.size(bytes)) : fmt.tprintf("%d", len(f.selected)), i18n.tr("Selected, and the size of their files"), em)
 				}
 				stat(app, "fol", lucide.FOLDER, shown_count_text(folders_shown, folders), folders_shown < folders ? i18n.tr("Folders shown, of all: a filter leaves some out") : i18n.tr("Folders"), em, lit = folders_shown < folders)
 				stat(app, "fil", lucide.FILE, shown_count_text(files_shown, files), files_shown < files ? i18n.tr("Files shown, of all: a filter leaves some out") : i18n.tr("Files"), em, lit = files_shown < files)
 				if t.has_space && t.space.total > 0 {
 					used := 100 - int(100 * f64(t.space.free) / f64(t.space.total))
-					stat(app, "disk", lucide.HARD_DRIVE, i18n.percent(f64(used) / 100), fmt.tprintf(i18n.tr("%s free of %s"), size_text(t.space.free), size_text(t.space.total)), em)
+					stat(app, "disk", lucide.HARD_DRIVE, i18n.percent(f64(used) / 100), fmt.tprintf(i18n.tr("%s free of %s"), timefmt.size(t.space.free), timefmt.size(t.space.total)), em)
 				}
 				ui.space(ui.SPACE_2)
 				zoom_pill(app, t, em)
@@ -1309,7 +1294,7 @@ footer_info :: proc(app: ^App, t: ^Tab) -> string {
 	if e == nil { return "" }
 	name := ui.text_shown(fs.base(shown_name(app, e^)))
 	if e.size < 0 { return fmt.tprintf("%s · %s", name, type_text(app, e^)) }   // (a folder not measured)
-	return fmt.tprintf("%s · %s · %s", name, type_text(app, e^), size_text(e.size))
+	return fmt.tprintf("%s · %s · %s", name, type_text(app, e^), timefmt.size(e.size))
 }
 
 // A count of the footer: its icon and its number, its meaning in its tooltip. `lit`: in the accent (a filter leaves
@@ -1456,7 +1441,7 @@ entry_tip :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, sig: ui.Signal) {
 	where_ := ""
 	if t.folder.flat && fs.parent(e.name) != "" { where_ = fmt.tprintf(i18n.tr("In %s"), home_path(app, fs.join(t.path, fs.parent(e.name), context.temp_allocator))) }
 	if x, ok := fs.entry_trashed(&t.folder.listing, e); ok && x.from != "" { where_ = fmt.tprintf(i18n.tr("Deleted from %s"), home_path(app, x.from)) }
-	facts := e.kind == .Directory ? fmt.tprintf("%s · %s", type_text(app, e^), date_text(app, e.mtime)) : fmt.tprintf("%s · %s · %s", type_text(app, e^), size_text(e.size), date_text(app, e.mtime))
+	facts := e.kind == .Directory ? fmt.tprintf("%s · %s", type_text(app, e^), date_text(app, e.mtime)) : fmt.tprintf("%s · %s · %s", type_text(app, e^), timefmt.size(e.size), date_text(app, e.mtime))
 	hover_tip(sig, name, facts, where_)
 }
 
