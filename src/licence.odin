@@ -12,13 +12,13 @@ import classeur_licence "licence"
 LICENCE :: classeur_licence.PRODUCT
 
 // Where a licence is bought: the site's pricing page.
-LICENCE_PRICING_URL :: SITE_URL + "pricing/"
+PRICING_URL :: SITE_URL + "pricing/"
 
 licence_open :: proc(app: ^App) {
 	// (the tests keep it in memory: the person's folder is never touched)
 	prefs_page.licence_init(&app.licence, &app.main.state, {
 		store = {product = LICENCE, program = APP_FOLDER, memory = app.headless, accept_dev = ODIN_DEBUG},
-		name = "Classeur", pricing_url = LICENCE_PRICING_URL, owner = app.main.win,
+		name = "Classeur", pricing_url = PRICING_URL, owner = app.main.win,
 		logo = #load("../assets/logo_256.png"), vendor = "Froment Software",   // (the licence card: its logo, its back)
 	})
 }
