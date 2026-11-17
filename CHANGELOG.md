@@ -3,6 +3,14 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.33.0] - 2026-11-17 11:20
+
+### Changed
+- **Dates and sizes read as in the other programs of Froment Software**: the words, the units and the order of a date are the language's, and a date keeps the offset of its own day across summer time.
+  - Relative dates read "today 21:40", "yesterday 21:40", the weekday for the last week, then "Nov 5, 21:40", with the year only when it is not this one.
+  - Day month year dates read in the language's order: "Nov 9 2026 21:40" in English, "9 nov. 2026 21:40" in French.
+  - A size rounds to its unit: "10 KB", not "10.0 KB", and "1.0 MB", not "1024 KB"; its number and its unit stay on one line.
+
 ## [0.32.2] - 2026-11-16 22:50
 
 ### Fixed
@@ -586,6 +594,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.33.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.33.0
 [0.32.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.2
 [0.32.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.1
 [0.32.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.32.0
