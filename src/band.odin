@@ -39,7 +39,7 @@ band_keep_base :: proc(b: ^Band, f: ^Folder) {
 }
 
 // Where the items are in the content of the box the band is drawn over:
-//   .Rows: the list's rows, one a row of the virtual list (t.vl.offsets);
+//   .Rows: the list's rows, one a row of the virtual list (ui.vlist_row_top);
 //   .Grid: `count` cards a row of the virtual list, each `item_w` wide, `gap` between them and before the first;
 //   .Columns: `count` lines a column, columns `step` wide, each line `item_w` wide and `row_h` high.
 Band_Layout :: struct {
@@ -92,9 +92,10 @@ band_update :: proc(app: ^App, t: ^Tab, pressed_row: bool, pressed_empty := fals
 	}
 	y0, y1 := min(b.start.y, content.y), max(b.start.y, content.y)
 	x0, x1 := min(b.start.x, content.x), max(b.start.x, content.x)
-	offs := t.vl.offsets[:]
-	// the rows the rectangle may touch now (by the offsets' order: a search, not a walk), and those it touched last
-	lo, hi := band_rows(layout, offs, len(f.shown), x0, x1, y0, y1)
+	vl := &t.vl
+	lines := len(vl.ids)
+	// the rows the rectangle may touch now (by the tops' order: a search, not a walk), and those it touched last
+	lo, hi := band_rows(layout, vl, lines, len(f.shown), x0, x1, y0, y1)
 	from, to := min(lo, b.lo), max(hi, b.hi)
 	if b.lo == b.hi { from, to = lo, hi }
 	b.lo, b.hi = lo, hi
@@ -104,14 +105,14 @@ band_update :: proc(app: ^App, t: ^Tab, pressed_row: bool, pressed_empty := fals
 		g := layout
 		switch g.kind {
 		case .Rows:
-			if row + 1 >= len(offs) { break }
-			touched = offs[row + 1] > y0 && offs[row] < y1
+			if row >= lines { break }
+			touched = ui.vlist_row_top(vl, row + 1) > y0 && ui.vlist_row_top(vl, row) < y1
 		case .Grid:
 			// (a card: its column's span, its row's less the gap around it)
 			gr, c := row / g.count, row % g.count
-			if gr + 1 >= len(offs) { break }
+			if gr >= lines { break }
 			ix0 := g.gap + f32(c) * (g.item_w + g.gap)
-			iy0, iy1 := offs[gr] + g.gap * 0.5, offs[gr + 1] - g.gap * 0.5
+			iy0, iy1 := ui.vlist_row_top(vl, gr) + g.gap * 0.5, ui.vlist_row_top(vl, gr + 1) - g.gap * 0.5
 			touched = ix0 + g.item_w > x0 && ix0 < x1 && iy1 > y0 && iy0 < y1
 		case .Columns:
 			c, r := row / g.count, row % g.count
@@ -156,26 +157,27 @@ band_cancel :: proc(app: ^App) {
 // The rows (their indices among those shown, [lo, hi)) a rectangle from y0 to y1 (and x0 to x1: the grid's and the
 // columns' items) may touch, found in the list's offsets by halves.
 @(private = "file")
-band_rows :: proc(g: Band_Layout, offs: []f32, n: int, x0, x1, y0, y1: f32) -> (lo, hi: int) {
-	// the first line whose bottom is under y0, the first whose top is past y1 (the lines of the virtual list)
-	first_after :: proc(offs: []f32, lines: int, y: f32, top: bool) -> int {
+band_rows :: proc(g: Band_Layout, vl: ^ui.Virtual_List, vl_lines, n: int, x0, x1, y0, y1: f32) -> (lo, hi: int) {
+	// the first line whose bottom is under y0, the first whose top is past y1 (the lines of the virtual list; each top
+	// is the list's, O(log n))
+	first_after :: proc(vl: ^ui.Virtual_List, lines: int, y: f32, top: bool) -> int {
 		a, z := 0, lines
 		for a < z {
 			m := (a + z) / 2
-			v := top ? offs[m] : offs[m + 1]
+			v := ui.vlist_row_top(vl, top ? m : m + 1)
 			if (top && v < y) || (!top && v <= y) { a = m + 1 } else { z = m }
 		}
 		return a
 	}
 	switch g.kind {
 	case .Rows:
-		lines := min(n, len(offs) - 1)
+		lines := min(n, vl_lines)
 		if lines <= 0 { return }
-		return first_after(offs, lines, y0, false), first_after(offs, lines, y1, true)
+		return first_after(vl, lines, y0, false), first_after(vl, lines, y1, true)
 	case .Grid:
-		lines := min((n + g.count - 1) / max(g.count, 1), len(offs) - 1)
+		lines := min((n + g.count - 1) / max(g.count, 1), vl_lines)
 		if lines <= 0 { return }
-		a, z := first_after(offs, lines, y0, false), first_after(offs, lines, y1, true)
+		a, z := first_after(vl, lines, y0, false), first_after(vl, lines, y1, true)
 		return min(a * g.count, n), min(z * g.count, n)
 	case .Columns:
 		if g.step <= 0 { return 0, n }

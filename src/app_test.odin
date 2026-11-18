@@ -1058,9 +1058,9 @@ test_band :: proc(t: ^testing.T) {
 		testing.expect(t, lb != nil)
 		// from the empty part under the rows, up over the last three
 		n := len(tab.folder.shown)
-		bottom := lb.rect.min.y + tab.vl.offsets[n] - lb.view_off.y
+		bottom := lb.rect.min.y + ui.vlist_row_top(&tab.vl, n) - lb.view_off.y
 		from := [2]f32{lb.rect.min.x + 200, bottom + 40}
-		to := [2]f32{lb.rect.min.x + 250, lb.rect.min.y + tab.vl.offsets[n - 3] - lb.view_off.y + 5}
+		to := [2]f32{lb.rect.min.x + 250, lb.rect.min.y + ui.vlist_row_top(&tab.vl, n - 3) - lb.view_off.y + 5}
 		session.press(s, from)
 		session.move(s, from + {0, -10})
 		session.move(s, to)
@@ -2419,10 +2419,9 @@ mouse_matrix :: proc(t: ^testing.T, zoom: int) {
 			if b == nil { return {}, false }
 			return b.rect, true
 		}
-		offs := tab.vl.offsets[:]
-		if i + 1 >= len(offs) { return {}, false }
+		if i >= len(tab.vl.ids) { return {}, false }
 		y := lb.rect.min.y - lb.view_off.y
-		return {{lb.rect.min.x, y + offs[i]}, {lb.rect.max.x, y + offs[i + 1]}}, true
+		return {{lb.rect.min.x, y + ui.vlist_row_top(&tab.vl, i)}, {lb.rect.max.x, y + ui.vlist_row_top(&tab.vl, i + 1)}}, true
 	}
 	middle :: proc(r: ui.Rect) -> [2]f32 { return (r.min + r.max) * 0.5 }
 	index_of :: proc(tab: ^Tab, name: string) -> int {
