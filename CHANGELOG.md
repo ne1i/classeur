@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.40.0] - 2026-11-19 17:29
+
+### Changed
+- **GIF pictures show in the grid and the inspector, and the rectangle scrolls the list**: a GIF's card shows its first frame and the inspector shows it, also without the system's thumbnails. A rectangle selection dragged to the edge of the list, the grid or the columns scrolls them to reach the items beyond.
+
 ## [0.39.1] - 2026-11-19 15:32
 
 ### Fixed
@@ -640,6 +645,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.40.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.40.0
 [0.39.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.39.1
 [0.39.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.39.0
 [0.38.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.38.0
