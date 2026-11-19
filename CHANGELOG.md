@@ -3,6 +3,11 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.41.1] - 2026-11-19 22:15
+
+### Fixed
+- **Smooth animations on Wayland**: a menu, a dialog or a switch moves at each refresh of the screen, with no need to move the pointer.
+
 ## [0.41.0] - 2026-11-19 18:26
 
 ### Fixed
@@ -650,6 +655,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.41.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.41.1
 [0.41.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.41.0
 [0.40.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.40.0
 [0.39.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.39.1
