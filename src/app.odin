@@ -48,7 +48,8 @@ App :: struct {
 	steps_due:   int,               // the changes on the edits' worker whose step of the undo is not there yet
 	places_asked: u64,              // the last read of the places asked (an older answer is dropped)
 	places_language: u32,           // i18n.version() the places' names were asked in (app_frame reads them again)
-	thumbs:      map[string]Thumb,  // by path, size and date (thumb_key; the keys owned)
+	thumbs:      ui.Thumb_Cache,    // the grid's thumbnails (thumbs.odin), by path, size and date (ui.thumb_key)
+	thumbs_clear_due: bool,         // Clear thumbnails ran: the cache is made again at the next build's start
 	icons_cache: map[string]Sys_Icon,   // the system's icons by key and size (icons.odin)
 	icon_keys:   map[string]string,     // a file's name -> its icon's key (both owned)
 	type_names:  map[string]Type_Name,  // an extension -> the system's name of its type (type_names.odin; keys owned)
@@ -61,8 +62,7 @@ App :: struct {
 	drag_checked: string,               // owned: the folder the dragged files were last checked against (drop_takes) ...
 	drag_check_ok: bool,                // ... whether it takes them
 	drag_check_valid: bool,             // ... for this drag's files (a new drag checks again)
-	frame:       u64,               // the frames built (what a thumbnail was last used in)
-	shown_frame: u64,               // atomic: the last frame built, for the workers (a thumbnail not wanted since is not read)
+	frame:       u64,               // the frames built (what an icon was last used in)
 	default_zoom: int,             // the measures of folders (measure.odin)
 	measures:    map[string]Measure,   // by path (the keys owned)
 	measure_asks: map[u64]^Measure_Ask,   // by tab: what each asked on its folder (measure.odin)
@@ -473,6 +473,8 @@ pools_start :: proc(app: ^App) {
 	tasks.start(&app.pool, {threads = POOL_THREADS, grow = POOL_GROW})
 	tasks.start(&app.measure_pool, {threads = MEASURE_THREADS})
 	tasks.start(&app.thumb_pool, {threads = THUMB_THREADS, grow = THUMB_THREADS, newest_first = true})
+	// (before the first build: a cache not made yet would make itself at its first card, with the toolkit's defaults)
+	ui.thumb_cache_init(&app.thumbs, thumbs_options())
 	tasks.start(&app.edit_pool, {threads = 1})
 }
 

@@ -1,22 +1,21 @@
 package classeur
 
-// The thumbnails of the grid: a picture file is read and decoded on a pool of its own (a photo of 24 megapixels takes a
-// fifth of a second), made at most THUMB_PX on its longer side with a box filter, then given to the interface's thread,
-// which makes its texture. A file classeur does not decode (a PDF, a video, a document) gets the system's thumbnail
-// (desktop.thumbnail: its cache, else its thumbnailer, on the same pool); a large picture's is read from the system's
-// cache first, and kept there once decoded (decoding it again costs more than reading it). Only the cards built ask for
-// theirs; the textures not used for a while go when more than THUMBS_KEPT are kept. The pool takes the newest asked
-// first (the cards on screen), and a job whose card has not been built for THUMB_STALE_FRAMES (scrolled past) is not
-// read: its card asks again if it comes back. A thumbnail is kept by its file's path, size and date: a file changed gets
-// a new one.
+// The thumbnails of the grid. The cache is the toolkit's ui.Thumb_Cache (gui_toolkit's src/md/features/thumbnails.md):
+// only the cards built ask, the asks leave newest first, THUMB_THREADS at a time, one whose card was not built lately is
+// dropped before it is read, the least used go over the budget, a texture is made at its first draw. A thumbnail is
+// kept by its file's path, size and date (ui.thumb_key): a file changed gets a new one.
+//
+// The work is classeur's, on its own pool (app.thumb_pool), with the rules of the toolkit's local source: a picture
+// gt:image reads is decoded and reduced; any other file gets the system's thumbnail (desktop.thumbnail: its cache, else
+// its thumbnailer); a large picture's is read from the system's cache first, and kept there once decoded. Classeur's own
+// rule over it: the system's thumbnails are asked only when app.system_thumbs is on (off headless: a test never reads
+// nor writes the person's cache).
 
-import "core:fmt"
+import "base:runtime"
 import "core:os"
 import "core:strings"
-import "core:sync"
 import desktop "gt:desktop"
-import "gt:platform"
-import "gt:render"
+import img "gt:image"
 import tasks "gt:tasks"
 import "gt:ui"
 import "fs"
@@ -25,200 +24,150 @@ THUMB_THREADS   :: 2
 THUMB_PX        :: 256
 THUMBS_KEPT     :: 400
 THUMB_MAX_BYTES :: 64 * 1024 * 1024   // a larger file is not read for its thumbnail
-THUMB_STALE_FRAMES :: 3               // a card not built for this many frames does not want its picture read
 THUMB_CACHED_BYTES :: 2 * 1024 * 1024 // a larger picture's thumbnail is read from, and kept in, the system's cache
 
-Thumb_State :: enum u8 { Asked, Ready, Failed }
-
-Thumb :: struct {
-	state: Thumb_State,
-	tex:   render.Texture,
-	size:  [2]int,
-	used:  u64,          // the frame it was last drawn in
-	job:   ^Thumb_Job,   // while Asked: told each frame its card is built (the job is the interface's to free)
+// The cache's options: THUMBS_KEPT thumbnails of THUMB_PX at most, the count the limit (the bytes of that many full
+// thumbnails), as many asks out as the pool has threads.
+thumbs_options :: proc() -> ui.Thumb_Options {
+	return {side = THUMB_PX, most_count = THUMBS_KEPT, most_bytes = THUMBS_KEPT * THUMB_PX * THUMB_PX * 4, asks = THUMB_THREADS}
 }
 
+// One ask of the cache, carried to the pool and back. Its memory is the heap's: it crosses threads.
+@(private = "file")
 Thumb_Job :: struct {
-	app:     ^App,
-	key:     string,   // owned: the cache's key
-	path:    string,   // owned
-	wanted:  u64,      // atomic: the frame its card was last built in
-	rgba:    []u8,     // owned until the texture is made
-	size:    [2]int,
-	ok:      bool,
-	skipped: bool,     // not wanted lately: not read, its entry goes (asked again if its card comes back)
-	system:  bool,     // the system's thumbnails may be asked (app.system_thumbs when it was made)
+	app:    ^App,
+	ticket: u64,
+	path:   string,   // owned
+	side:   int,
+	system: bool,     // the system's thumbnails may be asked (app.system_thumbs when it was made)
+	rgba:   []u8,     // owned: the answer (nil: none)
+	size:   [2]int,
 }
 
-// The key of a file's thumbnail: its path, size and date.
-thumb_key :: proc(path: string, size, mtime: i64) -> string { return fmt.tprintf("%s|%d|%d", path, size, mtime) }
-
-// The MIME type the decoder reads for this name, "" for none.
-thumb_mime :: proc(name: string) -> string {
+// Whether gt:image reads a file of this name, by its extension (the toolkit's local source reads the same).
+picture_decodes :: proc(name: string) -> bool {
 	ext := fs.extension(name)
-	if len(ext) > 5 { return "" }
-	buf: [5]u8
+	if len(ext) > 4 { return false }
+	// (folded on the stack: each card built asks, at each frame)
+	buf: [4]u8
 	for i in 0 ..< len(ext) { c := ext[i]; buf[i] = c >= 'A' && c <= 'Z' ? c + 32 : c }
 	switch string(buf[:len(ext)]) {
-	case "png":         return "image/png"
-	case "jpg", "jpeg": return "image/jpeg"
-	case "bmp":         return "image/bmp"
+	case "png", "jpg", "jpeg", "bmp", "webp", "gif": return true
 	}
-	return ""
+	return false
 }
 
 // The entry has a thumbnail to ask: a picture classeur decodes, or any file when the system's thumbnails are asked (a type
 // with no thumbnailer fails once, and its card keeps its icon).
 thumb_wanted :: proc(app: ^App, e: ^fs.Entry) -> bool {
-	return e.kind == .File && (app.system_thumbs || thumb_mime(e.name) != "")
+	return e.kind == .File && (app.system_thumbs || picture_decodes(e.name))
 }
 
-// The thumbnail of the file at `path` (of this size and date) if it is ready; else it is asked (once).
-thumb_get :: proc(app: ^App, path: string, size, mtime: i64) -> (^Thumb, bool) {
-	key := thumb_key(path, size, mtime)
-	if th, ok := &app.thumbs[key]; ok {
-		th.used = app.frame
-		if th.job != nil { sync.atomic_store(&th.job.wanted, app.frame) }
-		return th, th.state == .Ready
-	}
-	job := new(Thumb_Job)
-	job^ = {app = app, key = strings.clone(key), path = strings.clone(path), wanted = app.frame, system = app.system_thumbs}
-	app.thumbs[strings.clone(key)] = {state = .Asked, used = app.frame, job = job}
+// After the cards of a build: the cache's asks sent, the least used dropped.
+thumbs_frame :: proc(app: ^App) { ui.thumb_cache_frame(&app.thumbs, thumb_ask, app) }
+
+// Clear thumbnails (act_app_thumbs_clear): every thumbnail forgotten, at the start of the build after the command, when
+// no draw holds an entry any more. The cards shown ask for theirs again.
+thumbs_clear_apply :: proc(app: ^App) {
+	if !app.thumbs_clear_due { return }
+	app.thumbs_clear_due = false
+	// (the serial goes on: an answer of an ask sent before the clear must not find an entry asked after it)
+	serial := app.thumbs.serial
+	ui.thumb_cache_destroy(&app.thumbs)
+	ui.thumb_cache_init(&app.thumbs, thumbs_options())
+	app.thumbs.serial = serial
+}
+
+thumbs_free :: proc(app: ^App) { ui.thumb_cache_destroy(&app.thumbs) }
+
+// The cache's ask: the work on the thumbnails' pool, its answer posted back with its ticket.
+@(private = "file")
+thumb_ask :: proc(user: rawptr, path: string, side: int, ticket: u64) {
+	app := (^App)(user)
+	a := runtime.heap_allocator()
+	job := new(Thumb_Job, a)
+	job^ = {app = app, ticket = ticket, path = strings.clone(path, a), side = side, system = app.system_thumbs}
 	tasks.add(&app.thumb_pool, thumb_run, job)
-	return nil, false
 }
 
+@(private = "file")
 thumb_run :: proc(data: rawptr) {
 	job := (^Thumb_Job)(data)
 	defer if !ui.post(&job.app.main.state, thumb_done, job) { thumb_free(job) }
-	// (a card scrolled past: the cards on screen do not wait for its decode)
-	if sync.atomic_load(&job.wanted) + THUMB_STALE_FRAMES < sync.atomic_load(&job.app.shown_frame) {
-		job.skipped = true
-		return
-	}
 	info, ok := fs.stat(job.path)
 	if !ok || info.size <= 0 { return }
-	mime := thumb_mime(job.path)
 	// (a type classeur does not decode, or a picture too large to read here: the system's, if it has a thumbnailer)
-	if mime == "" || info.size > THUMB_MAX_BYTES {
+	if !picture_decodes(job.path) || info.size > THUMB_MAX_BYTES {
 		if job.system { thumb_system(job, cached_only = false) }
 		return
 	}
+	// (a large picture: decoding it again costs more than reading the system's copy)
 	large := job.system && info.size > THUMB_CACHED_BYTES
 	if large && thumb_system(job, cached_only = true) { return }
-	bytes, err := os.read_entire_file(job.path, context.temp_allocator)
+	a := runtime.heap_allocator()
+	bytes, err := os.read_entire_file(job.path, a)
 	if err != nil { return }
-	img, decoded := platform.clipboard_image_decode(mime, bytes)
-	if !decoded { return }
-	defer delete(img.rgba)
-	job.rgba, job.size = shrink(img.rgba, img.size, THUMB_PX)
-	job.ok = true
+	defer delete(bytes, a)
+	pic, _, decoded := img.decode(bytes, a)
+	if !decoded {
+		// (a WebP in a build without its decoder, a picture gt:image cannot read: the system may)
+		if job.system { thumb_system(job, cached_only = false) }
+		return
+	}
+	defer delete(pic.pixels, a)
+	job.rgba, job.size = picture_fit(pic, job.side, a)
 	if large { _ = desktop.thumbnail_store(job.path, job.rgba, job.size.x, job.size.y) }
+}
+
+// The picture at most `side` on its longer side, its ratio kept (a smaller one as it is), in `allocator`: a box filter,
+// each pixel the mean of what it covers (the fastest reduction, and good enough at a card's size).
+picture_fit :: proc(pic: img.Image, side: int, allocator: runtime.Allocator) -> ([]u8, [2]int) {
+	w, h := pic.width, pic.height
+	if max(w, h) <= side {
+		out := make([]u8, len(pic.pixels), allocator)
+		copy(out, pic.pixels)
+		return out, {w, h}
+	}
+	k := f32(side) / f32(max(w, h))
+	small := img.resize(pic, max(1, int(f32(w) * k + 0.5)), max(1, int(f32(h) * k + 0.5)), .Box, allocator)
+	return small.pixels, {small.width, small.height}
 }
 
 // The system's thumbnail of the job's file: from its cache only, or made by its thumbnailer on a miss (this worker
 // waits for it). False: it has none.
 @(private = "file")
 thumb_system :: proc(job: ^Thumb_Job, cached_only: bool) -> bool {
+	a := runtime.heap_allocator()
 	th: desktop.Thumbnail
 	ok: bool
 	if cached_only {
-		th, ok = desktop.thumbnail_cached(job.path, THUMB_PX)
+		th, ok = desktop.thumbnail_cached(job.path, job.side, a)
 	} else {
-		th, ok = desktop.thumbnail(job.path, THUMB_PX)
+		th, ok = desktop.thumbnail(job.path, job.side, a)
 	}
 	if !ok { return false }
-	job.rgba, job.size, job.ok = th.rgba, th.size, true
+	job.rgba, job.size = th.rgba, th.size
 	return true
-}
-
-// The picture at most `side` on its longer side: each pixel the mean of the block it covers.
-shrink :: proc(rgba: []u8, size: [2]int, side: int) -> ([]u8, [2]int) {
-	w, h := size.x, size.y
-	scale := max(f32(w), f32(h)) / f32(side)
-	if scale <= 1 {
-		out := make([]u8, len(rgba))
-		copy(out, rgba)
-		return out, size
-	}
-	ow, oh := max(1, int(f32(w) / scale)), max(1, int(f32(h) / scale))
-	out := make([]u8, ow * oh * 4)
-	for y in 0 ..< oh {
-		y0, y1 := y * h / oh, max(y * h / oh + 1, (y + 1) * h / oh)
-		for x in 0 ..< ow {
-			x0, x1 := x * w / ow, max(x * w / ow + 1, (x + 1) * w / ow)
-			sum: [4]u32
-			for sy in y0 ..< y1 {
-				row := rgba[(sy * w) * 4:]
-				for sx in x0 ..< x1 {
-					p := row[sx * 4:]
-					sum += {u32(p[0]), u32(p[1]), u32(p[2]), u32(p[3])}
-				}
-			}
-			n := u32((y1 - y0) * (x1 - x0))
-			o := out[(y * ow + x) * 4:]
-			o[0], o[1], o[2], o[3] = u8(sum[0] / n), u8(sum[1] / n), u8(sum[2] / n), u8(sum[3] / n)
-		}
-	}
-	return out, {ow, oh}
 }
 
 @(private = "file")
 thumb_free :: proc(job: ^Thumb_Job) {
-	delete(job.key)
-	delete(job.path)
-	delete(job.rgba)
-	free(job)
+	a := runtime.heap_allocator()
+	delete(job.path, a)
+	delete(job.rgba, a)
+	free(job, a)
 }
 
+// The answer, on the interface's thread: the pixels (copied by the cache), or none (the card keeps its icon).
 @(private = "file")
 thumb_done :: proc(data: rawptr, word: u64) {
 	job := (^Thumb_Job)(data)
 	defer thumb_free(job)
 	app := job.app
-	th, ok := &app.thumbs[job.key]
-	if !ok { return }
-	th.job = nil
-	if job.skipped {
-		key, _ := delete_key(&app.thumbs, job.key)
-		delete(key)
-		return
+	if job.rgba != nil {
+		ui.thumb_cache_answer(&app.thumbs, job.ticket, job.rgba, job.size.x, job.size.y)
+	} else {
+		ui.thumb_cache_failed(&app.thumbs, job.ticket)
 	}
-	if !job.ok {
-		th.state = .Failed
-		return
-	}
-	r := &app.shared.r
-	th.tex = render.create_texture_rgba(r, job.size.x, job.size.y)
-	render.update_texture_rgba(r, th.tex, 0, 0, job.size.x, job.size.y, job.rgba)
-	th.size, th.state = job.size, .Ready
 	app_frames(app)
-}
-
-// Each frame: the textures least used go when too many are kept, never one drawn in this frame (a grid of small cards
-// on a large screen can show more than THUMBS_KEPT).
-thumbs_tidy :: proc(app: ^App) {
-	sync.atomic_store(&app.shown_frame, app.frame)
-	if len(app.thumbs) <= THUMBS_KEPT { return }
-	Old :: struct { key: string, used: u64 }
-	all := make([dynamic]Old, context.temp_allocator)
-	for k, th in app.thumbs { if th.state != .Asked { append(&all, Old{k, th.used}) } }
-	// (the oldest quarter)
-	limit := app.frame
-	for o in all { limit = min(limit, o.used) }
-	cut := limit + (app.frame - limit) / 4
-	for o in all {
-		if o.used > cut || o.used == app.frame { continue }
-		key, th := delete_key(&app.thumbs, o.key)
-		if th.state == .Ready { render.destroy_texture(&app.shared.r, th.tex) }
-		delete(key)
-	}
-}
-
-thumbs_free :: proc(app: ^App) {
-	for k, th in app.thumbs {
-		if th.state == .Ready { render.destroy_texture(&app.shared.r, th.tex) }
-		delete(k)
-	}
-	delete(app.thumbs)
 }

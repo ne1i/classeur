@@ -10,7 +10,6 @@ import config "gt:config"
 import "gt:i18n"
 import "gt:platform"
 import prefs_page "gt:prefs_page"
-import "gt:render"
 import setup "gt:setup"
 import tasks "gt:tasks"
 import update "gt:update"
@@ -193,15 +192,10 @@ act_app_layout_reset :: proc(app: ^App) {
 	if t := current_tab(app); t != nil { t.focus_due = .List }
 }
 
-// The thumbnails made so far are forgotten: the cards shown ask for theirs again. One asked stays: its job answers it.
+// The thumbnails made so far are forgotten: the cards shown ask for theirs again. (At the next build's start,
+// thumbs_clear_apply: this build's cards and its draw still hold their entries.)
 act_app_thumbs_clear :: proc(app: ^App) {
-	gone := make([dynamic]string, context.temp_allocator)
-	for k, th in app.thumbs { if th.state != .Asked { append(&gone, k) } }
-	for k in gone {
-		key, th := delete_key(&app.thumbs, k)
-		if th.state == .Ready { render.destroy_texture(&app.shared.r, th.tex) }
-		delete(key)
-	}
+	app.thumbs_clear_due = true
 	announce(app, .Good, i18n.tr("The thumbnails are cleared."))
 	app_frames(app)
 }

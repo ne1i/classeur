@@ -17,7 +17,8 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
   with `ui.post`. Separate pools keep slow work from blocking quick work:
   - `app.pool`: folder reads, places, shares, launches. It grows while a read of a share hangs.
   - `app.edit_pool`: one thread, the interface's own changes to files, in the order asked.
-  - `app.thumb_pool`: two threads, the newest asked first, a card scrolled past not read.
+  - `app.thumb_pool`: two threads, the thumbnails the toolkit's cache asks for (newest first, a card scrolled past
+    not read), the icons and the types' names.
   - the measures' pool: folders measured all the way down.
 - The jobs (copy, move, trash, delete) run one at a time on a thread of their own; a name taken asks the interface and
   the job waits on a semaphore.
@@ -58,7 +59,7 @@ alternatives, the subtle points. The map of the code (packages, files, threads, 
 ## File Index
 
 - [layers.md](layers.md): how the program grew layer by layer, and the decisions of each layer (jobs, the clipboard of
-  files, the trash, undo, batch rename, thumbnails); the known gaps
+  files, the trash, undo, batch rename, thumbnails), what of the file view is the toolkit's; the known gaps
 - [features/keyboard.md](features/keyboard.md): the order in which a build reads the keys, the person's keys and
   aliases (the toolkit's keymap, classeur's ids), who has the keyboard, why F6 stays classeur's
 - [features/session.md](features/session.md): the session and the layouts read on a worker at the start, the state

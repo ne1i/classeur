@@ -19,8 +19,10 @@ import "fs"
 
 ICONS_KEPT :: 600
 
+Icon_State :: enum u8 { Asked, Ready, Failed }
+
 Sys_Icon :: struct {
-	state: Thumb_State,
+	state: Icon_State,
 	tex:   render.Texture,
 	size:  [2]int,
 	used:  u64,

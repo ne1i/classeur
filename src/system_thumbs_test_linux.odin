@@ -14,6 +14,7 @@ import desktop "gt:desktop"
 import "gt:png"
 import "gt:testkit/session"
 import "gt:testkit/unwatched"
+import "gt:ui"
 import "fs"
 
 @(private = "file")
@@ -103,15 +104,16 @@ test_system_thumbnails :: proc(t: ^testing.T) {
 		testing.expect_value(t, tab_mode(tab), View_Mode.Grid)
 		session.wait_until(s, proc(s: ^session.Session) -> bool {
 			app := (^App)(s.user)
-			if len(app.thumbs) == 0 { return false }
-			for _, th in app.thumbs { if th.state == .Asked { return false } }
+			if len(app.thumbs.entries) == 0 { return false }
+			for _, th in app.thumbs.entries { if th.state == .Waiting || th.state == .Asked { return false } }
 			return true
 		}, "the thumbnails")
-		state_of :: proc(app: ^App, tab: ^Tab, name: string) -> (Thumb, bool) {
+		state_of :: proc(app: ^App, tab: ^Tab, name: string) -> (ui.Thumb, bool) {
 			for e in tab.folder.listing.entries {
 				if e.name != name { continue }
-				th, found := app.thumbs[thumb_key(fs.join(tab.path, name, context.temp_allocator), e.size, e.mtime)]
-				return th, found
+				th, found := app.thumbs.entries[ui.thumb_key(fs.join(tab.path, name, context.temp_allocator), e.size, e.mtime)]
+				if !found { return {}, false }
+				return th^, true
 			}
 			return {}, false
 		}

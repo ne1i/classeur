@@ -34,6 +34,7 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	app.room = size.x / max(ui.scale(), 0.01)
 	app.window_px_last, app.window_px = app.window_px, size
 	app.frame += 1
+	thumbs_clear_apply(app)
 	updates_follow(app)
 	// (the person's themes file read again when it changed: theme_show, in the next frame's params, shows the new one)
 	if prefs_page.themes_file_poll(&app.themes_file, &h.state) { app_frames(app) }
@@ -104,7 +105,7 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	jobs_tidy(app)
 	watcher_update(app)
 	measure_update(app)
-	thumbs_tidy(app)
+	thumbs_frame(app)
 	icons_tidy(app)
 }
 
@@ -410,31 +411,24 @@ list_keys :: proc(app: ^App) {
 	n := len(f.shown)
 	if n == 0 { return }
 	grid := tab_mode(t) >= .Columns
-	row := tab_row_items(t)
-	page := max(t.vl.page_rows - 1, 1) * row
-	// the row each key takes the cursor to: by rows of the list, by rows of cards, down a column of the columns view
-	Move :: struct { key: platform.Key, to: int }
-	at := f.sel
-	moves := make([dynamic]Move, context.temp_allocator)
-	if tab_mode(t) == .Columns {
-		per := max(t.grid_cols, 1)
-		append(&moves, Move{.Down, at + 1}, Move{.Up, at - 1}, Move{.Right, at + per}, Move{.Left, at - per},
-			Move{.Page_Down, at + per}, Move{.Page_Up, at - per}, Move{.Home, 0}, Move{.End, n - 1})
-	} else {
-		append(&moves, Move{.Down, at + row}, Move{.Up, at - row}, Move{.Page_Down, at + page}, Move{.Page_Up, at - page},
-			Move{.Home, 0}, Move{.End, n - 1})
-		if grid { append(&moves, Move{.Right, at + 1}, Move{.Left, at - 1}) }
-	}
+	// the item each key takes the cursor to is the toolkit's (item_move_target): by rows of the list (one item a line),
+	// by rows of cards (the grid's cards a line), down a column of the columns view (its names a column)
+	flow := tab_mode(t) == .Columns ? ui.Item_Flow.Columns : ui.Item_Flow.Lines
+	per := tab_row_items(t)
+	page := max(t.vl.page_rows - 1, 1)
+	keys := [?]platform.Key{.Down, .Up, .Right, .Left, .Page_Down, .Page_Up, .Home, .End}
 	// what the move does to the selection is the toolkit's (item_selection_move): alone, the row alone; Shift, the range;
 	// Ctrl+Shift, the range added; Ctrl, the cursor alone. The details' list makes its own moves alone (t.vl.changed).
 	for mods in ([4]platform.Modifiers{{}, {.Shift}, {.Ctrl}, {.Ctrl, .Shift}}) {
 		if mods == {} && !grid { continue }
-		for m in moves {
+		for key in keys {
 			// (Ctrl+Page Up and Page Down go to the tabs)
-			if .Ctrl in mods && (m.key == .Page_Up || m.key == .Page_Down) { continue }
-			if !ui.key_press(m.key, mods) { continue }
-			ui.item_selection_move(&f.selection, folder_rows(f), clamp(m.to, 0, n - 1), mods)
-			ui.list_select(&t.vl, grid ? f.sel / row : f.sel)
+			if .Ctrl in mods && (key == .Page_Up || key == .Page_Down) { continue }
+			// (a key that is no move here, Left and Right in the details, stays for the tree below)
+			to, ok := ui.item_move_target(key, f.sel, n, per, flow, page)
+			if !ok || !ui.key_press(key, mods) { continue }
+			ui.item_selection_move(&f.selection, folder_rows(f), to, mods)
+			ui.list_select(&t.vl, grid ? f.sel / per : f.sel)
 		}
 	}
 	if ui.key_press(.Space, {.Ctrl}) { ui.item_selection_toggle(&f.selection, folder_rows(f), f.sel) }

@@ -13,6 +13,7 @@ import "core:unicode/utf8"
 import desktop "gt:desktop"
 import "gt:draw"
 import "gt:i18n"
+import img "gt:image"
 import lucide "gt:lucide"
 import "gt:platform"
 import "gt:render"
@@ -159,7 +160,7 @@ inspector_ask :: proc(app: ^App, path: string, e: fs.Entry) {
 	job^ = {app = app, serial = insp.serial, path = strings.clone(path), sort = app.default_sort}
 	switch {
 	case e.kind == .Directory:                                job.kind = .Folder
-	case e.kind == .File && thumb_mime(e.name) != "":         job.kind = .Picture
+	case e.kind == .File && picture_decodes(e.name):          job.kind = .Picture
 	case e.kind == .File && app.system_thumbs && preview_caption(e.name) != "":
 		job.kind, job.caption = .Picture, preview_caption(e.name)
 	case e.kind == .File && looks_textual(e.name, e.flags):   job.kind = .Text
@@ -226,11 +227,11 @@ inspect_run :: proc(data: rawptr) {
 		if !ok || info.size > THUMB_MAX_BYTES { job.kind = .Other; return }
 		bytes, err := os.read_entire_file(job.path, context.temp_allocator)
 		if err != nil { job.kind = .Other; return }
-		img, decoded := platform.clipboard_image_decode(thumb_mime(job.path), bytes)
+		pic, _, decoded := img.decode(bytes)
 		if !decoded { job.kind = .Other; return }
-		defer delete(img.rgba)
-		job.pixels = img.size
-		job.rgba, job.size = shrink(img.rgba, img.size, INSPECTOR_PICTURE_PX)
+		defer delete(pic.pixels)
+		job.pixels = {pic.width, pic.height}
+		job.rgba, job.size = picture_fit(pic, INSPECTOR_PICTURE_PX, context.allocator)
 	case .Text:
 		f, err := os.open(job.path)
 		if err != nil { job.kind = .Other; return }

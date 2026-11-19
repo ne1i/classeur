@@ -48,7 +48,8 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
 - **Watching.** Changes close together come as one; a folder read again keeps its cursor and its selection.
 - **The look** is File Pilot's, faithfully. No status bar: messages are toasts. The zoom goes from the details (0 %) to
   names alone (10 %), names in columns (20 %), then cards ever larger (30 % to 100 %).
-- **Thumbnails** are decoded and shrunk to 256 px on a pool of their own; the textures of the 400 last used are kept.
+- **Thumbnails** are decoded and shrunk to 256 px on a pool of their own; the 400 last used are kept. See "The
+  thumbnails" below: the cache is the toolkit's now.
 - **Folder measures** run on a pool of their own (2 threads), kept by path and date; a navigation drops the measures not
   started.
 
@@ -63,14 +64,40 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
   typing.
 - **Drag and drop** (`src/dnd.odin`): the places that take a drop are noted each frame. Tabs dragged and torn off at the
   window's edge (`src/tab_drag.odin`); the rectangle selection (`src/band.odin`).
+- **What the toolkit now holds.** gui_toolkit 0.329 took classeur's file view into its table (its
+  `src/md/features/view-modes.md`). Classeur keeps its own model (tabs, groups, the tree, its look, its drag and drop),
+  so its grid and its columns view stay its own, but it no longer keeps copies of what the toolkit has:
+  - the rectangle is `ui.Item_Band`. `src/band.odin` adds only what the folder has and the toolkit's band does not
+    know: one band for the window (`Band.tab`: the other panels' lists are left alone while it runs), the folder's menu
+    on a right click in the empty part, the rows of a folded group left out, and the selection's bytes kept row by row
+    (`Item_Band` sets the selection directly, so `band_update` reckons the rows it visited; a count over the folder at
+    each frame of a drag was refused). Escape gives the selection back (`item_band_cancel`).
+  - the keys' moves in the grid and the columns view are `ui.item_move_target` (Lines of a row's cards, Columns of a
+    column's names); what a move does to the selection was already `item_selection_move`.
+  - a card's name is cut by `ui.table_card_name` (its middle, its extension kept).
 - **One window per person** (`gt:instance` `serve_start`), the session (`src/session.odin`).
 - Back and Forward come back to the row and the scroll left (`Visit`, `src/tab.odin`). A refused rename keeps its name.
 - The letters typed go to the panel's filter (`no_typeahead`), not to a jump in the list.
 
-## The system's thumbnails
+## The thumbnails
 
+- **The cache is the toolkit's** `ui.Thumb_Cache` (gui_toolkit's `src/md/features/thumbnails.md`): only the cards built
+  ask (`thumb_cache_get`), the asks leave newest first and `THUMB_THREADS` at a time, one whose card was not built for
+  `ui.THUMB_STALE_FRAMES` builds is dropped before it is read, the least used go over the budget (`THUMBS_KEPT`; the
+  bytes limit is that many full thumbnails, so the count decides), a texture is made at its first draw. The key is the
+  file's path, size and date (`ui.thumb_key`). Classeur's own cache, with a frame counter shared with its workers for
+  the stale test, was refused once the toolkit had the same rules on the interface's thread.
+- **The work stays classeur's**, on `app.thumb_pool`, with the toolkit's rules for local files: what `gt:image` reads is
+  decoded and reduced (a box filter); another type, a picture over 64 MB, or one `gt:image` cannot read (a WebP in a
+  build without its decoder) gets the system's thumbnail. Classeur cannot hand the work to the toolkit's local source:
+  its thumbnail procedure is private and answers the file browser's cache, and it would ask the system with no way to
+  say no. Classeur asks the system only when `app.system_thumbs` is on (off headless: a test never reads nor writes the
+  person's cache).
+- **Clear thumbnails** makes the cache again at the start of the next build (`thumbs_clear_apply`), not in the command:
+  the build that ran it and its draw still hold their entries. The tickets' serial goes on, so an answer of an ask sent
+  before cannot land on an entry asked after.
 - The inspector shows a PDF's first page and a frame of a video: the system's large thumbnail, said so under it
-  (gui_toolkit's `desktop.thumbnail`).
+  (gui_toolkit's `desktop.thumbnail`). Its pictures are decoded with `gt:image` too.
 - A large picture's thumbnail (over 2 MB) is read from the system's cache first and kept there once decoded.
 
 ## Known gaps

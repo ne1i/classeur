@@ -291,8 +291,8 @@ write_pictures :: proc(dir: string, names: []string) {
 @(private = "file")
 thumbs_ready :: proc(s: ^session.Session) -> bool {
 	app := (^App)(s.user)
-	if len(app.thumbs) == 0 { return false }
-	for _, th in app.thumbs { if th.state == .Asked { return false } }
+	if len(app.thumbs.entries) == 0 { return false }
+	for _, th in app.thumbs.entries { if th.state == .Waiting || th.state == .Asked { return false } }
 	return true
 }
 
@@ -307,8 +307,8 @@ test_grid :: proc(t: ^testing.T) {
 		session.key(s, .N2, {.Ctrl})
 		testing.expect_value(t, tab_mode(tab), View_Mode.Grid)
 		session.wait_until(s, thumbs_ready, "the thumbnails")
-		for _, th in app.thumbs {
-			testing.expect_value(t, th.state, Thumb_State.Ready)
+		for _, th in app.thumbs.entries {
+			testing.expect_value(t, th.state, ui.Thumb_State.Ready)
 			testing.expect(t, max(th.size.x, th.size.y) <= THUMB_PX)
 		}
 		session.frames(s, 2)

@@ -6,9 +6,7 @@ package classeur
 
 import "core:fmt"
 import "core:math"
-import "core:strings"
 import "gt:draw"
-import "gt:render"
 import "gt:timefmt"
 import "gt:ui"
 import "fs"
@@ -175,15 +173,11 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	if ui.row(.Center) {
 		ui.space(ui.SPACE_2)
 		path := entry_path(t, e)
-		if thumb_wanted(app, e) {
-			if th, ready := thumb_get(app, path, e.size, e.mtime); ready {
-				d := ui.frame_new(Picture_Draw)
-				d^ = {th.tex, {f32(th.size.x), f32(th.size.y)}, corner_k()}
-				ui.next({width = ui.fill(), height = ui.pct(1)})
-				ui.custom("###thumb", picture_draw, d)
-			} else {
-				big_icon(app, t.path, e^, pic)
-			}
+		th: ^ui.Thumb
+		if thumb_wanted(app, e) { th = ui.thumb_cache_get(&app.thumbs, ui.thumb_key(path, e.size, e.mtime), path) }
+		if th != nil && th.state == .Ready {
+			ui.next({width = ui.fill(), height = ui.pct(1)})
+			ui.thumb_picture("###thumb", th, 2 * corner_k())
 		} else {
 			big_icon(app, t.path, e^, pic)
 		}
@@ -194,7 +188,7 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	// cut in its middle
 	lines := height - pic - em * (ui.SPACE_2 + 1.3 + ui.SPACE_2) >= em * CARD_LINE_EM * 2 ? 2 : 1
 	st := ui.top_style()
-	name := card_name(ui.text_shown(fs.base(shown_name(app, e^))), width - 2 * st.text_pad - 1, lines)
+	name := ui.table_card_name(ui.text_shown(fs.base(shown_name(app, e^))), width - 2 * st.text_pad - 1, lines)
 	ui.next({width = ui.fill(), height = ui.px(lines == 2 ? em * CARD_LINE_EM * 2 : em * 1.5), text_align = .Center})
 	// (a tile's name is the tile's: its drag moves the files, its press picks them; not text to select)
 	ui.paragraph(fmt.tprintf("%s###n", name), selectable = false)
@@ -207,57 +201,12 @@ card_body :: proc(app: ^App, t: ^Tab, e: ^fs.Entry, selected: bool, width, heigh
 	ui.space(ui.SPACE_2)
 }
 
-// A card's name in at most `lines` lines of `width` pixels, at the style's font (wrapped at its spaces, as the card's
-// paragraph wraps it): too long, it is cut in its middle, its end kept (the extension says what the file is).
-card_name :: proc(name: string, width: f32, lines: int) -> string {
-	st := ui.top_style()
-	if len(ui.wrap_lines(st.font, st.font_size, name, width)) <= lines { return name }
-	// (the starts of its letters: it is cut between them)
-	starts := make([dynamic]int, 0, len(name), context.temp_allocator)
-	for _, i in name { append(&starts, i) }
-	n := len(starts)
-	if n < 4 { return name }
-	// the end kept: the extension, its dot and three letters before it
-	ext := 0
-	for _ in fs.extension(name) { ext += 1 }
-	tail := min(ext + 4, n / 2)
-	tail_at := starts[n - tail]
-	// the most letters of the start that fit before it (found by halves)
-	lo, hi := 0, n - tail
-	for lo < hi {
-		mid := (lo + hi + 1) / 2
-		s := strings.concatenate({name[:starts[mid]], "…", name[tail_at:]}, context.temp_allocator)
-		if len(ui.wrap_lines(st.font, st.font_size, s, width)) <= lines { lo = mid } else { hi = mid - 1 }
-	}
-	return strings.concatenate({name[:starts[lo]], "…", name[tail_at:]}, context.temp_allocator)
-}
-
 // The icon of an entry, `size` large.
 @(private = "file")
 big_icon :: proc(app: ^App, dir: string, e: fs.Entry, size: f32) {
 	ui.spacer(ui.fill())
 	entry_glyph(app, dir, e, size)
 	ui.spacer(ui.fill())
-}
-
-@(private = "file")
-Picture_Draw :: struct {
-	tex:  render.Texture,
-	size: [2]f32,
-	round: f32,   // corner_k(): the settings' rounding
-}
-
-// The picture as large as it fits, centred, never larger than it is.
-@(private = "file")
-picture_draw :: proc(b: ^ui.Box, user: rawptr, dc: ^draw.Context) {
-	d := (^Picture_Draw)(user)
-	r := b.rect
-	room := r.max - r.min
-	if d.size.x <= 0 || d.size.y <= 0 || room.x <= 0 || room.y <= 0 { return }
-	scale := min(room.x / d.size.x, room.y / d.size.y, 1)
-	sz := d.size * scale
-	at := r.min + (room - sz) * 0.5
-	draw.image(dc, d.tex, {at, at + sz}, radius = 2 * d.round)
 }
 
 // The columns view (File Pilot's, Explorer's list): the names filled column by column, as many in a column as the height

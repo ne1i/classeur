@@ -219,7 +219,7 @@ folder_derive :: proc(f: ^Folder) {
 }
 
 // The bytes a selected entry adds to the selection's size: a file's (a folder's measured size in its entry is not one).
-@(private = "file")
+// (the band counts the rows it changes with it too)
 file_bytes :: proc(e: fs.Entry) -> i64 { return e.size > 0 && e.kind != .Directory ? e.size : 0 }
 
 folder_set_sort :: proc(f: ^Folder, s: fs.Sort) {
