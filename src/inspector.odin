@@ -13,7 +13,6 @@ import "core:unicode/utf8"
 import desktop "gt:desktop"
 import "gt:draw"
 import "gt:i18n"
-import img "gt:image"
 import lucide "gt:lucide"
 import "gt:platform"
 import "gt:render"
@@ -160,7 +159,7 @@ inspector_ask :: proc(app: ^App, path: string, e: fs.Entry) {
 	job^ = {app = app, serial = insp.serial, path = strings.clone(path), sort = app.default_sort}
 	switch {
 	case e.kind == .Directory:                                job.kind = .Folder
-	case e.kind == .File && picture_decodes(e.name):          job.kind = .Picture
+	case e.kind == .File && ui.file_thumbnail_decodes(e.name): job.kind = .Picture
 	case e.kind == .File && app.system_thumbs && preview_caption(e.name) != "":
 		job.kind, job.caption = .Picture, preview_caption(e.name)
 	case e.kind == .File && looks_textual(e.name, e.flags):   job.kind = .Text
@@ -223,23 +222,11 @@ inspect_run :: proc(data: rawptr) {
 			job.rgba, job.size = th.rgba, th.size
 			return
 		}
-		info, ok := fs.stat(job.path)
-		if !ok || info.size > ui.FILE_THUMB_DECODE_BYTES { job.kind = .Other; return }
-		bytes, err := os.read_entire_file(job.path, context.temp_allocator)
-		if err != nil { job.kind = .Other; return }
-		pic, _, decoded := img.decode(bytes)
-		if !decoded { job.kind = .Other; return }
-		// (decoded here, not by ui.file_thumbnail_make: the pane says the picture's own size, which that call does not
-		// give; at most INSPECTOR_PICTURE_PX, by the box filter)
-		w, h := pic.width, pic.height
-		job.pixels = {w, h}
-		job.rgba, job.size = pic.pixels, {w, h}
-		if max(w, h) > INSPECTOR_PICTURE_PX {
-			k := f32(INSPECTOR_PICTURE_PX) / f32(max(w, h))
-			small := img.resize(pic, max(1, int(f32(w) * k + 0.5)), max(1, int(f32(h) * k + 0.5)), .Box)
-			delete(pic.pixels)
-			job.rgba, job.size = small.pixels, {small.width, small.height}
-		}
+		// (the toolkit's decode, without the system: at most INSPECTOR_PICTURE_PX, and the picture's own size, which the
+		// pane says)
+		t, ok := ui.file_thumbnail_make(job.path, INSPECTOR_PICTURE_PX, false)
+		if !ok { job.kind = .Other; return }
+		job.rgba, job.size, job.pixels = t.rgba, {t.width, t.height}, t.picture
 	case .Text:
 		f, err := os.open(job.path)
 		if err != nil { job.kind = .Other; return }

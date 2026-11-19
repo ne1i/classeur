@@ -38,23 +38,10 @@ Thumb_Job :: struct {
 	size:   [2]int,
 }
 
-// Whether gt:image reads a file of this name, by its extension (the toolkit's local source reads the same).
-picture_decodes :: proc(name: string) -> bool {
-	ext := fs.extension(name)
-	if len(ext) > 4 { return false }
-	// (folded on the stack: each card built asks, at each frame)
-	buf: [4]u8
-	for i in 0 ..< len(ext) { c := ext[i]; buf[i] = c >= 'A' && c <= 'Z' ? c + 32 : c }
-	switch string(buf[:len(ext)]) {
-	case "png", "jpg", "jpeg", "bmp", "webp", "gif": return true
-	}
-	return false
-}
-
-// The entry has a thumbnail to ask: a picture classeur decodes, or any file when the system's thumbnails are asked (a type
-// with no thumbnailer fails once, and its card keeps its icon).
+// The entry has a thumbnail to ask: a picture the toolkit decodes, or any file when the system's thumbnails are asked (a
+// type with no thumbnailer fails once, and its card keeps its icon).
 thumb_wanted :: proc(app: ^App, e: ^fs.Entry) -> bool {
-	return e.kind == .File && (app.system_thumbs || picture_decodes(e.name))
+	return e.kind == .File && (app.system_thumbs || ui.file_thumbnail_decodes(e.name))
 }
 
 // After the cards of a build: the cache's asks sent, the least used dropped.
@@ -76,8 +63,8 @@ thumb_ask :: proc(user: rawptr, path: string, side: int, ticket: u64) {
 thumb_run :: proc(data: rawptr) {
 	job := (^Thumb_Job)(data)
 	defer if !ui.post(&job.app.main.state, thumb_done, job) { thumb_free(job) }
-	rgba, w, h, ok := ui.file_thumbnail_make(job.path, job.side, job.system, runtime.heap_allocator())
-	if ok { job.rgba, job.size = rgba, {w, h} }
+	t, ok := ui.file_thumbnail_make(job.path, job.side, job.system, runtime.heap_allocator())
+	if ok { job.rgba, job.size = t.rgba, {t.width, t.height} }
 }
 
 @(private = "file")
