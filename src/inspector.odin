@@ -224,14 +224,22 @@ inspect_run :: proc(data: rawptr) {
 			return
 		}
 		info, ok := fs.stat(job.path)
-		if !ok || info.size > THUMB_MAX_BYTES { job.kind = .Other; return }
+		if !ok || info.size > ui.FILE_THUMB_DECODE_BYTES { job.kind = .Other; return }
 		bytes, err := os.read_entire_file(job.path, context.temp_allocator)
 		if err != nil { job.kind = .Other; return }
 		pic, _, decoded := img.decode(bytes)
 		if !decoded { job.kind = .Other; return }
-		defer delete(pic.pixels)
-		job.pixels = {pic.width, pic.height}
-		job.rgba, job.size = picture_fit(pic, INSPECTOR_PICTURE_PX, context.allocator)
+		// (decoded here, not by ui.file_thumbnail_make: the pane says the picture's own size, which that call does not
+		// give; at most INSPECTOR_PICTURE_PX, by the box filter)
+		w, h := pic.width, pic.height
+		job.pixels = {w, h}
+		job.rgba, job.size = pic.pixels, {w, h}
+		if max(w, h) > INSPECTOR_PICTURE_PX {
+			k := f32(INSPECTOR_PICTURE_PX) / f32(max(w, h))
+			small := img.resize(pic, max(1, int(f32(w) * k + 0.5)), max(1, int(f32(h) * k + 0.5)), .Box)
+			delete(pic.pixels)
+			job.rgba, job.size = small.pixels, {small.width, small.height}
+		}
 	case .Text:
 		f, err := os.open(job.path)
 		if err != nil { job.kind = .Other; return }

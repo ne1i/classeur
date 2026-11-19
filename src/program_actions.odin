@@ -192,10 +192,9 @@ act_app_layout_reset :: proc(app: ^App) {
 	if t := current_tab(app); t != nil { t.focus_due = .List }
 }
 
-// The thumbnails made so far are forgotten: the cards shown ask for theirs again. (At the next build's start,
-// thumbs_clear_apply: this build's cards and its draw still hold their entries.)
+// The thumbnails made so far are forgotten: the cards shown ask for theirs again. One asked stays: its answer lands.
 act_app_thumbs_clear :: proc(app: ^App) {
-	app.thumbs_clear_due = true
+	ui.thumb_cache_clear(&app.thumbs)
 	announce(app, .Good, i18n.tr("The thumbnails are cleared."))
 	app_frames(app)
 }

@@ -34,7 +34,6 @@ view_build :: proc(h: ^host.Host, size: host.Vec2) {
 	app.room = size.x / max(ui.scale(), 0.01)
 	app.window_px_last, app.window_px = app.window_px, size
 	app.frame += 1
-	thumbs_clear_apply(app)
 	updates_follow(app)
 	// (the person's themes file read again when it changed: theme_show, in the next frame's params, shows the new one)
 	if prefs_page.themes_file_poll(&app.themes_file, &h.state) { app_frames(app) }

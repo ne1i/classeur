@@ -69,9 +69,12 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
   so its grid and its columns view stay its own, but it no longer keeps copies of what the toolkit has:
   - the rectangle is `ui.Item_Band`. `src/band.odin` adds only what the folder has and the toolkit's band does not
     know: one band for the window (`Band.tab`: the other panels' lists are left alone while it runs), the folder's menu
-    on a right click in the empty part, the rows of a folded group left out, and the selection's bytes kept row by row
-    (`Item_Band` sets the selection directly, so `band_update` reckons the rows it visited; a count over the folder at
-    each frame of a drag was refused). Escape gives the selection back (`item_band_cancel`).
+    on a right click in the empty part, and the selection's bytes kept row by row through `Item_Band.changed` (a count
+    over the folder at each frame of a drag was refused). Escape gives the selection back (`item_band_cancel`).
+  - a folded group's title row cannot be selected (`Folder.selectable`, given in `folder_rows`, made with the rows in
+    `folder_refilter`). The row stands for a group whose files are not shown: no click, key, Select all, Invert
+    selection or rectangle takes its first file, which an action would then act on unseen. The band, the clicks and
+    the keys read the same rule from `Item_Rows.selectable`.
   - the keys' moves in the grid and the columns view are `ui.item_move_target` (Lines of a row's cards, Columns of a
     column's names); what a move does to the selection was already `item_selection_move`.
   - a card's name is cut by `ui.table_card_name` (its middle, its extension kept).
@@ -87,17 +90,15 @@ This file keeps, per layer, the decisions that the code does not explain. The pl
   bytes limit is that many full thumbnails, so the count decides), a texture is made at its first draw. The key is the
   file's path, size and date (`ui.thumb_key`). Classeur's own cache, with a frame counter shared with its workers for
   the stale test, was refused once the toolkit had the same rules on the interface's thread.
-- **The work stays classeur's**, on `app.thumb_pool`, with the toolkit's rules for local files: what `gt:image` reads is
-  decoded and reduced (a box filter); another type, a picture over 64 MB, or one `gt:image` cannot read (a WebP in a
-  build without its decoder) gets the system's thumbnail. Classeur cannot hand the work to the toolkit's local source:
-  its thumbnail procedure is private and answers the file browser's cache, and it would ask the system with no way to
-  say no. Classeur asks the system only when `app.system_thumbs` is on (off headless: a test never reads nor writes the
-  person's cache).
-- **Clear thumbnails** makes the cache again at the start of the next build (`thumbs_clear_apply`), not in the command:
-  the build that ran it and its draw still hold their entries. The tickets' serial goes on, so an answer of an ask sent
-  before cannot land on an entry asked after.
+- **A thumbnail is made by the toolkit** (`ui.file_thumbnail_make`, the local source's rules: what `gt:image` reads is
+  decoded and reduced; another type, a picture over 64 MB, or one `gt:image` cannot read gets the system's thumbnail),
+  on classeur's own pool (`app.thumb_pool`), one call per ask. Classeur passes `app.system_thumbs` as its `system`: off
+  headless, so a test never reads nor writes the person's cache.
+- **Clear thumbnails** is `ui.thumb_cache_clear`: the cache frees the entries once no draw reads them, and the asks in
+  flight land as any answer.
 - The inspector shows a PDF's first page and a frame of a video: the system's large thumbnail, said so under it
-  (gui_toolkit's `desktop.thumbnail`). Its pictures are decoded with `gt:image` too.
+  (gui_toolkit's `desktop.thumbnail`). Its pictures are decoded with `gt:image` in the inspector's own job, not by
+  `file_thumbnail_make`: the pane says the picture's own size, which that call does not give.
 - A large picture's thumbnail (over 2 MB) is read from the system's cache first and kept there once decoded.
 
 ## Known gaps

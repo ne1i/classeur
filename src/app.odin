@@ -49,7 +49,6 @@ App :: struct {
 	places_asked: u64,              // the last read of the places asked (an older answer is dropped)
 	places_language: u32,           // i18n.version() the places' names were asked in (app_frame reads them again)
 	thumbs:      ui.Thumb_Cache,    // the grid's thumbnails (thumbs.odin), by path, size and date (ui.thumb_key)
-	thumbs_clear_due: bool,         // Clear thumbnails ran: the cache is made again at the next build's start
 	icons_cache: map[string]Sys_Icon,   // the system's icons by key and size (icons.odin)
 	icon_keys:   map[string]string,     // a file's name -> its icon's key (both owned)
 	type_names:  map[string]Type_Name,  // an extension -> the system's name of its type (type_names.odin; keys owned)

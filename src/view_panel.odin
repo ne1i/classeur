@@ -681,7 +681,8 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 	if !names_only { least = ui.table_min_width(&app.columns) }
 	t.vl.list.no_typeahead = true   // (the letters typed go to the filter, File Pilot's: filter_field)
 	// (no labels: no type-ahead to read them; the ids' version: a frame that changed nothing does no pass over the rows)
-	rows, ok := ui.vlist("###list", &t.vl, f.ids[:], ids_version = f.ids_version)
+	// (a folded group's title row is not selectable: the list's own keys skip it as the folder's rules do)
+	rows, ok := ui.vlist("###list", &t.vl, f.ids[:], selectable = f.selectable[:], ids_version = f.ids_version)
 	if !ok { return }
 	// (the layout is the panels' together; each tab keeps its own sideways scroll)
 	defer if !names_only {
@@ -712,7 +713,7 @@ folder_list :: proc(app: ^App, t: ^Tab, focused: bool, names_only: bool, em: f32
 		// (the list's own fill of the cursor's row is clear: the row draws its pill itself; a folded group: its title alone)
 		ui.next({width = least > 0 ? ui.fill_least(least) : ui.fill(), height = ui.px(folded ? head : ui.dense(em * ROW_EM) + head), radius = 0, bg = ui.Color{}})
 		if selected && focused { ui.push_tags("selected") }
-		sig := ui.list_row(&t.vl, row, e.name)
+		sig := ui.list_row(&t.vl, row, e.name, selectable = !folded)
 		// (the wheel's click on a folder's row is the row's: it opens in a tab; on a file, on the empty part it scrolls, the
 		// toolkit's autoscroll)
 		if sig.box != nil && e.kind == .Directory { sig.box.flags += {.Middle_Click} }

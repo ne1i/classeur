@@ -48,6 +48,9 @@ Folder :: struct {
 	name_index_n: int,              // the entries it was made for (another count, or -1: made again)
 	ids:         [dynamic]u64,      // a stable identity per row (the hash of its name): the virtual list's
 	ids_version: u64,               // raised at each change of `ids` (the virtual list then compares nothing)
+	// per row, whether it can be selected: false for a folded group's title row (its files are not shown, no gesture
+	// takes its first one); empty when no group is folded (every row can)
+	selectable:  [dynamic]bool,
 	// per entry, made with the listing (on the worker that read it: folder_prepare) so that a filter typed costs no
 	// allocation and no time zone per entry
 	entry_ids:   [dynamic]u64,      // the hash of its name
@@ -83,6 +86,7 @@ folder_destroy :: proc(f: ^Folder) {
 	delete(f.order)
 	delete(f.shown)
 	delete(f.ids)
+	delete(f.selectable)
 	delete(f.row_of)
 	delete(f.entry_ids)
 	delete(f.lowered)
@@ -165,6 +169,7 @@ folder_take :: proc(f, p: ^Folder) {
 	f.shown, p.shown = p.shown, f.shown
 	f.row_of, p.row_of = p.row_of, f.row_of
 	f.ids, p.ids = p.ids, f.ids
+	f.selectable, p.selectable = p.selectable, f.selectable
 	f.entry_ids, p.entry_ids = p.entry_ids, f.entry_ids
 	f.lowered, p.lowered = p.lowered, f.lowered
 	f.lower_arena, p.lower_arena = p.lower_arena, f.lower_arena
@@ -539,6 +544,7 @@ folder_refilter :: proc(f: ^Folder) {
 	folder_derive(f)
 	entries := f.listing.entries[:]
 	clear(&f.shown)
+	clear(&f.selectable)
 	f.size_max = 0
 	// with a filter, the rows best matched first (letters side by side, at the start of a word: ui.fuzzy_score); the
 	// order of the sort between equals
@@ -564,6 +570,8 @@ folder_refilter :: proc(f: ^Folder) {
 		for x, k in g {
 			if k > 0 && g[k - 1].key == x.key && x.key in f.folded { continue }
 			append(&f.shown, x.i)
+			// (the one row of a folded group is its title)
+			if len(f.folded) > 0 { append(&f.selectable, x.key not_in f.folded) }
 		}
 	}
 	if f.filter != "" {
@@ -611,8 +619,8 @@ folder_cursor_entry :: proc(f: ^Folder) -> ^fs.Entry {
 	return &f.listing.entries[f.shown[f.sel]]
 }
 
-// The rows the selection is over: those shown, by their ids.
-folder_rows :: proc(f: ^Folder) -> ui.Item_Rows { return {count = len(f.shown), ids = f.ids[:]} }
+// The rows the selection is over: those shown, by their ids; a folded group's title row cannot be selected.
+folder_rows :: proc(f: ^Folder) -> ui.Item_Rows { return {count = len(f.shown), ids = f.ids[:], selectable = f.selectable[:]} }
 
 // The cursor on `row`, the selection as it is; the anchor dropped, so that a Shift range starts from the cursor (a
 // filter typed, a name found again).
@@ -666,7 +674,10 @@ folder_pick :: proc(f: ^Folder, row: int, mods := platform.Modifiers{}) {
 }
 
 folder_invert_selection :: proc(f: ^Folder) {
-	for row in 0 ..< len(f.shown) { folder_set_row(f, row, !folder_row_selected(f, row)) }
+	rows := folder_rows(f)
+	for row in 0 ..< len(f.shown) {
+		if ui.item_rows_selectable(rows, row) { folder_set_row(f, row, !folder_row_selected(f, row)) }
+	}
 }
 
 // The entries an action applies to: the selection, else the entry at the cursor (Ctrl and the arrows took the cursor

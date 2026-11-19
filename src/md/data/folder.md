@@ -16,8 +16,11 @@ its cursor. It has no interface.
   the rows and a new listing of the same folder with no pass to translate it. A row the filter hides leaves it
   (`item_selection_keep` in `folder_refilter`): what is selected is what the person sees.
 - **The bytes of the selection follow its version.** `folder_selection_size` counts them again once after a change (a
-  pass over the rows, in the frame after the gesture). The rectangle changes rows one by one (`folder_set_row`): the
-  bytes follow each row, so a rectangle drawn over 100 000 rows costs the rows it touches at each frame, not a count.
+  pass over the rows, in the frame after the gesture). The rectangle tells each row it changes (`Item_Band.changed`,
+  `src/band.odin`): the bytes follow each row, so a rectangle drawn over 100 000 rows costs the rows it touches at each
+  frame, not a count.
+- **A folded group's title row cannot be selected** (`selectable`, made with the rows, given in `folder_rows`). Its
+  files are hidden; selecting its first file would let an action act on a file the person does not see.
 - **The rectangle feeds the same model.** Its base is the set of ids at the press; it sets the rows it touches and
   moves the cursor. When it ends, the anchor is dropped: a Shift range after it starts from the cursor, over what the
   rectangle selected.
