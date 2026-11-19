@@ -199,12 +199,16 @@ build_top :: proc(app: ^App, em: f32) {
 		if c.max.x > c.min.x {
 			left, right = max(c.min.x, 0), max(app.window_px_last.x - c.max.x, 0)
 		}
-		head := max(left - line, 0)
+		// (the head holds the logo and the sidebar's button while the sidebar is wide enough; over its folded rail only
+		// the button, which unfolds it: both drawn in the rail's width ran over each other and over the first tab)
+		toggle_w := em * (2.0 + ui.SPACE_1 + ui.SPACE_2)
+		with_logo := left - line >= toggle_w + em * (1.8 + ui.SPACE_2)
+		head := max(left - line, toggle_w)
 		col_w := (app.window_px.x - left - right - f32(max(cols - 1, 0)) * line) / f32(max(cols, 1))
 		ui.next({width = ui.px(head), height = ui.pct(1)})
 		if ui.row(.Center, {}, "###head") {
 			ui.space(ui.SPACE_2)
-			logo_icon(em * 1.8)
+			if with_logo { logo_icon(em * 1.8) }
 			ui.spacer(ui.fill())
 			if icon_action(app, "sidebar", sidebar_shown(app) ? lucide.PANEL_LEFT : lucide.PANEL_RIGHT, command_tip(app, "sidebar"), em, command = "sidebar") { act_toggle_sidebar(app) }
 			ui.space(ui.SPACE_1)
