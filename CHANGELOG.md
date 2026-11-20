@@ -3,6 +3,17 @@
 All notable changes to classeur are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [semantic versioning](https://semver.org/).
 
+## [0.42.0] - 2026-11-20 11:47
+
+### Added
+- **Lower latency on Linux**: during an animation or a drag, each frame starts as late as it can and still reaches the next refresh, so it shows the newest input.
+
+### Changed
+- **Every menu filters what is typed**: a field at the top of a menu keeps the items that match, in every menu.
+
+### Fixed
+- **`nix run github:sachahjkl/classeur` works.** A flake fetched from GitHub is a tarball without the gui_toolkit submodule, and the build stopped at once; the package now takes the toolkit from an input pinned to the submodule's commit.
+
 ## [0.41.2] - 2026-11-20 06:56
 
 ### Fixed
@@ -660,6 +671,7 @@ The command line is `--install`, `--uninstall`, `--status` and `--setup`, as in 
   window per person: a second `classeur <folder>` opens a tab in it.
 - Options (Ctrl+,): the theme, the font size, hidden files, extensions, folders first, single click, the measures.
 
+[0.42.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.42.0
 [0.41.2]: https://github.com/sachahjkl/classeur/releases/tag/v0.41.2
 [0.41.1]: https://github.com/sachahjkl/classeur/releases/tag/v0.41.1
 [0.41.0]: https://github.com/sachahjkl/classeur/releases/tag/v0.41.0
