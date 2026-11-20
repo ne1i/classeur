@@ -1224,7 +1224,7 @@ ZOOM_ICONS := [?]string{lucide.TABLE_2, lucide.LIST, lucide.COLUMNS_2, lucide.LA
 // is dragged from step to step (the view following smoothly), the wheel and Up, Down too.
 zoom_slider_open :: proc(app: ^App, t: ^Tab, at: ui.Rect) {
 	app.zoom_slider_tab = t.id
-	ui.menu_open(ZOOM_SLIDER_MENU, at, search = false)   // (a slider, no items to search)
+	ui.menu_open(ZOOM_SLIDER_MENU, at)   // (a slider: no item, so the menu's filter field goes after its first frame)
 }
 
 zoom_slider_build :: proc(app: ^App, em: f32) {
